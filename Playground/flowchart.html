@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>비전보드 플로우 v0.6</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f13;
+  --surf: #18161f;
+  --surf2: #211f2c;
+  --text: #e0ddf0;
+  --muted: #6e6c84;
+  --border: #2a2838;
+  --c1:#8b5cf6; --c2:#10b981; --c3:#f43f5e;
+  --c4:#3b82f6; --c5:#f59e0b; --c6:#14b8a6;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  font-size: 14px; line-height: 1.6; min-height: 100vh;
+}
+
+/* ── 헤더 */
+.hd { padding:18px 16px 10px; border-bottom:1px solid var(--border); text-align:center; }
+.hd h1 { font-size:16px; font-weight:700; }
+.hd p { font-size:11px; color:var(--muted); margin-top:3px; }
+
+/* ── 메인 탭 (전체플로우 + 섹션6개) */
+.main-tabs {
+  display:flex; padding:10px 12px; gap:6px;
+  overflow-x:auto; scrollbar-width:none;
+  border-bottom:1px solid var(--border); background:var(--surf);
+}
+.main-tabs::-webkit-scrollbar{display:none;}
+.mtab {
+  flex-shrink:0; padding:7px 14px; border-radius:20px;
+  font-size:12px; font-weight:600; cursor:pointer;
+  border:1.5px solid var(--border);
+  background:transparent; color:var(--muted);
+  transition:all .15s; font-family:inherit;
+}
+.mtab:hover{color:var(--text);}
+.mtab.on{ color:#fff; background:var(--tc); border-color:var(--tc); }
+
+/* ── 패널 */
+.panel{ display:none; padding:20px 14px 60px; max-width:640px; margin:0 auto; }
+.panel.on{ display:block; }
+
+/* ════════════════════════
+   전체 플로우차트 탭
+═══════════════════════ */
+.fc { display:flex; flex-direction:column; align-items:center; gap:0; }
+
+/* 플로우 박스 공통 */
+.fb {
+  width:100%; border-radius:12px; padding:13px 18px;
+  font-size:13px; text-align:center; position:relative;
+}
+/* 인트로 */
+.fb-intro {
+  background:#1e1b2e; border:1.5px solid #4a3fa0; color:#c4bfea;
+}
+.fb-intro .tag {
+  font-size:11px; font-weight:700; color:#7c6fcd;
+  letter-spacing:.08em; display:block; margin-bottom:4px;
+}
+/* 루프 외곽 */
+.fc-loop {
+  width:100%; border:2px dashed #3a3550; border-radius:16px;
+  padding:18px 14px 14px; background:#13111d; position:relative;
+}
+.fc-loop-title {
+  position:absolute; top:-11px; left:50%; transform:translateX(-50%);
+  background:#13111d; padding:0 10px;
+  font-size:11px; font-weight:700; color:#7c6fcd; white-space:nowrap;
+}
+/* 페이즈 레이블 */
+.ph-label {
+  font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); text-align:center; margin:10px 0 6px;
+}
+/* 페이즈1 질문 가로 나열 */
+.ph1-row {
+  display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:6px;
+}
+.ph1-chip {
+  padding:6px 11px; border-radius:8px; font-size:12px; font-weight:600;
+  background:#1c1a2b; border:1.5px solid #2e2a45; color:#a89fe8; white-space:nowrap;
+}
+/* 리뷰 박스 */
+.fb-review {
+  background:#1e1e2e; border:1.5px solid #3a3550;
+  border-radius:10px; padding:10px 14px; font-size:12px;
+  color:#b0accc; text-align:center; width:100%;
+}
+/* 장면 박스 */
+.fb-scene {
+  background:#1a1e2e; border:1.5px solid #2a3558;
+  border-radius:10px; padding:11px 14px; font-size:12px;
+  color:#90a8e0; width:100%;
+}
+.fb-scene .sc-main { font-size:13px; font-weight:600; color:#a0b8f0; margin-bottom:4px; }
+.fb-scene .sc-ai {
+  display:inline-flex; align-items:center; gap:4px; margin-top:6px;
+  padding:4px 10px; background:#152030; border-radius:20px;
+  font-size:11px; color:#5b9bd5;
+}
+/* 이미지 박스 */
+.fb-img {
+  background:#1e1a30; border:1.5px solid #362a50;
+  border-radius:10px; padding:10px 14px; font-size:12px;
+  color:#9d8fdc; width:100%; text-align:center;
+}
+/* 체크인 */
+.fb-check {
+  background:#15201c; border:1.5px solid #254030;
+  border-radius:10px; padding:10px 14px; font-size:12px;
+  color:#80c0a0; text-align:center; width:100%;
+}
+.fb-check .sub { font-size:11px; color:#4a7860; margin-top:2px; }
+
+/* 수집 */
+.fb-collect {
+  background:#1e1e2e; border:1.5px solid #3a3550;
+  border-radius:12px; padding:13px 18px; text-align:center; width:100%;
+}
+.fb-collect strong { color:#a89fe8; display:block; margin-bottom:6px; }
+.chip-row { display:flex; justify-content:center; gap:6px; flex-wrap:wrap; }
+.chip {
+  padding:4px 12px; border-radius:20px; font-size:12px;
+  background:#2a2745; color:#9490cc;
+}
+
+/* 마무리 */
+.fb-finish {
+  background:#1e2215; border:1.5px solid #4a5a2a;
+  border-radius:12px; padding:14px 18px; width:100%;
+}
+.finish-ttl { font-size:11px; font-weight:700; color:#8aaa40; letter-spacing:.08em; text-align:center; margin-bottom:10px; }
+.fstep {
+  display:flex; gap:10px; align-items:flex-start;
+  background:#1a1e10; border-radius:8px; padding:9px 11px; margin-bottom:7px;
+}
+.fnum {
+  width:22px; height:22px; border-radius:50%; background:#4a5a2a; color:#c8e070;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; flex-shrink:0; margin-top:1px;
+}
+.ftext { font-size:13px; color:#c0cc90; line-height:1.5; }
+.fsub { font-size:11px; color:#6a8030; margin-top:2px; }
+.fsep { text-align:center; color:#3a4020; padding:3px 0; }
+
+/* 완성 */
+.fb-done {
+  background:linear-gradient(135deg,#1e1b2e,#1a2535);
+  border:2px solid #7c6fcd; border-radius:14px;
+  padding:20px 24px; text-align:center; width:100%;
+}
+.fb-done .em { font-size:36px; display:block; margin-bottom:8px; }
+.fb-done .t { font-size:16px; font-weight:700; color:#c4bfea; }
+
+/* 화살표 */
+.arr {
+  display:flex; flex-direction:column; align-items:center;
+  padding:4px 0;
+}
+.arr-line { width:2px; height:16px; background:#3a3550; }
+.arr-head { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid #3a3550; }
+.arr-sm .arr-line { height:10px; }
+.gap { height:4px; }
+
+/* ════════════════════════
+   섹션 상세 탭
+═══════════════════════ */
+.sec-hd { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.sec-badge {
+  width:44px; height:44px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; font-weight:800; color:white; flex-shrink:0;
+}
+.sec-name { font-size:18px; font-weight:700; }
+.sec-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* 페이즈 구분 */
+.phase-block { margin-bottom:14px; }
+.phase-title {
+  font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  padding:5px 12px; border-radius:6px; margin-bottom:10px;
+  display:inline-block;
+}
+.phase-q .phase-title { background:#1c1a2b; color:#6a6090; }
+.phase-r .phase-title { background:#1a1e2e; color:#505880; }
+.phase-s .phase-title { background:#152030; color:#405070; }
+.phase-i .phase-title { background:#1e1a30; color:#504070; }
+
+/* 슬롯 */
+.slot-wrap { display:flex; gap:0; }
+.slot-left {
+  display:flex; flex-direction:column; align-items:center;
+  width:34px; flex-shrink:0; padding-top:13px;
+}
+.slot-num {
+  width:26px; height:26px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; flex-shrink:0;
+}
+.slot-vline { width:2px; flex:1; background:var(--border); margin-top:5px; min-height:14px; }
+.slot-body {
+  flex:1; background:var(--surf); border:1.5px solid var(--border);
+  border-radius:12px; padding:12px 14px; margin:4px 0;
+}
+.slot-lbl { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:5px; }
+.slot-q { font-size:14px; font-weight:500; color:var(--text); }
+.slot-ex { font-size:12px; color:var(--muted); margin-top:5px; font-style:italic; }
+.slot-note { font-size:12px; color:#5a608a; margin-top:4px; }
+.ai-chip {
+  display:inline-flex; align-items:center; gap:4px; margin-top:8px;
+  padding:4px 10px; border-radius:20px; font-size:11px;
+  background:#152030; color:#5b9bd5; border:1px solid #2a3a5a;
+}
+.img-chip {
+  display:inline-flex; align-items:center; gap:4px; margin-top:8px;
+  padding:4px 10px; border-radius:20px; font-size:11px;
+  background:#1e1a30; color:#9d8fdc; border:1px solid #362a50;
+}
+.help-btn {
+  display:block; margin-top:9px; background:transparent;
+  border:1px solid var(--border); border-radius:20px;
+  padding:5px 12px; font-size:11px; color:var(--muted);
+  cursor:pointer; transition:all .15s; font-family:inherit;
+}
+.help-btn:hover { border-color:var(--muted); color:var(--text); }
+.help-panel {
+  display:none; margin-top:7px; padding:9px 12px;
+  background:#15182a; border-radius:8px; border:1px solid #252840;
+  font-size:12px; color:#8b9bd5; line-height:1.65;
+}
+.help-panel.open { display:block; }
+
+/* 리뷰 박스 (섹션 내) */
+.review-box {
+  background:#1e1e2e; border:1.5px dashed #3a3550;
+  border-radius:12px; padding:13px 16px; text-align:center;
+}
+.review-box .rtitle { font-size:13px; font-weight:600; color:#a89fe8; margin-bottom:4px; }
+.review-box .rsub { font-size:12px; color:var(--muted); }
+.review-cards { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
+.rc {
+  padding:5px 12px; background:#2a2745; border-radius:8px;
+  font-size:12px; color:#8880c0;
+}
+
+/* 체크인 */
+.checkin {
+  display:flex; align-items:flex-start; gap:10px;
+  margin-top:14px; padding:12px 14px;
+  background:#15201c; border:1.5px solid #254030; border-radius:12px;
+}
+.ci-icon { font-size:18px; flex-shrink:0; line-height:1; margin-top:1px; }
+.ci-t { font-size:13px; font-weight:700; color:#80c0a0; }
+.ci-s { font-size:12px; color:#4a7860; margin-top:2px; }
+
+/* 마무리·완성 카드 */
+.info-card {
+  background:var(--surf); border:1.5px solid var(--border);
+  border-radius:14px; padding:20px;
+}
+.info-ttl { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+.info-body { font-size:14px; line-height:1.75; }
+.info-body strong { color:#a89fe8; }
+.info-quote {
+  margin-top:12px; padding:10px 14px; background:var(--surf2);
+  border-radius:8px; font-size:13px; color:var(--muted); font-style:italic;
+  border-left:2px solid #4a3fa0;
+}
+.done-card {
+  text-align:center; padding:32px 24px;
+  background:var(--surf); border:2px solid #4a3fa0; border-radius:16px;
+}
+.done-em { font-size:44px; display:block; margin-bottom:10px; }
+.done-t { font-size:18px; font-weight:700; color:#a89fe8; }
+.done-s { font-size:13px; color:var(--muted); margin-top:5px; }
+
+@media(max-width:420px){
+  .panel{padding:14px 10px 48px;}
+  .ph1-row{gap:4px;}
+  .ph1-chip{font-size:11px; padding:5px 9px;}
+}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <h1>비전보드 전체 플로우 <span style="font-weight:400;color:#6e6c84;font-size:13px;">v0.6</span></h1>
+  <p>탭을 눌러 전체 플로우 또는 각 섹션 상세를 확인하세요</p>
+</div>
+
+<div class="main-tabs" id="tabs"></div>
+
+<!-- 전체 플로우차트 -->
+<div class="panel on" id="p-flow">
+<div class="fc">
+
+  <!-- 인트로 -->
+  <div class="fb fb-intro" style="width:100%">
+    <span class="tag">INTRO · 시작</span>
+    6개 섹션 소개 · 순서 안내 · "막히면 같이 찾아드릴게요, 저장하고 와도 돼요"
+  </div>
+
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- 섹션 루프 -->
+  <div class="fc-loop">
+    <div class="fc-loop-title">섹션 1 ~ 6 &nbsp;·&nbsp; 아래 흐름 6회 반복</div>
+
+    <!-- PHASE 1 -->
+    <div class="ph-label">PHASE 1 &nbsp;·&nbsp; 질문 답하기</div>
+    <div class="ph1-row">
+      <div class="ph1-chip">① 지금 (현재 상태)</div>
+      <div class="ph1-chip">② 방향 키워드</div>
+      <div class="ph1-chip">③ 원해!</div>
+      <div class="ph1-chip">⑤ 더 들여다보기</div>
+    </div>
+    <div style="text-align:center;font-size:11px;color:#4a3f80;margin-bottom:8px;">각 질문에서 막히면 → "도움이 필요해요" → AI 서브질문 (답은 본인이)</div>
+
+    <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+    <!-- PHASE 2 -->
+    <div class="ph-label">PHASE 2 &nbsp;·&nbsp; 내 답 한눈에 보기</div>
+    <div class="fb-review">
+      ①②③⑤ 에서 쓴 내용을 한 화면에 모아서 보여줌 · 수정 가능
+    </div>
+
+    <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+    <!-- PHASE 3 -->
+    <div class="ph-label">PHASE 3 &nbsp;·&nbsp; 장면 그리기</div>
+    <div class="fb-scene">
+      <div class="sc-main">④ 장면으로</div>
+      위에서 본 내 답들을 보면서 — "그 단어가 느껴지는 하루, 어디서 뭘 하고 있어?"
+      <div><span class="sc-ai">✦ 막히면 AI 장면 제안 (선택·수정·빈칸형)</span></div>
+    </div>
+
+    <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+    <!-- PHASE 4 -->
+    <div class="ph-label">PHASE 4 &nbsp;·&nbsp; 이미지 찾기</div>
+    <div class="fb-img">
+      ⑥ 이미지 찾기 &nbsp;·&nbsp; 3장 &nbsp;·&nbsp; 🔍 AI 검색어 제안
+    </div>
+
+    <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+    <!-- 체크인 -->
+    <div class="fb-check">
+      💾 섹션 완료 · 체크인 + 저장
+      <div class="sub">다음 섹션으로 가도 되고, 오늘은 여기까지 해도 돼요</div>
+    </div>
+
+    <div style="text-align:center;font-size:11px;color:#4a3f80;padding:10px 0 2px;">↺ 다음 섹션으로 (또는 저장 후 나중에)</div>
+  </div>
+
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- 수집 -->
+  <div class="fb-collect">
+    <strong>18장 다 모임</strong>
+    <div class="chip-row">
+      <span class="chip">슬라이드로 천천히</span>
+      <span class="chip" style="color:#6e6c84;">→</span>
+      <span class="chip">전체 펼침</span>
+    </div>
+  </div>
+
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- 마무리 -->
+  <div class="fb-finish">
+    <div class="finish-ttl">FINISH · 마무리</div>
+    <div class="fstep">
+      <div class="fnum">1</div>
+      <div><div class="ftext">AI가 <strong style="color:#c8e070">말</strong>로 패턴을 비춤</div>
+      <div class="fsub">6개 키워드·감정 단어·18장 반복 실 → 본인 단어 그대로, 선언 아닌 거울</div></div>
+    </div>
+    <div class="fsep">↓</div>
+    <div class="fstep" style="background:#151e18;">
+      <div class="fnum" style="background:#2a4a6a;color:#90d0f0;">✓</div>
+      <div><div class="ftext" style="color:#90c8e0;">본인이 한 문장 확정</div>
+      <div class="fsub" style="color:#4a7090;font-style:italic;">"이런 삶을 사는 나는 ___한 사람이다."</div></div>
+    </div>
+    <div class="fsep">↓</div>
+    <div class="fstep">
+      <div class="fnum">2</div>
+      <div><div class="ftext">그 문장으로 <strong style="color:#c8e070">통합 이미지 1장</strong></div>
+      <div class="fsub">콜라주 아닌 — 그 사람의 분위기를 담은 한 장</div></div>
+    </div>
+  </div>
+
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- 완성 -->
+  <div class="fb-done">
+    <span class="em">🎯</span>
+    <div class="t">완성된 나의 비전보드</div>
+  </div>
+
+</div>
+</div>
+
+<!-- 섹션 패널들 -->
+<div class="panel" id="p-0"></div>
+<div class="panel" id="p-1"></div>
+<div class="panel" id="p-2"></div>
+<div class="panel" id="p-3"></div>
+<div class="panel" id="p-4"></div>
+<div class="panel" id="p-5"></div>
+
+<script>
+// "★ 박지현: " 또는 "★ 박지현: \"...\"" 접두어 제거
+function eg(text) {
+  return text.replace(/^★\s*박지현:\s*/, '').replace(/^"|"$/g, '');
+}
+
+const SECTIONS = [
+  {
+    num:1, name:'나', sub:'감정·성장·정체성', color:'#8b5cf6', emoji:'🪞',
+    q:[ // ① ② ③ ⑤ ④ ⑥
+      { num:'①', lbl:'지금', phase:'q',
+        q:'지금 나는 어떤 사람으로 살고 있어? 한 문장으로.',
+        ex:'예) 그냥 하루하루 버티는 사람 / 열심히 사는데 뭔가 빠진 느낌',
+        real:'★ 박지현: "몸과 마음을 챙기며, 나를 표현하는 연습을 하며 경제적 자유를 준비하는 사람"',
+        note:'좋은 답 나쁜 답 없어요. 솔직한 게 최고.' },
+      { num:'②', lbl:'방향 키워드', phase:'q',
+        q:'3년 뒤의 나를 한 단어로 표현해봐.',
+        ex:'예) 여유로운 / 단단한 / 설레는 / 자유로운',
+        real:'★ 박지현: "단단하고 트임"',
+        note:'목표보다 느낌·상태를 담은 단어면 좋아요.' },
+      { num:'③', lbl:'원해!', phase:'q',
+        q:'나를 위해 언젠가 꼭 해보고 싶은 것, 되고 싶은 모습이 있어?',
+        ex:'예) 악기 하나 배우기 / 내 이름으로 뭔가 만들기 / 번아웃 없이 사는 것',
+        real:'★ 박지현: 내 성격 담긴 브랜드 / 영어로 자유롭게 강의 듣기 / 이미지 컨설팅' },
+      { num:'⑤', lbl:'더 들여다보기', phase:'q',
+        q:'그게 이뤄진 나는 어떤 기분으로 하루를 살고 있을 것 같아?',
+        ex:'그 기분을 한 단어로 — 진짜 원함의 핵심이 여기서 나와요.',
+        real:'★ 박지현: "충만함·편안함으로 하루를 내 대로 잘 활동하고 싶어. 나를 평등할 줄 아는 사람."' },
+    ],
+    scene:{ num:'④', lbl:'장면으로',
+      q:'방금 쓴 단어가 느껴지는 하루. 어디서, 뭘 하고 있어?',
+      ex:'예) 카페 창가에서 혼자 책 읽는 중 / 아무 계획 없는 주말 아침',
+      real:'★ 박지현: "내 브랜드로 파생된 사람들을 한자리에 모아. 재택에서 나의 일을 시작하며, 메일엔 업체들만 있고, 강연 요청도 들어와. 재무적 성장도 하고 있어."' },
+    img:{ num:'⑥', lbl:'이미지 찾기',
+      ex:'"여유로운 아침" "혼자만의 시간" "나만의 루틴"',
+      real:'★ 박지현: 나만의 서재 / 좋은 이메일 알림 / 내 SNS·웹사이트 / 고객 후기 / 영향력 있는 모습' }
+  },
+  {
+    num:2, name:'건강', sub:'몸·마음·에너지', color:'#10b981', emoji:'🌿',
+    q:[
+      { num:'①', lbl:'지금', phase:'q',
+        q:'지금 내 몸 상태, 10점 만점에 몇 점? 어떤 부분 때문에 그 점수야?',
+        ex:'예) 5점 — 항상 피곤해서 / 3점 — 운동을 아예 안 해서',
+        real:'★ 박지현: "7점 — 술×, 건강한 아침식사, 비타민·약 챙김. 3점 빠진 이유 — 운동·스트레칭 없음"' },
+      { num:'②', lbl:'방향 키워드', phase:'q',
+        q:'3년 뒤 내 몸과 나의 관계, 어떤 한 단어면 좋겠어?',
+        ex:'예) 가볍다 / 활기차다 / 내 편이다',
+        real:'★ 박지현: "가벼운 평안함"' },
+      { num:'③', lbl:'원해!', phase:'q',
+        q:'해보고 싶은 운동, 도전해보고 싶은 것, 몸에 관해 이루고 싶은 것.',
+        ex:'예) 마라톤 완주 / 서핑 배우기 / 주 3회 운동 루틴',
+        real:'★ 박지현: 요가 프로필 사진 / 10KM 런닝 / 수영 / 줄넘기' },
+      { num:'⑤', lbl:'더 들여다보기', phase:'q',
+        q:'몸이 가뿐하고 에너지 넘칠 때, 지금은 못 하지만 하고 싶어지는 게 있어?',
+        note:'건강해져서 뭘 하고 싶은지가 더 강한 동기가 돼요.',
+        real:'★ 박지현: 트래킹 / 집안 근육 바꾸기 / 집안 정비 완성하기' },
+    ],
+    scene:{ num:'④', lbl:'장면으로',
+      q:'방금 쓴 단어가 느껴지는 순간. 어디야? 뭘 하고 있어?',
+      ex:'예) 산 정상에서 탁 트인 뷰 / 운동 끝내고 개운하게 샤워하는 중',
+      real:'★ 박지현: "자고 일어났을 때 숨이 편안하게 다니는 길 느끼고 있어. 속 편한 음식을 먹고 가볍게 산책하고 있어."' },
+    img:{ num:'⑥', lbl:'이미지 찾기',
+      ex:'"서핑 라이프" "등산 뷰" "새벽 러닝" "활기찬 아침"',
+      real:'★ 박지현: 마라톤 결승선 / 내가 가장 마음에 드는 모습 / 자연 속 쉬는 모습 / 숲길 산책' }
+  },
+  {
+    num:3, name:'관계·가족', sub:'남편·가족·친구', color:'#f43f5e', emoji:'💛',
+    q:[
+      { num:'①', lbl:'지금', phase:'q',
+        q:'10년 뒤, 소중한 사람이 나를 떠올릴 때 어떤 사람으로 기억됐으면 좋겠어?',
+        ex:'예) "옆에 있으면 편한 사람"도 충분해', note:'거창하지 않아도 돼요.',
+        real:'★ 박지현: "나를 진정으로 생각하고 교류해주는 사람"' },
+      { num:'②', lbl:'방향 키워드', phase:'q',
+        q:'내가 원하는 관계의 느낌, 한 단어로 뽑아봐.',
+        ex:'예) 따뜻한 / 든든한 / 편안한',
+        real:'★ 박지현: "교류"' },
+      { num:'③', lbl:'원해!', phase:'q',
+        q:'관계나 가족에 관해 꼭 이루고 싶은 것, 함께하고 싶은 것이 있어?',
+        ex:'예) 가족 해외여행 / 아이 갖기 / 매주 데이트하는 날',
+        real:'★ 박지현: 우리만의 집 / 처음처럼 함께 / 둘 다 안 해본 경험 함께하기' },
+      { num:'⑤', lbl:'더 들여다보기', phase:'q',
+        q:'지금 가장 소중한데 더 가까워지고 싶은 사람이 있어? 그 사람이랑 어떤 시간을?',
+        ex:'예) 남편이랑 그냥 같이 있는 시간 / 오랜 친구랑 밥 먹으며 속 얘기',
+        real:'★ 박지현: "언니. 긍정적이고, 자랑스럽고, 편한 대화."' },
+    ],
+    scene:{ num:'④', lbl:'장면으로',
+      q:'방금 쓴 단어가 느껴지는 관계의 장면 하나. 누구랑, 어디서?',
+      ex:'예) 여름 저녁 가족이 다 같이 밥 먹는 식탁 / 남편이랑 여행지에서 걷는 중',
+      real:'★ 박지현: "각자의 생각에 대해서 \'그렇구나!\' 하고 도전하는 것을, 곁에서 들어주는 것."' },
+    img:{ num:'⑥', lbl:'이미지 찾기',
+      ex:'"가족 여행" "커플 여행" "따뜻한 식탁"',
+      real:'★ 박지현: 함께 있는 모습 / 서로 응원하고 지원하는 느낌 / 대화하는 모습' }
+  },
+  {
+    num:4, name:'일·성장', sub:'커리어·배움·의미', color:'#3b82f6', emoji:'🚀',
+    q:[
+      { num:'①', lbl:'지금', phase:'q',
+        q:'지금 일에서 제일 아쉬운 게 뭐야? 딱 하나만.',
+        ex:'예) 내가 하고 싶은 게 아니야 / 성장하는 느낌이 없어 / 자유가 없어',
+        real:'★ 박지현: "단순반복적인 것"' },
+      { num:'②', lbl:'방향 키워드', phase:'q',
+        q:'일하는 나를 한 문장으로 써봐. 어떤 사람으로 일하고 싶어?',
+        ex:'예) 좋아하는 걸 하면서 돈도 버는 사람 / 성장하고 있다는 게 느껴지는 사람',
+        real:'★ 박지현: "내 안에 있는 걸 활용하고, 배우며 성장하는 사람"' },
+      { num:'③', lbl:'원해!', phase:'q',
+        q:'일이나 성장에 관한 버킷리스트가 있어? 해보고 싶은 일, 이루고 싶은 것.',
+        ex:'예) 내 사업 시작하기 / 자격증 따기 / 강의 해보기',
+        real:'★ 박지현: 내 브랜드 상업화 / 내 프로그램 운영 / 글로벌 회사 출장' },
+      { num:'⑤', lbl:'더 들여다보기', phase:'q',
+        q:'월요일 아침, 살짝이라도 기대되는 날 — 어떤 일을 하고 있어?',
+        note:'일이 싫다면: "어떤 일이라면 월요일이 덜 싫을 것 같아?"',
+        real:'★ 박지현: "제안 메일에 대해 당당하고 있어."' },
+    ],
+    scene:{ num:'④', lbl:'장면으로',
+      q:'방금 쓴 문장 속의 내가 하루를 마무리하는 장면. 어디야? 어떤 기분?',
+      ex:'예) 내가 만든 것에 누군가 반응하는 순간 / 할 일 다 끝내고 가볍게 퇴근하는 길',
+      real:'★ 박지현: "내가 배웠던 것들이 잠재되어 있다가 효율로 나타나겠다고 느끼며, 경험력을 쌓아가."' },
+    img:{ num:'⑥', lbl:'이미지 찾기',
+      ex:'"재택근무 라이프" "카페 작업" "내 브랜드"',
+      real:'★ 박지현: 유료 크리에이터 모습 / 고객 후기 / 맥북·업무시스템 / 일의 비전보드' }
+  },
+  {
+    num:5, name:'돈·생활', sub:'재정·소비·여유', color:'#f59e0b', emoji:'✨',
+    q:[
+      { num:'①', lbl:'지금', phase:'q',
+        q:'지금 돈 때문에 참고 있거나 못 하고 있는 게 있어? 솔직하게.',
+        ex:'예) 여행 / 좋아하는 취미 / 부모님 용돈 / 집 바꾸기',
+        real:'★ 박지현: 요가 / 북유럽 여행 / 이미지 컨설팅 / CPCC 자격증' },
+      { num:'②', lbl:'방향 키워드', phase:'q',
+        q:'돈이 충분할 때 느끼고 싶은 감정, 한 단어로.',
+        ex:'예) 자유 / 안정 / 여유 / 당당함',
+        real:'★ 박지현: "안정"' },
+      { num:'③', lbl:'원해!', phase:'q',
+        q:'돈 버킷리스트가 있어? 사고 싶은 것, 가고 싶은 곳, 해주고 싶은 것.',
+        ex:'예) 하와이 여행 / 내 집 마련 / 차 바꾸기',
+        real:'★ 박지현: 하와이·제주 한 달씩 / 숲view·역세권 내 집 마련 / 해외 경험' },
+      { num:'⑤', lbl:'더 들여다보기', phase:'q',
+        q:'돈 걱정이 딱 사라진다면, 이번 주를 어떻게 보내고 싶어?',
+        note:'비싼 것 아니어도 괜찮아요.',
+        real:'★ 박지현: 집안 물건 싹 바꾸기 / 요가 / 이미지 컨설팅 / 언론 관리' },
+    ],
+    scene:{ num:'④', lbl:'장면으로',
+      q:'방금 쓴 단어가 느껴지는 순간. 어떤 상황이야?',
+      ex:'예) 망설임 없이 항공권 끊는 중 / 부모님이랑 좋은 식당에서 밥 먹는 중',
+      real:'★ 박지현: "당당하게 돈을 써도 불안하지 않으며, 평온하게 이것저것 하고 여행도 가는 것."' },
+    img:{ num:'⑥', lbl:'이미지 찾기',
+      ex:'"하와이 여행" "내 집 마련" "여유로운 주말"',
+      real:'★ 박지현: 원하는 것을 사는 모습 / 어떤 경험이든 활기차게 / 여유롭게 움직이는 모습' }
+  },
+  {
+    num:6, name:'공간·환경', sub:'집·동네·일상의 배경', color:'#14b8a6', emoji:'🏠',
+    q:[
+      { num:'①', lbl:'지금', phase:'q',
+        q:'집에 돌아왔을 때 제일 먼저 하고 싶은 게 뭐야? 지금 그게 가능해?',
+        ex:'예) 소파에 눕고 싶은데 좁아서 답답해 / 혼자 있고 싶은데 내 공간이 없어',
+        real:'★ 박지현: "정돈된 곳에, 옷 걸어두고, 가방 정리 → 지금도 가능한 것."' },
+      { num:'②', lbl:'방향 키워드', phase:'q',
+        q:'내가 원하는 공간을 딱 한 단어로 표현하면?',
+        ex:'예) 따뜻한 / 조용한 / 나다운 / 포근한',
+        real:'★ 박지현: "심플"' },
+      { num:'③', lbl:'원해!', phase:'q',
+        q:'살고 싶은 곳, 갖고 싶은 공간, 해보고 싶은 것.',
+        ex:'예) 제주 한 달 살기 / 마당 있는 집 / 뷰 좋은 아파트 / 내 서재 갖기',
+        real:'★ 박지현: 정돈된 집 / 나만의 서재 / 숲view 아파트 / 성장·집중 공간' },
+      { num:'⑤', lbl:'더 들여다보기', phase:'q',
+        q:'이상적인 집에서 하루를 보낸다면, 아침부터 저녁까지 어떻게 흘러가?',
+        ex:'예) 햇빛 드는 창가에서 커피로 시작 / 조용한 서재에서 잠들기 전 독서',
+        real:'★ 박지현: "숲View 보며 스트레칭·명상 → 간단한 아침 → 서재에서 작업 → 제대로 요리 → 아로마 켜고 폭 잠."' },
+    ],
+    scene:{ num:'④', lbl:'장면으로',
+      q:'그 공간에서 제일 오래 있고 싶은 곳은 어디야? 거기서 보통 뭐 해?',
+      ex:'예) 소파에 누워 좋아하는 거 틀어놓기 / 넓은 주방에서 주말 아침 요리하기',
+      real:'★ 박지현: "내 서재. 내 생각을 구체화하고, 정리하고, 세상에 펼쳐놓기."' },
+    img:{ num:'⑥', lbl:'이미지 찾기',
+      ex:'"따뜻한 인테리어" "마당 있는 집" "감성 서재"',
+      real:'★ 박지현: 세탁·욕실 분리 공간 / 큰 거실 / 독서 식탁 / 숲View / 미니멀한 공간 / 완전한 수면 안방' }
+  },
+];
+
+// 탭 렌더
+const tabs = document.getElementById('tabs');
+const colors = {flow:'#4a3fa0', 0:'#8b5cf6',1:'#10b981',2:'#f43f5e',3:'#3b82f6',4:'#f59e0b',5:'#14b8a6'};
+
+function makeTab(id, label, color) {
+  const t = document.createElement('button');
+  t.className = 'mtab'; t.textContent = label;
+  t.style.setProperty('--tc', color);
+  t.dataset.id = id;
+  t.onclick = () => switchTab(id);
+  return t;
+}
+
+tabs.appendChild(makeTab('flow','전체 플로우차트', colors.flow));
+SECTIONS.forEach((s,i) => tabs.appendChild(makeTab(String(i), `${s.emoji} ${s.num}. ${s.name}`, s.color)));
+
+function switchTab(id) {
+  document.querySelectorAll('.mtab').forEach(t => t.classList.toggle('on', t.dataset.id === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  const target = id === 'flow' ? 'p-flow' : `p-${id}`;
+  document.getElementById(target).classList.add('on');
+}
+switchTab('flow');
+
+// 섹션 패널 렌더
+SECTIONS.forEach((sec, idx) => {
+  const el = document.getElementById(`p-${idx}`);
+  const c = sec.color;
+  const bg = c + '20';
+
+  const slotsHtml = sec.q.map((sl, i) => {
+    const last = i === sec.q.length - 1;
+    return `
+    <div class="slot-wrap">
+      <div class="slot-left">
+        <div class="slot-num" style="background:${bg};color:${c};border:1.5px solid ${c}44">${sl.num}</div>
+        ${!last ? '<div class="slot-vline"></div>' : ''}
+      </div>
+      <div class="slot-body">
+        <div class="slot-lbl" style="color:${c}">${sl.lbl}</div>
+        <div class="slot-q">${sl.q}</div>
+        ${sl.ex ? `<div class="slot-ex">${sl.ex}</div>` : ''}
+        ${sl.note ? `<div class="slot-note">${sl.note}</div>` : ''}
+        ${sl.real ? `<div class="slot-ex" style="margin-top:5px;">${eg(sl.real)}</div>` : ''}
+        <button class="help-btn" onclick="toggleHelp(this)">막히면? 도움 받기 →</button>
+        <div class="help-panel">AI가 작은 질문으로 길을 열어줘요. 답은 항상 본인이 해요.<br><span style="color:#3a4060">(서브질문 작성 예정)</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const sceneHtml = `
+    <div class="slot-wrap">
+      <div class="slot-left">
+        <div class="slot-num" style="background:${bg};color:${c};border:1.5px solid ${c}44">${sec.scene.num}</div>
+      </div>
+      <div class="slot-body" style="border-color:${c}44;background:${c}10;">
+        <div class="slot-lbl" style="color:${c}">${sec.scene.lbl}</div>
+        <div class="slot-q">위에서 본 내 답들을 보면서 —<br>${sec.scene.q}</div>
+        ${sec.scene.ex ? `<div class="slot-ex">${sec.scene.ex}</div>` : ''}
+        ${sec.scene.real ? `<div class="slot-ex" style="margin-top:5px;">${eg(sec.scene.real)}</div>` : ''}
+        <span class="ai-chip">✦ 막히면 AI 장면 제안 — 선택·수정·빈칸형 다 가능</span>
+      </div>
+    </div>`;
+
+  const imgHtml = `
+    <div class="slot-wrap">
+      <div class="slot-left">
+        <div class="slot-num" style="background:#1e1a30;color:#9d8fdc;border:1.5px solid #362a50">${sec.img.num}</div>
+      </div>
+      <div class="slot-body">
+        <div class="slot-lbl" style="color:#9d8fdc">${sec.img.lbl}</div>
+        <div class="slot-q">이 느낌을 담은 사진 3장을 골라봐.</div>
+        ${sec.img.ex ? `<div class="slot-ex">검색어 참고: ${sec.img.ex}</div>` : ''}
+        ${sec.img.real ? `<div class="slot-ex" style="margin-top:5px;">${eg(sec.img.real)}</div>` : ''}
+        <span class="img-chip">🔍 AI가 검색어를 제안해줘요</span>
+      </div>
+    </div>`;
+
+  el.innerHTML = `
+    <div class="sec-hd">
+      <div class="sec-badge" style="background:${c}">${sec.num}</div>
+      <div>
+        <div class="sec-name">${sec.emoji} ${sec.name}</div>
+        <div class="sec-sub">${sec.sub}</div>
+      </div>
+    </div>
+
+    <div class="phase-block phase-q">
+      <div class="phase-title">PHASE 1 · 질문 답하기</div>
+      ${slotsHtml}
+    </div>
+
+    <div class="phase-block phase-r">
+      <div class="phase-title">PHASE 2 · 내 답 한눈에 보기</div>
+      <div class="review-box">
+        <div class="rtitle">앞에서 쓴 내용이 여기 모여요</div>
+        <div class="rsub">천천히 읽고 — 수정하고 싶으면 수정해도 돼요</div>
+        <div class="review-cards">
+          <span class="rc">① 지금 나는…</span>
+          <span class="rc">② 방향 키워드</span>
+          <span class="rc">③ 원하는 것들</span>
+          <span class="rc">⑤ 그때의 기분</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-block phase-s">
+      <div class="phase-title">PHASE 3 · 장면 그리기</div>
+      ${sceneHtml}
+    </div>
+
+    <div class="phase-block phase-i">
+      <div class="phase-title">PHASE 4 · 이미지 찾기</div>
+      ${imgHtml}
+    </div>
+
+    <div class="checkin">
+      <div class="ci-icon">💾</div>
+      <div>
+        <div class="ci-t">섹션 완료 · 저장</div>
+        <div class="ci-s">지금까지 쓴 내용이 저장돼요. 다음 섹션으로 가도 되고, 오늘은 여기까지 해도 돼요.</div>
+      </div>
+    </div>`;
+});
+
+function toggleHelp(btn) {
+  const p = btn.nextElementSibling;
+  p.classList.toggle('open');
+  btn.textContent = p.classList.contains('open') ? '접기 ↑' : '막히면? 도움 받기 →';
+}
+</script>
+</body>
+</html>
