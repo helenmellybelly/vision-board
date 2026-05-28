@@ -2,7 +2,10 @@ export type SectionId = 1 | 2 | 3 | 4 | 5 | 6;
 
 export type SlotId = 1 | 2 | 3 | 4 | 5 | 6;
 
-export type SectionStatus = 'not_started' | 'in_progress' | 'completed';
+// not_started → in_progress → text_complete → completed
+// text_complete = PHASE1+2 done (텍스트 답변 완료)
+// completed = scene + images 까지 완료
+export type SectionStatus = 'not_started' | 'in_progress' | 'text_complete' | 'completed';
 
 export interface SubQuestion {
   id: number;
@@ -35,10 +38,6 @@ export interface SlotAnswer {
   helpAnswers?: string[];
 }
 
-export interface SectionImages {
-  images: (string | null)[];
-}
-
 export interface SectionData {
   id: SectionId;
   status: SectionStatus;
@@ -46,12 +45,14 @@ export interface SectionData {
   currentSlotIndex: number;
   slots: Record<SlotId, SlotAnswer | undefined>;
   images: (string | null)[];
+  sceneText?: string;
   completedAt?: number;
 }
 
 export interface BoardData {
   sections: Record<SectionId, SectionData>;
   onboardingDone: boolean;
+  userName: string;
   startedAt: number;
   finishedAt?: number;
 }

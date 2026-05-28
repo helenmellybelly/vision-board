@@ -10,6 +10,7 @@ interface Props {
   totalSlots: number;
   savedAnswer?: SlotAnswer;
   onSave: (answer: SlotAnswer) => void;
+  onSkip: () => void;
   onBack?: () => void;
 }
 
@@ -20,30 +21,27 @@ export default function SlotQuestion({
   totalSlots,
   savedAnswer,
   onSave,
+  onSkip,
   onBack,
 }: Props) {
-  const [text, setText] = useState(savedAnswer?.text || '');
+  const [text, setText] = useState(savedAnswer?.isDeferred ? '' : (savedAnswer?.text || ''));
   const [showHelp, setShowHelp] = useState(false);
-  const [showExample, setShowExample] = useState(false);
+
+  const hasText = text.trim().length > 0;
 
   function handleNext() {
-    if (text.trim()) {
-      onSave({ text: text.trim(), isDeferred: false });
-    } else {
-      onSave({ text: '', isDeferred: true });
-    }
+    onSave({ text: text.trim(), isDeferred: false });
   }
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-120px)] animate-fadeIn">
+      {/* 진행 바 */}
       <div className="flex gap-1 mb-6">
         {Array.from({ length: totalSlots }).map((_, i) => (
           <div
             key={i}
             className="h-1 flex-1 rounded-full"
-            style={{
-              backgroundColor: i <= slotIndex ? section.color : '#E5E3DF',
-            }}
+            style={{ backgroundColor: i <= slotIndex ? section.color : '#E5E3DF' }}
           />
         ))}
       </div>
@@ -60,19 +58,11 @@ export default function SlotQuestion({
 
         <h2 className="text-xl font-bold leading-snug">{slot.mainQuestion}</h2>
 
+        {/* 예시 — 기본 노출 */}
         {slot.example && (
-          <div>
-            <button
-              onClick={() => setShowExample((v) => !v)}
-              className="text-xs text-[#9CA3AF] underline"
-            >
-              {showExample ? '예시 닫기' : '예시 보기'}
-            </button>
-            {showExample && (
-              <p className="mt-2 text-sm text-[#6B7280] bg-[#F9F8F6] rounded-xl p-3 leading-relaxed">
-                {slot.example}
-              </p>
-            )}
+          <div className="text-sm text-[#6B7280] bg-[#F9F8F6] rounded-xl px-3 py-2.5 leading-relaxed">
+            <span className="text-xs font-semibold text-[#9CA3AF] mr-1">예)</span>
+            {slot.example}
           </div>
         )}
 
@@ -82,8 +72,10 @@ export default function SlotQuestion({
           placeholder={slot.placeholder}
           rows={4}
           className="w-full bg-white border border-[#E5E3DF] rounded-2xl p-4 text-base placeholder-[#C4C2BE] focus:outline-none focus:border-[#1C1B19] transition-colors"
+          autoFocus
         />
 
+        {/* 도움이 필요해요 */}
         {slot.helpQuestions.length > 0 && (
           <div>
             <button
@@ -91,7 +83,7 @@ export default function SlotQuestion({
               className="flex items-center gap-1.5 text-sm text-[#6B7280]"
             >
               <span className="text-base">💬</span>
-              <span>{showHelp ? '닫기' : '도움이 필요해요'}</span>
+              <span>{showHelp ? '닫기' : '답변하는데 도움이 필요해요'}</span>
             </button>
             {showHelp && (
               <div className="mt-3 space-y-2">
@@ -111,18 +103,29 @@ export default function SlotQuestion({
       </div>
 
       <div className="space-y-2 pt-4">
+        {/* 메인 CTA — 텍스트 있을 때만 활성화 */}
         <button
           onClick={handleNext}
-          className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
-          style={{ backgroundColor: text.trim() ? section.color : '#1C1B19' }}
+          disabled={!hasText}
+          className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-all"
+          style={{
+            backgroundColor: hasText ? section.color : '#D1D5DB',
+            cursor: hasText ? 'pointer' : 'not-allowed',
+          }}
         >
-          {text.trim() ? '다음' : '나중에 답할게요'}
+          다음 질문은 뭐야?
         </button>
+
+        {/* 스킵 */}
+        <button
+          onClick={onSkip}
+          className="w-full py-2 text-sm text-[#9CA3AF]"
+        >
+          잠시 스킵할게요
+        </button>
+
         {onBack && (
-          <button
-            onClick={onBack}
-            className="w-full py-2 text-sm text-[#6B7280]"
-          >
+          <button onClick={onBack} className="w-full py-1.5 text-xs text-[#C4C2BE]">
             이전
           </button>
         )}

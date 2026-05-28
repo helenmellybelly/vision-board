@@ -3,7 +3,7 @@ import { Section } from './types';
 export const SECTIONS: Section[] = [
   {
     id: 1,
-    title: '나',
+    title: '나 — 감정·성장·정체성',
     subtitle: '어떤 사람으로, 어떤 감각으로 살고 싶은지',
     color: '#8B5CF6',
     lightColor: '#EDE9FE',
@@ -82,7 +82,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: 2,
-    title: '건강',
+    title: '건강 — 몸·마음·에너지',
     subtitle: '체력, 수면, 멘탈 — 몸이 내 편인 삶',
     color: '#10B981',
     lightColor: '#D1FAE5',
@@ -161,7 +161,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: 3,
-    title: '관계·가족',
+    title: '관계·가족 — 남편·가족·친구',
     subtitle: '어떤 관계들로 둘러싸여 살고 싶은지',
     color: '#F59E0B',
     lightColor: '#FEF3C7',
@@ -240,7 +240,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: 4,
-    title: '일·성장',
+    title: '일·성장 — 커리어·배움·의미',
     subtitle: '돈을 떠나서, 어떤 일을 하며 어떻게 성장하고 싶은지',
     color: '#3B82F6',
     lightColor: '#DBEAFE',
@@ -319,7 +319,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: 5,
-    title: '돈·생활',
+    title: '돈·생활 — 재정·소비·여유',
     subtitle: '액수보다, 돈이 있을 때 어떤 선택을 하고 싶은지',
     color: '#F97316',
     lightColor: '#FFEDD5',
@@ -398,7 +398,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: 6,
-    title: '공간·환경',
+    title: '공간·환경 — 집·동네·일상의 배경',
     subtitle: '매일 돌아오고 싶은 공간이 어떤 모습인지',
     color: '#06B6D4',
     lightColor: '#CFFAFE',

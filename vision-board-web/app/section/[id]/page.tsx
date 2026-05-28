@@ -3,15 +3,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
-import { loadBoard, saveBoard, saveSlotAnswer, saveSectionImage, markSectionComplete } from '@/lib/storage';
+import { loadBoard, saveSlotAnswer, markSectionTextComplete } from '@/lib/storage';
 import { BoardData, Section, SlotAnswer, SlotId, PHASE1_SLOTS } from '@/lib/types';
 import SlotQuestion from './SlotQuestion';
 import PhaseReview from './PhaseReview';
-import PhaseScene from './PhaseScene';
-import PhaseImages from './PhaseImages';
+import DeferredCheck from './DeferredCheck';
 import SectionComplete from './SectionComplete';
 
-type Phase = 'slot' | 'review' | 'scene' | 'images' | 'complete';
+type Phase = 'slot' | 'review' | 'deferred' | 'complete';
 
 export default function SectionPage() {
   const router = useRouter();
@@ -26,13 +25,17 @@ export default function SectionPage() {
   const refreshBoard = useCallback(() => setBoard(loadBoard()), []);
 
   useEffect(() => {
-    refreshBoard();
-  }, [refreshBoard]);
+    const b = loadBoard();
+    setBoard(b);
+    // 이미 텍스트 완료면 완료 화면으로
+    if (b.sections[sectionId]?.status === 'text_complete' || b.sections[sectionId]?.status === 'completed') {
+      setPhase('complete');
+    }
+  }, [sectionId]);
 
   if (!section || !board) return null;
 
   const sectionData = board.sections[sectionId];
-  const currentSlot = section.slots.find((s) => s.phase === 1 && s.id === PHASE1_SLOTS[slotIndex]);
 
   function handleSlotSave(answer: SlotAnswer) {
     saveSlotAnswer(sectionId, PHASE1_SLOTS[slotIndex] as SlotId, answer);
@@ -44,30 +47,36 @@ export default function SectionPage() {
     }
   }
 
-  function handleReviewDone() {
-    setPhase('scene');
-  }
-
-  function handleSceneSave(answer: SlotAnswer) {
-    saveSlotAnswer(sectionId, 4 as SlotId, answer);
+  function handleSlotSkip() {
+    saveSlotAnswer(sectionId, PHASE1_SLOTS[slotIndex] as SlotId, { text: '', isDeferred: true });
     refreshBoard();
-    setPhase('images');
+    if (slotIndex < PHASE1_SLOTS.length - 1) {
+      setSlotIndex((i) => i + 1);
+    } else {
+      setPhase('review');
+    }
   }
 
-  function handleImagesSave(images: (string | null)[]) {
-    images.forEach((img, i) => saveSectionImage(sectionId, i, img));
+  function handleReviewDone() {
+    setPhase('deferred');
+  }
+
+  function handleDeferredAnswer(slotIdx: number) {
+    setSlotIndex(slotIdx);
+    setPhase('slot');
+  }
+
+  function handleDeferAll() {
+    markSectionTextComplete(sectionId);
     refreshBoard();
     setPhase('complete');
   }
 
   function handleComplete() {
-    markSectionComplete(sectionId);
     router.push('/dashboard');
   }
 
-  const slot4Data = section.slots.find((s) => s.id === 4)!;
-  const slot2Answer = board.sections[sectionId].slots[2 as SlotId];
-  const savedImages = board.sections[sectionId].images;
+  const currentSlot = section.slots.find((s) => s.id === PHASE1_SLOTS[slotIndex]);
 
   return (
     <SectionShell section={section} onBack={() => router.push('/dashboard')}>
@@ -80,6 +89,7 @@ export default function SectionPage() {
           totalSlots={PHASE1_SLOTS.length}
           savedAnswer={sectionData.slots[PHASE1_SLOTS[slotIndex] as SlotId]}
           onSave={handleSlotSave}
+          onSkip={handleSlotSkip}
           onBack={slotIndex > 0 ? () => setSlotIndex((i) => i - 1) : undefined}
         />
       )}
@@ -92,22 +102,12 @@ export default function SectionPage() {
           onBack={() => { setSlotIndex(PHASE1_SLOTS.length - 1); setPhase('slot'); }}
         />
       )}
-      {phase === 'scene' && (
-        <PhaseScene
+      {phase === 'deferred' && (
+        <DeferredCheck
           section={section}
-          slot={slot4Data}
-          keyword={slot2Answer?.text || ''}
-          savedAnswer={sectionData.slots[4 as SlotId]}
-          onSave={handleSceneSave}
-          onBack={() => setPhase('review')}
-        />
-      )}
-      {phase === 'images' && (
-        <PhaseImages
-          section={section}
-          savedImages={savedImages}
-          onSave={handleImagesSave}
-          onBack={() => setPhase('scene')}
+          slots={sectionData.slots}
+          onAnswerSlot={handleDeferredAnswer}
+          onDeferAll={handleDeferAll}
         />
       )}
       {phase === 'complete' && (
@@ -129,14 +129,11 @@ function SectionShell({
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
       <header className="flex items-center gap-3 px-6 pt-10 pb-4">
-        <button onClick={onBack} className="p-2 -ml-2 text-[#6B7280] active:opacity-60">
+        <button onClick={onBack} className="p-2 -ml-2 text-[#6B7280] text-xl active:opacity-60">
           ‹
         </button>
         <div className="flex items-center gap-2">
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: section.color }}
-          />
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
           <span className="font-semibold text-sm">{section.title}</span>
         </div>
       </header>

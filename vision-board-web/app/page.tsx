@@ -1,18 +1,19 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadBoard } from '@/lib/storage';
+import { loadBoard, resetBoard } from '@/lib/storage';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [isReturning, setIsReturning] = useState(false);
 
   useEffect(() => {
     const board = loadBoard();
     if (board.onboardingDone) {
-      router.replace('/dashboard');
+      setIsReturning(true);
     }
-  }, [router]);
+  }, []);
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-between px-6 py-12 max-w-md mx-auto w-full">
@@ -46,12 +47,32 @@ export default function LandingPage() {
       </div>
 
       <div className="w-full space-y-3">
-        <button
-          onClick={() => router.push('/onboarding')}
-          className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
-        >
-          시작하기
-        </button>
+        {isReturning ? (
+          <>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+            >
+              계속하기
+            </button>
+            <button
+              onClick={() => {
+                resetBoard();
+                router.push('/onboarding');
+              }}
+              className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-sm active:opacity-70 transition-opacity"
+            >
+              처음부터 시작하기
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => router.push('/onboarding')}
+            className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+          >
+            시작하기
+          </button>
+        )}
         <p className="text-center text-xs text-[#9CA3AF]">
           로그인 없이 바로 시작해. 진행 상황은 이 기기에 저장돼.
         </p>

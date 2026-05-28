@@ -2,120 +2,237 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { markOnboardingDone } from '@/lib/storage';
-import { SECTIONS } from '@/lib/questions';
+import { markOnboardingDone, saveUserName } from '@/lib/storage';
 
-const STEPS = [
-  {
-    title: '비전보드가 뭐야?',
-    content: (
-      <div className="space-y-4 text-[#1C1B19]">
-        <p className="leading-relaxed">
-          비전보드는 예쁜 이미지 모음이 아니야.
-        </p>
-        <p className="leading-relaxed">
-          질문에 답하다 보면, 나도 몰랐던 내가 나와.
-        </p>
-        <p className="leading-relaxed font-medium">
-          언어가 먼저, 이미지는 나중이야.
-        </p>
-      </div>
-    ),
-  },
-  {
-    title: '어떻게 진행돼?',
-    content: (
-      <div className="space-y-4">
-        {[
-          { num: '01', title: '솔직하게 답하기', desc: '정답은 없어. 지금 느끼는 게 다 맞아.' },
-          { num: '02', title: '내 답 한눈에 보기', desc: '답들을 모아서 흐름을 읽어봐.' },
-          { num: '03', title: '장면으로 그려보기', desc: '키워드를 구체적인 하루로 만들어봐.' },
-          { num: '04', title: '사진으로 담기', desc: '그 느낌이 담긴 사진 3장을 찾아봐.' },
-        ].map((item) => (
-          <div key={item.num} className="flex gap-4">
-            <span className="text-xs font-bold text-[#9CA3AF] mt-0.5 w-6">{item.num}</span>
-            <div>
-              <p className="font-semibold text-sm">{item.title}</p>
-              <p className="text-sm text-[#6B7280] mt-0.5">{item.desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    title: '6개 섹션',
-    content: (
-      <div className="space-y-2">
-        {SECTIONS.map((section) => (
-          <div
-            key={section.id}
-            className="flex items-center gap-3 p-3 rounded-xl"
-            style={{ backgroundColor: section.lightColor }}
-          >
-            <div
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: section.color }}
-            />
-            <div>
-              <span className="font-semibold text-sm">{section.title}</span>
-              <span className="text-xs text-[#6B7280] ml-2">{section.subtitle}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-];
+type Step = 1 | 2 | 3 | 4 | 5;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<Step>(1);
+  const [nameInput, setNameInput] = useState('');
+  const [savedName, setSavedName] = useState('');
+  const [stateChoice, setStateChoice] = useState<'foggy' | 'vivid' | null>(null);
 
-  const isLast = step === STEPS.length - 1;
+  const name = savedName || '너';
 
-  function handleNext() {
-    if (isLast) {
-      markOnboardingDone();
-      router.replace('/dashboard');
-    } else {
-      setStep((s) => s + 1);
-    }
+  function nextStep() {
+    setStep((s) => (s + 1) as Step);
+  }
+
+  function handleNameSubmit() {
+    const n = nameInput.trim();
+    setSavedName(n);
+    saveUserName(n);
+    nextStep();
+  }
+
+  function handleFinish() {
+    markOnboardingDone();
+    router.replace('/dashboard');
   }
 
   return (
     <main className="min-h-screen flex flex-col max-w-md mx-auto w-full px-6 py-12">
+      {/* 진행 바 */}
       <div className="flex gap-1.5 mb-10">
-        {STEPS.map((_, i) => (
+        {([1, 2, 3, 4, 5] as Step[]).map((s) => (
           <div
-            key={i}
+            key={s}
             className="h-1 flex-1 rounded-full transition-all duration-300"
-            style={{ backgroundColor: i <= step ? '#1C1B19' : '#E5E3DF' }}
+            style={{ backgroundColor: s <= step ? '#1C1B19' : '#E5E3DF' }}
           />
         ))}
       </div>
 
-      <div className="flex-1 animate-fadeIn" key={step}>
-        <h2 className="text-2xl font-bold mb-6">{STEPS[step].title}</h2>
-        {STEPS[step].content}
+      <div className="flex-1 flex flex-col animate-fadeIn" key={step}>
+
+        {/* STEP 1: 인사 + lumi 소개 */}
+        {step === 1 && (
+          <div className="flex-1 flex flex-col justify-center space-y-6">
+            <div className="w-14 h-14 rounded-2xl bg-[#1C1B19] flex items-center justify-center">
+              <span className="text-white text-2xl">✦</span>
+            </div>
+            <div className="space-y-3">
+              <p className="text-2xl font-bold leading-snug">
+                안녕, 나는 <span className="text-[#8B5CF6]">lumi</span>야. ✨
+              </p>
+              <p className="text-[#1C1B19] leading-relaxed">
+                네가 원하는 삶을 그리는 걸 도와주려고 왔어.
+              </p>
+              <p className="text-[#6B7280] leading-relaxed">
+                앞으로 나랑 같이, 네가 진짜 바라는 미래의 모습을 한 장씩 그려볼 거야.
+              </p>
+            </div>
+            <button
+              onClick={nextStep}
+              className="mt-4 w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+            >
+              좋아, 시작해볼래
+            </button>
+          </div>
+        )}
+
+        {/* STEP 2: 이름 묻기 */}
+        {step === 2 && (
+          <div className="flex-1 flex flex-col justify-center space-y-6">
+            <div className="space-y-3">
+              <p className="text-2xl font-bold leading-snug">
+                시작하기 전에 —
+              </p>
+              <p className="text-xl leading-snug">
+                너를 뭐라고 부르면 좋을까?
+              </p>
+            </div>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (nameInput.trim() ? handleNameSubmit() : nextStep())}
+              placeholder="이름이나 닉네임"
+              className="w-full bg-white border border-[#E5E3DF] rounded-2xl px-4 py-4 text-base placeholder-[#C4C2BE] focus:outline-none focus:border-[#1C1B19] transition-colors"
+              autoFocus
+            />
+            <div className="space-y-3">
+              <button
+                onClick={nameInput.trim() ? handleNameSubmit : nextStep}
+                className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+              >
+                입력했어
+              </button>
+              <button
+                onClick={nextStep}
+                className="w-full text-[#9CA3AF] py-2 text-sm"
+              >
+                그냥 시작할래
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: 이름 받아주기 + 비전보드 소개 */}
+        {step === 3 && (
+          <div className="flex-1 flex flex-col justify-center space-y-5">
+            <div className="space-y-3">
+              <p className="text-2xl font-bold">
+                {savedName ? `${savedName}이구나, 반가워! 😊` : '반가워! 😊'}
+              </p>
+              <p className="text-[#1C1B19] leading-relaxed">
+                혹시 <span className="font-semibold">'비전보드'</span>라고 들어봤어?
+              </p>
+              <p className="text-[#6B7280] leading-relaxed">
+                원하는 삶의 모습을 이미지로 모아두고, 매일 보면서 그쪽으로 살아가는 거야.
+              </p>
+              <p className="text-[#6B7280] leading-relaxed">
+                근데 좋은 건 알아도… 막상 혼자 하려면 좀 막막하지. 뭐부터, 어떻게 그려야 할지.
+              </p>
+            </div>
+
+            {/* 예시 보드 placeholder */}
+            <div className="w-full aspect-video rounded-2xl bg-[#F3F4F6] flex items-center justify-center border border-[#E5E3DF]">
+              <p className="text-xs text-[#9CA3AF]">예시 비전보드</p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={nextStep}
+                className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+              >
+                오… 그래서 어떻게 하는 건데?
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: 상태 공감 */}
+        {step === 4 && (
+          <div className="flex-1 flex flex-col justify-center space-y-6">
+            <div className="space-y-3">
+              <p className="text-xl font-bold leading-snug">
+                아마 둘 중 하나일 거야.
+              </p>
+              <div className="bg-[#F9F8F6] rounded-2xl p-4 space-y-1">
+                <p className="text-[#6B7280] leading-relaxed">
+                  😶‍🌫️ "원하는 게 있긴 한데… 잘 안 그려져."
+                </p>
+                <p className="text-[#9CA3AF] text-sm">아니면</p>
+                <p className="text-[#6B7280] leading-relaxed">
+                  ✨ "어렴풋이 보이는데, 더 생생하게 그려보고 싶어."
+                </p>
+              </div>
+              <p className="text-[#1C1B19] font-medium">
+                둘 다 괜찮아. 사실 그래서 이게 있는 거거든.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { value: 'foggy' as const, label: '잘 안 그려져' },
+                { value: 'vivid' as const, label: '더 생생히 그리고 싶어' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setStateChoice(opt.value); nextStep(); }}
+                  className="w-full py-4 rounded-2xl text-base font-medium border transition-all active:opacity-70"
+                  style={{
+                    borderColor: stateChoice === opt.value ? '#1C1B19' : '#E5E3DF',
+                    backgroundColor: stateChoice === opt.value ? '#1C1B19' : 'white',
+                    color: stateChoice === opt.value ? 'white' : '#1C1B19',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              <button
+                onClick={nextStep}
+                className="w-full text-[#9CA3AF] py-2 text-sm"
+              >
+                맞아, 딱 내 얘기야
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: 초대 + 안심 */}
+        {step === 5 && (
+          <div className="flex-1 flex flex-col justify-center space-y-6">
+            <div className="space-y-3">
+              <p className="text-2xl font-bold leading-snug">
+                {savedName ? `그렇다면 잘 왔어, ${savedName}.` : '그렇다면 잘 왔어.'}
+              </p>
+              <p className="text-[#1C1B19] leading-relaxed">
+                내가 6개의 작은 영역으로 나눠뒀어. 한 번에 다 안 해도 돼.
+              </p>
+              <p className="text-[#6B7280] leading-relaxed">
+                막히면 내가 옆에서 같이 찾아줄게. 속도는 네가 정해 — 저장하고 다음에 와도 되고.
+              </p>
+
+              <div className="bg-[#FAF9F7] border border-[#E5E3DF] rounded-2xl p-4 space-y-1.5">
+                <p className="text-xs text-[#9CA3AF] font-semibold mb-2">💡 왜 효과가 있냐면</p>
+                <p className="text-sm text-[#6B7280] leading-relaxed">
+                  생생하게 그려본 미래는, 막연한 바람보다 훨씬 힘이 세. 특히 '지금의 나'랑 연결해서 구체적인 장면으로 그리면 — 그때부터 진짜 움직이게 되거든.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleFinish}
+              className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+            >
+              좋아, 나부터 그려볼래
+            </button>
+          </div>
+        )}
+
       </div>
 
-      <div className="space-y-3 mt-8">
+      {step > 1 && step < 5 && (
         <button
-          onClick={handleNext}
-          className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+          onClick={() => setStep((s) => (s - 1) as Step)}
+          className="w-full text-[#9CA3AF] py-2 text-sm mt-4"
         >
-          {isLast ? '시작할게' : '다음'}
+          이전
         </button>
-        {step > 0 && (
-          <button
-            onClick={() => setStep((s) => s - 1)}
-            className="w-full text-[#6B7280] py-2 text-sm"
-          >
-            이전
-          </button>
-        )}
-      </div>
+      )}
     </main>
   );
 }

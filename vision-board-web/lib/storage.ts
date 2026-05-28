@@ -24,6 +24,7 @@ function createEmptyBoard(): BoardData {
       6: createEmptySection(6),
     },
     onboardingDone: false,
+    userName: '',
     startedAt: Date.now(),
   };
 }
@@ -33,7 +34,9 @@ export function loadBoard(): BoardData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createEmptyBoard();
-    return JSON.parse(raw) as BoardData;
+    const parsed = JSON.parse(raw) as BoardData;
+    if (parsed.userName === undefined) parsed.userName = '';
+    return parsed;
   } catch {
     return createEmptyBoard();
   }
@@ -42,6 +45,12 @@ export function loadBoard(): BoardData {
 export function saveBoard(data: BoardData): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+export function saveUserName(name: string): void {
+  const board = loadBoard();
+  board.userName = name;
+  saveBoard(board);
 }
 
 export function saveSlotAnswer(
@@ -67,6 +76,18 @@ export function saveSectionImage(
   saveBoard(board);
 }
 
+export function saveSectionScene(sectionId: SectionId, text: string): void {
+  const board = loadBoard();
+  board.sections[sectionId].sceneText = text;
+  saveBoard(board);
+}
+
+export function markSectionTextComplete(sectionId: SectionId): void {
+  const board = loadBoard();
+  board.sections[sectionId].status = 'text_complete';
+  saveBoard(board);
+}
+
 export function markSectionComplete(sectionId: SectionId): void {
   const board = loadBoard();
   board.sections[sectionId].status = 'completed';
@@ -84,11 +105,6 @@ export function markBoardFinished(): void {
   const board = loadBoard();
   board.finishedAt = Date.now();
   saveBoard(board);
-}
-
-export function getCompletedCount(): number {
-  const board = loadBoard();
-  return Object.values(board.sections).filter((s) => s.status === 'completed').length;
 }
 
 export function resetBoard(): void {
