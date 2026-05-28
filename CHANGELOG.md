@@ -2,16 +2,30 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** PRE-BUILD 완료 — PRD + 질문 확정, 내일 Stage 1 (Next.js 셋업) 착수 예정
+- **상태:** Stage 1 완료 + Vercel 배포 — https://vision-board-web.vercel.app
 - **주요 기능:**
-  - 비전보드 전체 플로우차트 인터랙티브 HTML (`Playground/flowchart.html`)
-  - PRD v0.2 (`Playground/docs/PRD_v0.2.md`) — 단계별 빌드 플랜 STAGE 1~5
-  - 질문 플로우 확정 (`Playground/docs/question_flow.md`) — 6섹션 × 전체 슬롯 + 서브질문
-  - GitHub Pages 배포: https://helenmellybelly.github.io/vision-board/
-- **알려진 이슈:** 디자인 무드(색상/폰트) 미확정 — Stage 1 진행하면서 결정 예정
+  - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료
+  - lumi 5단계 대화형 온보딩 (이름 입력, 공감, 초대)
+  - 6섹션 PHASE 1+2 전체 질문 흐름 (예시 기본 노출, 스킵, 미답변 체크)
+  - 장면 그리기 허브 (`/scene`) — 전체 섹션 완료 후 원하는 섹션부터 선택
+  - localStorage 임시 저장 + 모바일 퍼스트 레이아웃
+  - 섹션 타이틀 PDF 기반 업데이트 (감정·성장·정체성 등)
+  - 온보딩 구현 변경사항 문서 (`Playground/docs/온보딩_구현_변경사항_v0.2.md`)
+- **알려진 이슈:**
+  - 온보딩 예시 보드 이미지 placeholder — 실제 이미지 미제작
+  - lumi 아바타/아이콘 미결 (텍스트만)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-28
+- Stage 1 Next.js 프로토타입 구현 — 랜딩, 온보딩, 대시보드, 섹션 PHASE 1+2, 비전보드 그리드, FINISH
+- lumi 5단계 대화형 온보딩 재설계 (이름 입력 → localStorage 저장, 공감 선택, 초대)
+- 섹션 타이틀 PDF 기반 업데이트 (나→감정·성장·정체성, 건강→몸·마음·에너지 등)
+- CTA 버튼 로직 개선: 텍스트 입력 시만 활성화 + "잠시 스킵할게요" + 미답변 슬롯 체크 화면
+- PHASE 3 분리: 장면 그리기 허브(`/scene`) — 전체 섹션 완료 후 원하는 섹션부터 선택
+- Vercel 배포 완료 — https://vision-board-web.vercel.app
+- 온보딩 구현 변경사항 문서화 (`온보딩_구현_변경사항_v0.2.md`)
 
 ### 2026-05-27 (2차)
 - PRD v0.1 작성 — 기능 명세, 데이터 모델, 이미지 옵션 비교, 기획 허점 20개 분석
