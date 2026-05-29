@@ -2,23 +2,32 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** Stage 1 완료 + UX 전면 개선 배포 완료 — https://vision-board-web.vercel.app
+- **상태:** Stage 1 완료 + 전체 카피라이팅 세션 진행 중 (미완료) — https://vision-board-web.vercel.app
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료
-  - lumi 5단계 대화형 온보딩 (이름 입력, 공감, 초대)
+  - lumi 5단계 대화형 온보딩 (이름 입력, 공감, 초대) — 카피 v2 부분 적용
   - 6섹션 PHASE 1+2 전체 질문 흐름 + 슬롯별 CTA 다양화 + 수정 중 배지
   - Review 페이지: 1열 레이아웃 + 4슬롯 전체 표시 + 섹션별 수정 링크 + AI 요약 카드
   - Scene 페이지: 답변 패널(접기/펼치기) + Tab-to-fill 스마트 플레이스홀더 + X/18 완료 인터루드
   - 이미지: 업로드 + Unsplash 키워드 검색 탭 전환 (`/api/unsplash`)
   - localStorage 임시 저장 + 모바일 퍼스트 레이아웃
+  - 전체 마이크로카피 lumi 톤으로 교체 (대부분 적용, 일부 미완료)
 - **알려진 이슈:**
   - AI 요약: `ANTHROPIC_API_KEY` Vercel 환경변수 미설정 (설정 필요)
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` Vercel 환경변수 미설정 (설정 필요)
   - 온보딩 예시 보드 이미지 placeholder — 실제 이미지 미제작
   - lumi 아바타/아이콘 미결 (텍스트만)
+  - 카피 미완료: review 헤더, scene 마이크로카피, 섹션 subtitle 2개, 온보딩 강도 보강
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-30
+- lumi 캐릭터 방향 확정: "빛을 비추는 안내자" (Option B) + 친근한 말투 (Option C) 혼합
+- 랜딩 페이지 카피 전체 작성: 헤드라인 3안 → "비전보드, 목표가 없어도 만들 수 있어요" 채택
+- lumi 온보딩 스크립트 v2 작성 + 코드 적용 (Step 1~5 전면 개선)
+- 전체 마이크로카피 lumi 톤으로 교체: SlotQuestion, PhaseReview, SectionComplete, Dashboard, Board, Finish, questions.ts subtitle 6개
+- 건강 섹션 subtitle 정렬 이슈 수정 (짧은 1줄 → 질문형으로 교체)
 
 ### 2026-05-29 (2차)
 - 실기기 피드백 반영 UX 전면 개선: 섹션 이름 명시, CTA 다양화, Review 1열 레이아웃, Scene 답변 패널 + Tab-to-fill

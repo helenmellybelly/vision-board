@@ -11,7 +11,7 @@ const STATUS_LABEL: Record<SectionStatus, string> = {
   not_started: '시작 전',
   in_progress: '진행 중',
   text_complete: '답변 완료',
-  completed: '완료',
+  completed: '완성',
 };
 
 const STATUS_STYLE: Record<SectionStatus, { bg: string; text: string }> = {
@@ -47,10 +47,10 @@ export default function DashboardPage() {
         <div className="mb-6 animate-fadeIn">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-lg">✦</span>
-            <span className="text-sm text-[#6B7280]">lumi와 비전보드</span>
+            <span className="text-sm text-[#6B7280]">lumi와 함께</span>
           </div>
           <h1 className="text-2xl font-bold">
-            {userName ? `${userName}의 섹션` : '내 섹션'}
+            {userName ? `${userName}의 비전보드` : '내 비전보드'}
           </h1>
         </div>
 
@@ -59,7 +59,7 @@ export default function DashboardPage() {
           <div className="mb-5 bg-white rounded-2xl p-4 border border-[#E5E3DF] animate-slideUp">
             <p className="text-sm font-semibold mb-2">비전보드는 6가지 영역으로 이뤄져 있어.</p>
             <p className="text-sm text-[#6B7280] leading-relaxed">
-              나, 건강, 관계, 일, 돈, 공간. 각각 답하다 보면 다면적인 내가 원하는 것들이 보여. 어떤 섹션부터 시작해도 괜찮아.
+              나, 건강, 관계, 일, 돈, 공간. 답하다 보면 원하는 것들이 보이기 시작해. 어디서부터 해도 괜찮아.
             </p>
           </div>
         )}
@@ -73,7 +73,7 @@ export default function DashboardPage() {
                 style={{ width: `${(textCompleteCount / 6) * 100}%` }}
               />
             </div>
-            <span className="text-xs text-[#6B7280]">{textCompleteCount}/6 완료</span>
+            <span className="text-xs text-[#6B7280]">{textCompleteCount}/6 채워짐</span>
           </div>
         )}
 
@@ -129,7 +129,7 @@ export default function DashboardPage() {
               className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              내 답변 보고 상황 그리기 →
+              다 됐다, 이제 장면 그리러 가자 →
             </button>
           )}
           {completedCount > 0 && (

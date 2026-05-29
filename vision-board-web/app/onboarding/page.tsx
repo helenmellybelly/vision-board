@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { markOnboardingDone, saveUserName } from '@/lib/storage';
+import { markOnboardingDone, saveUserName, saveOnboardingStep, loadBoard } from '@/lib/storage';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -13,10 +13,26 @@ export default function OnboardingPage() {
   const [savedName, setSavedName] = useState('');
   const [stateChoice, setStateChoice] = useState<'foggy' | 'vivid' | null>(null);
 
+  useEffect(() => {
+    const board = loadBoard();
+    if (board.onboardingStep && board.onboardingStep > 1) {
+      setStep(board.onboardingStep as Step);
+    }
+    if (board.userName) {
+      setSavedName(board.userName);
+      setNameInput(board.userName);
+    }
+  }, []);
+
   const name = savedName || '너';
 
+  function goToStep(s: Step) {
+    setStep(s);
+    saveOnboardingStep(s);
+  }
+
   function nextStep() {
-    setStep((s) => (s + 1) as Step);
+    goToStep((step + 1) as Step);
   }
 
   function handleNameSubmit() {
@@ -54,20 +70,23 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-3">
               <p className="text-2xl font-bold leading-snug">
-                안녕, 나는 <span className="text-[#8B5CF6]">lumi</span>야. ✨
+                안녕, 나는 <span className="text-[#8B5CF6]">lumi</span>야.
               </p>
               <p className="text-[#1C1B19] leading-relaxed">
-                네가 원하는 삶을 그리는 걸 도와주려고 왔어.
+                너한테 원하는 게 뭔지 알려줄 수는 없어.
               </p>
               <p className="text-[#6B7280] leading-relaxed">
-                앞으로 나랑 같이, 네가 진짜 바라는 미래의 모습을 한 장씩 그려볼 거야.
+                근데 네가 스스로 발견할 수 있게 — 옆에서 빛을 비춰줄 순 있어.
+              </p>
+              <p className="text-[#6B7280] leading-relaxed">
+                같이 해볼래?
               </p>
             </div>
             <button
               onClick={nextStep}
               className="mt-4 w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
             >
-              좋아, 시작해볼래
+              좋아, 해보자
             </button>
           </div>
         )}
@@ -97,7 +116,7 @@ export default function OnboardingPage() {
                 onClick={nameInput.trim() ? handleNameSubmit : nextStep}
                 className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
               >
-                입력했어
+                응, 이렇게 불러줘
               </button>
               <button
                 onClick={nextStep}
@@ -123,7 +142,10 @@ export default function OnboardingPage() {
                 원하는 삶의 모습을 이미지로 모아두고, 매일 보면서 그쪽으로 살아가는 거야.
               </p>
               <p className="text-[#6B7280] leading-relaxed">
-                근데 좋은 건 알아도… 막상 혼자 하려면 좀 막막하지. 뭐부터, 어떻게 그려야 할지.
+                좋은 건 아는데… 막상 혼자 하려면 막막하지.
+              </p>
+              <p className="text-[#6B7280] leading-relaxed">
+                <span className="font-semibold text-[#1C1B19]">뭘 원하는지도 모르겠고, 뭐부터 시작해야 할지도 모르겠고.</span>
               </p>
             </div>
 
@@ -205,13 +227,9 @@ export default function OnboardingPage() {
               <p className="text-[#6B7280] leading-relaxed">
                 막히면 내가 옆에서 같이 찾아줄게. 속도는 네가 정해 — 저장하고 다음에 와도 되고.
               </p>
-
-              <div className="bg-[#FAF9F7] border border-[#E5E3DF] rounded-2xl p-4 space-y-1.5">
-                <p className="text-xs text-[#9CA3AF] font-semibold mb-2">💡 왜 효과가 있냐면</p>
-                <p className="text-sm text-[#6B7280] leading-relaxed">
-                  생생하게 그려본 미래는, 막연한 바람보다 훨씬 힘이 세. 특히 '지금의 나'랑 연결해서 구체적인 장면으로 그리면 — 그때부터 진짜 움직이게 되거든.
-                </p>
-              </div>
+              <p className="text-[#6B7280] leading-relaxed">
+                준비됐어?
+              </p>
             </div>
 
             <button
@@ -227,7 +245,7 @@ export default function OnboardingPage() {
 
       {step > 1 && step < 5 && (
         <button
-          onClick={() => setStep((s) => (s - 1) as Step)}
+          onClick={() => goToStep((step - 1) as Step)}
           className="w-full text-[#9CA3AF] py-2 text-sm mt-4"
         >
           이전

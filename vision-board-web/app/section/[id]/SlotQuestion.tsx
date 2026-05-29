@@ -96,7 +96,7 @@ export default function SlotQuestion({
               className="flex items-center gap-1.5 text-sm text-[#6B7280]"
             >
               <span className="text-base">💬</span>
-              <span>{showHelp ? '닫기' : '답변하는데 도움이 필요해요'}</span>
+              <span>{showHelp ? '닫기' : '막막해요, 도와줘'}</span>
             </button>
             {showHelp && (
               <div className="mt-3 space-y-2">
@@ -134,7 +134,7 @@ export default function SlotQuestion({
           onClick={onSkip}
           className="w-full py-2 text-sm text-[#9CA3AF]"
         >
-          {isLastSlot ? '이건 나중에 답할게' : '잠시 스킵할게요'}
+          {isLastSlot ? '이건 나중에 답할게' : '나중에 답할게'}
         </button>
 
         {onBack && (

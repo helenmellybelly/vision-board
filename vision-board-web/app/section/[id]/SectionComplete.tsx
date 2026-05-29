@@ -34,7 +34,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
       </div>
 
       <h2 className="text-2xl font-bold mb-3">
-        {section.title.split(' — ')[0]} 섹션 완료
+        {section.title.split(' — ')[0]}, 다 썼어.
       </h2>
       <p className="text-[#6B7280] text-base leading-relaxed mb-1">
         수고했어. 잠깐 쉬어도 돼.
@@ -42,11 +42,11 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
 
       {allTextDone ? (
         <p className="text-[#9CA3AF] text-sm mb-10">
-          6개 섹션 모두 답했어! 이제 내 답변을 한눈에 볼 수 있어.
+          6개 다 채웠어. 이제 전체를 한눈에 볼 수 있어.
         </p>
       ) : (
         <p className="text-[#9CA3AF] text-sm mb-10">
-          {completedCount}/6 완료 — 장면 그리기는 6개 모두 끝난 후에 같이 할 거야.
+          {6 - completedCount}개 더 남았어. 다 끝나면 장면을 같이 그려볼게.
         </p>
       )}
 
@@ -59,14 +59,14 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
           {allTextDone
             ? '내 답변 모두 볼게 →'
             : nextIncomplete
-            ? `${SECTIONS.find(s => s.id === nextIncomplete)?.title.split(' — ')[0] ?? '다음'} 섹션 답하러 가기 →`
+            ? `${SECTIONS.find(s => s.id === nextIncomplete)?.title.split(' — ')[0] ?? '다음'}도 써볼래? →`
             : '내 답변 모두 볼게 →'}
         </button>
         <button
           onClick={onDashboard}
           className="w-full py-2 text-sm text-[#9CA3AF]"
         >
-          대시보드로 돌아가기
+          잠깐 쉬고 올게
         </button>
       </div>
     </div>

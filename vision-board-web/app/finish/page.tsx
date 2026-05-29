@@ -32,9 +32,11 @@ export default function FinishPage() {
       <div className="flex-1 flex flex-col items-center justify-center text-center gap-8">
         <div className="space-y-2">
           <p className="text-5xl">✦</p>
-          <h1 className="text-2xl font-bold mt-4">6개 섹션 모두 완성했어.</h1>
+          <h1 className="text-2xl font-bold mt-4">
+            다 완성했어{board.userName ? `, ${board.userName}` : ''}.
+          </h1>
           <p className="text-[#6B7280] leading-relaxed">
-            여기까지 오는 데 생각보다 오래 걸렸을 거야.
+            여기까지 왔어. 쉽지 않았을 텐데.
           </p>
           <p className="text-[#6B7280]">이게 지금 너의 비전보드야.</p>
         </div>
@@ -74,13 +76,13 @@ export default function FinishPage() {
           onClick={() => router.push('/board')}
           className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
         >
-          비전보드 보기
+          내 비전보드 보러 가기
         </button>
         <button
           onClick={() => router.push('/dashboard')}
           className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-sm active:opacity-70 transition-opacity"
         >
-          섹션 다시 보기
+          내 답변 다시 보기
         </button>
       </div>
     </main>

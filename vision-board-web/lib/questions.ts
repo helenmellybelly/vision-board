@@ -4,7 +4,7 @@ export const SECTIONS: Section[] = [
   {
     id: 1,
     title: '나 — 감정·성장·정체성',
-    subtitle: '어떤 사람으로, 어떤 감각으로 살고 싶은지',
+    subtitle: '어떤 사람으로, 어떤 감각으로 살고 싶어?',
     color: '#8B5CF6',
     lightColor: '#EDE9FE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
@@ -13,7 +13,7 @@ export const SECTIONS: Section[] = [
       {
         id: 1,
         phase: 1,
-        mainQuestion: '지금 나는 어떤 사람으로 살고 있어? 한 문장으로.',
+        mainQuestion: '지금 나는 어떤 삶을 살고 있어? 한 문장으로.',
         placeholder: '좋은 답 나쁜 답 없어. 솔직한 게 제일 좋아.',
         example: '그냥 하루하루 버티는 사람 / 열심히 사는데 뭔가 빠진 느낌 / 남들 눈에는 잘 사는데 속으론 모르겠는 사람',
         helpQuestions: [
@@ -61,7 +61,7 @@ export const SECTIONS: Section[] = [
       {
         id: 4,
         phase: 3,
-        mainQuestion: '방금 쓴 키워드(②)가 느껴지는 하루야. 어디서, 뭘 하고 있어?',
+        mainQuestion: '방금 쓴 단어가 이루어진 나의 하루야. 어디서 뭘 하고 있어?',
         placeholder: '구체적일수록 좋아. 시간, 장소, 감각까지 담아봐.',
         example: '카페 창가에서 혼자 책 읽는 중 / 아무 계획 없는 주말 아침, 느긋하게 커피 마시며 / 내 브랜드 사람들이랑 한자리에 모인 날',
         helpQuestions: [
@@ -83,7 +83,7 @@ export const SECTIONS: Section[] = [
   {
     id: 2,
     title: '건강 — 몸·마음·에너지',
-    subtitle: '체력, 수면, 멘탈 — 몸이 내 편인 삶',
+    subtitle: '어떤 몸으로, 어떤 에너지로 살고 싶어?',
     color: '#10B981',
     lightColor: '#D1FAE5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
@@ -140,7 +140,7 @@ export const SECTIONS: Section[] = [
       {
         id: 4,
         phase: 3,
-        mainQuestion: '방금 쓴 키워드(②)가 느껴지는 순간이야. 어디야? 뭘 하고 있어?',
+        mainQuestion: '방금 쓴 단어가 이루어진 하루야. 어디서 뭘 하고 있어?',
         placeholder: '아주 소소한 장면도 좋아.',
         example: '산 정상에서 탁 트인 뷰를 보는 중 / 운동 끝내고 개운하게 샤워하는 중 / 자고 일어났을 때 몸이 가벼운 걸 느끼는 아침',
         helpQuestions: [
@@ -162,7 +162,7 @@ export const SECTIONS: Section[] = [
   {
     id: 3,
     title: '관계·가족 — 남편·가족·친구',
-    subtitle: '어떤 관계들로 둘러싸여 살고 싶은지',
+    subtitle: '소중한 사람들과 어떤 시간을 나누고 싶어?',
     color: '#F59E0B',
     lightColor: '#FEF3C7',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
@@ -219,7 +219,7 @@ export const SECTIONS: Section[] = [
       {
         id: 4,
         phase: 3,
-        mainQuestion: '방금 쓴 키워드(②)가 느껴지는 관계의 장면 하나. 누구랑, 어디서?',
+        mainQuestion: '방금 쓴 단어가 이루어진 관계의 장면이야. 누구랑, 어디서?',
         placeholder: '특별한 날이 아니어도 괜찮아.',
         example: '여름 저녁 가족이 다 같이 밥 먹는 식탁 / 남편이랑 여행지에서 아무 말 없이 걷는 중 / 친구랑 카페에서 수다 떠는 중',
         helpQuestions: [
@@ -241,7 +241,7 @@ export const SECTIONS: Section[] = [
   {
     id: 4,
     title: '일·성장 — 커리어·배움·의미',
-    subtitle: '돈을 떠나서, 어떤 일을 하며 어떻게 성장하고 싶은지',
+    subtitle: '돈을 떠나서, 어떤 일로 살고 싶어?',
     color: '#3B82F6',
     lightColor: '#DBEAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
@@ -298,7 +298,7 @@ export const SECTIONS: Section[] = [
       {
         id: 4,
         phase: 3,
-        mainQuestion: '방금 쓴 문장(②) 속의 내가 하루를 마무리하는 장면이야. 어디야? 어떤 기분이야?',
+        mainQuestion: '방금 쓴 단어가 이루어진 날의 하루 마무리야. 어디야? 어떤 기분이야?',
         placeholder: '하루를 마치는 그 순간을 구체적으로 묘사해봐.',
         example: '내가 만든 것에 누군가 반응하는 순간 / 할 일 다 끝내고 가볍게 퇴근하는 길 / 재택에서 마지막 메일 보내고 노트북 닫는 순간',
         helpQuestions: [
@@ -320,7 +320,7 @@ export const SECTIONS: Section[] = [
   {
     id: 5,
     title: '돈·생활 — 재정·소비·여유',
-    subtitle: '액수보다, 돈이 있을 때 어떤 선택을 하고 싶은지',
+    subtitle: '액수가 아니라, 어떤 자유를 갖고 싶어?',
     color: '#F97316',
     lightColor: '#FFEDD5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
@@ -377,7 +377,7 @@ export const SECTIONS: Section[] = [
       {
         id: 4,
         phase: 3,
-        mainQuestion: '방금 쓴 키워드(②)가 느껴지는 순간이야. 어떤 상황이야?',
+        mainQuestion: '방금 쓴 단어가 이루어진 순간이야. 어떤 상황에 있어?',
         placeholder: '큰 이벤트가 아니어도 좋아. 작은 일상의 순간도.',
         example: '망설임 없이 항공권 끊는 중 / 부모님이랑 좋은 식당에서 밥 먹는 중 / 갖고 싶었던 걸 망설임 없이 사는 순간',
         helpQuestions: [
@@ -399,7 +399,7 @@ export const SECTIONS: Section[] = [
   {
     id: 6,
     title: '공간·환경 — 집·동네·일상의 배경',
-    subtitle: '매일 돌아오고 싶은 공간이 어떤 모습인지',
+    subtitle: '매일 돌아오고 싶은 공간.',
     color: '#06B6D4',
     lightColor: '#CFFAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
@@ -456,7 +456,7 @@ export const SECTIONS: Section[] = [
       {
         id: 4,
         phase: 3,
-        mainQuestion: '그 공간에서 제일 오래 있고 싶은 곳은 어디야? 거기서 보통 뭐 해?',
+        mainQuestion: '방금 쓴 단어가 이루어진 공간이야. 거기서 뭘 하고 있어?',
         placeholder: '구체적인 장면을 묘사해봐.',
         example: '소파에 누워 좋아하는 거 틀어놓기 / 넓은 주방에서 주말 아침 요리하기 / 서재에서 내 생각 정리하고 세상에 펼쳐놓기',
         helpQuestions: [

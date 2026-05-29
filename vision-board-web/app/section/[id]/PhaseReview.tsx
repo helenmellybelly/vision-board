@@ -26,12 +26,12 @@ export default function PhaseReview({ section, slots, onEdit, onNext, onBack }: 
             className="text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: section.lightColor, color: section.color }}
           >
-            2단계
+            내 답 확인
           </span>
         </div>
-        <h2 className="text-xl font-bold">내 답 한눈에 보기</h2>
+        <h2 className="text-xl font-bold">내가 쓴 것들, 한번 봐봐</h2>
         <p className="text-sm text-[#6B7280]">
-          답들을 한번 훑어봐. 수정하고 싶으면 카드를 탭해.
+          마음에 안 드는 거 있으면 탭해서 바꿀 수 있어.
         </p>
 
         <div className="space-y-3">
@@ -54,7 +54,7 @@ export default function PhaseReview({ section, slots, onEdit, onNext, onBack }: 
                     {answer && !answer.isDeferred ? (
                       <p className="text-sm leading-relaxed">{answer.text}</p>
                     ) : (
-                      <p className="text-sm text-[#9CA3AF] italic">아직 답변 전</p>
+                      <p className="text-sm text-[#9CA3AF] italic">아직 비워뒀어</p>
                     )}
                   </div>
                   <span className="text-[#C4C2BE] text-sm flex-shrink-0">✎</span>
@@ -71,7 +71,7 @@ export default function PhaseReview({ section, slots, onEdit, onNext, onBack }: 
           className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
-          장면으로 그려볼게
+          좋아, 이대로 갈게
         </button>
         <button onClick={onBack} className="w-full py-2 text-sm text-[#6B7280]">
           이전
