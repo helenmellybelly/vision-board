@@ -9,7 +9,7 @@ interface Props {
 
 const STEPS = [
   { label: '섹션 답하기', short: '답변' },
-  { label: '상황 그리기', short: '상황' },
+  { label: '장면 그리기', short: '장면' },
   { label: '이미지 찾기', short: '이미지' },
   { label: '비전보드',    short: '보드' },
 ] as const;
@@ -45,7 +45,7 @@ export default function ProcessBar({ board }: Props) {
   const { currentStep, subLabel } = getStepInfo(board);
 
   function handleStepClick(stepNum: number) {
-    if (stepNum < currentStep) {
+    if (stepNum <= currentStep) {
       router.push(STEP_ROUTES[stepNum]);
     }
   }
@@ -65,9 +65,9 @@ export default function ProcessBar({ board }: Props) {
               {/* 스텝 아이콘 + 라벨 */}
               <button
                 onClick={() => handleStepClick(stepNum)}
-                disabled={isFuture || isCurrent}
-                className="flex flex-col items-center gap-0.5 flex-shrink-0"
-                style={{ cursor: isDone ? 'pointer' : 'default' }}
+                disabled={isFuture}
+                className="flex flex-col items-center gap-0.5 flex-shrink-0 active:opacity-60 transition-opacity"
+                style={{ cursor: isFuture ? 'default' : 'pointer' }}
               >
                 <div
                   className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all"

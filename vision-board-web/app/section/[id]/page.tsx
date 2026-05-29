@@ -12,6 +12,7 @@ import SectionComplete from './SectionComplete';
 import ProcessBar from '@/components/ProcessBar';
 
 type Phase = 'slot' | 'review' | 'deferred' | 'complete';
+type SlotSource = 'flow' | 'edit';
 
 export default function SectionPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function SectionPage() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [phase, setPhase] = useState<Phase>('slot');
   const [slotIndex, setSlotIndex] = useState(0);
+  const [slotSource, setSlotSource] = useState<SlotSource>('flow');
 
   const refreshBoard = useCallback(() => setBoard(loadBoard()), []);
 
@@ -101,24 +103,25 @@ export default function SectionPage() {
     >
       {phase === 'slot' && currentSlot && (
         <SlotQuestion
-          key={`slot-${slotIndex}`}
+          key={`slot-${slotIndex}-${slotSource}`}
           section={section}
           slot={currentSlot}
           slotIndex={slotIndex}
           totalSlots={PHASE1_SLOTS.length}
           savedAnswer={sectionData.slots[PHASE1_SLOTS[slotIndex] as SlotId]}
-          onSave={handleSlotSave}
+          isEditing={slotSource === 'edit'}
+          onSave={(answer) => { setSlotSource('flow'); handleSlotSave(answer); }}
           onSkip={handleSlotSkip}
-          onBack={slotIndex > 0 ? () => setSlotIndex((i) => i - 1) : undefined}
+          onBack={slotIndex > 0 ? () => { setSlotSource('flow'); setSlotIndex((i) => i - 1); } : undefined}
         />
       )}
       {phase === 'review' && (
         <PhaseReview
           section={section}
           slots={sectionData.slots}
-          onEdit={(slotIdx) => { setSlotIndex(slotIdx); setPhase('slot'); }}
+          onEdit={(slotIdx) => { setSlotIndex(slotIdx); setSlotSource('edit'); setPhase('slot'); }}
           onNext={handleReviewDone}
-          onBack={() => { setSlotIndex(PHASE1_SLOTS.length - 1); setPhase('slot'); }}
+          onBack={() => { setSlotIndex(PHASE1_SLOTS.length - 1); setSlotSource('flow'); setPhase('slot'); }}
         />
       )}
       {phase === 'deferred' && (

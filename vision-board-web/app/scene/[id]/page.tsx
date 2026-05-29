@@ -5,10 +5,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
 import { SECTIONS } from '@/lib/questions';
 import { loadBoard, saveSectionSceneTexts, saveSectionImage, markSectionComplete } from '@/lib/storage';
-import { BoardData, SlotId, SectionId } from '@/lib/types';
+import { BoardData, Section, SlotId, SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 
-type Step = 'intro' | 'scene' | 'images';
+type Step = 'intro' | 'scene' | 'images' | 'done';
 
 const SCENE_SUGGESTIONS: Record<number, string[]> = {
   1: [
@@ -59,6 +59,9 @@ export default function SceneSectionPage() {
   const [step, setStep] = useState<Step>('intro');
   const [sceneTexts, setSceneTexts] = useState<string[]>(['', '', '']);
   const [images, setImages] = useState<(string | null)[]>([null, null, null]);
+  const [answersExpanded, setAnswersExpanded] = useState(true);
+  const [imageMode, setImageMode] = useState<'upload' | 'suggest'>('upload');
+  const [suggestions, setSuggestions] = useState<string[]>(['', '', '']);
 
   const refreshBoard = useCallback(() => setBoard(loadBoard()), []);
 
@@ -72,7 +75,6 @@ export default function SceneSectionPage() {
         setStep('images');
       }
     } else if (b.sections[sectionId]?.sceneText) {
-      // 하위 호환: 기존 단일 sceneText → 첫 번째 슬롯에
       setSceneTexts([b.sections[sectionId].sceneText!, '', '']);
     }
     const savedImgs = b.sections[sectionId]?.images;
@@ -85,7 +87,12 @@ export default function SceneSectionPage() {
 
   const sectionData = board.sections[sectionId];
   const keyword = sectionData.slots[2 as SlotId]?.text || '';
-  const suggestions = buildSuggestions(sectionId, keyword);
+
+  function handleStartScene() {
+    const built = buildSuggestions(sectionId, keyword);
+    setSuggestions(built);
+    setStep('scene');
+  }
 
   function handleSceneSave() {
     saveSectionSceneTexts(sectionId, sceneTexts);
@@ -113,27 +120,33 @@ export default function SceneSectionPage() {
   function handleImagesDone() {
     images.forEach((img, i) => saveSectionImage(sectionId, i, img));
     markSectionComplete(sectionId);
-    if (sectionId < 6) {
-      router.push(`/scene/${sectionId + 1}`);
-    } else {
-      router.push('/board');
-    }
+    refreshBoard();
+    setStep('done');
   }
 
-  const progressLabel = `${sectionId}/6`;
   const hasAnyScene = sceneTexts.some((t) => t.trim());
+  const progressLabel = `${sectionId}/6`;
 
-  // 다른 섹션들의 키워드 모아서 보여주기
   const otherKeywords = SECTIONS.filter((s) => s.id !== sectionId)
     .map((s) => board.sections[s.id]?.slots[2 as SlotId]?.text)
     .filter(Boolean) as string[];
+
+  const slot1 = sectionData.slots[1 as SlotId]?.text?.trim();
+  const slot2 = sectionData.slots[2 as SlotId]?.text?.trim();
+  const slot3 = sectionData.slots[3 as SlotId]?.text?.trim();
+  const slot5 = sectionData.slots[5 as SlotId]?.text?.trim();
+
+  const nextSection = SECTIONS.find(s => s.id === sectionId + 1);
+
+  // 완료된 섹션 수 (done step 진입 시 갱신된 board 기준)
+  const completedCount = Object.values(board.sections).filter(s => s.status === 'completed').length;
 
   return (
     <main className="min-h-screen flex flex-col max-w-md mx-auto w-full">
       <ProcessBar board={board} />
       <header className="flex items-center gap-3 px-6 pt-2 pb-4">
         <button
-          onClick={() => step === 'intro' ? router.push('/review') : setStep(step === 'images' ? 'scene' : 'intro')}
+          onClick={() => step === 'intro' ? router.push('/review') : setStep(step === 'images' ? 'scene' : step === 'done' ? 'images' : 'intro')}
           className="p-2 -ml-2 text-[#6B7280] text-xl active:opacity-60"
         >
           ‹
@@ -149,7 +162,7 @@ export default function SceneSectionPage() {
               <div
                 key={s}
                 className="w-5 h-1 rounded-full"
-                style={{ backgroundColor: (step === 'images' ? 1 : 0) >= i ? section.color : '#E5E3DF' }}
+                style={{ backgroundColor: (step === 'images' || step === 'done' ? 1 : 0) >= i ? section.color : '#E5E3DF' }}
               />
             ))}
           </div>
@@ -174,22 +187,20 @@ export default function SceneSectionPage() {
                   {section.title.split(' — ')[0]} 섹션의 장면을 그릴 거야
                 </h2>
                 <p className="text-sm text-[#6B7280] leading-relaxed">
-                  지금까지 네가 답한 모든 내용 — 원하는 것, 방향 키워드, 이뤄졌을 때의 느낌 — 을 다 담아서 구체적인 장면으로 만드는 단계야.
+                  지금까지 네가 답한 것들 — 원하는 것, 방향 키워드, 이뤄졌을 때의 느낌 — 을 담아서 구체적인 장면으로 만드는 단계야.
                 </p>
               </div>
 
               {/* 이 섹션에서 답한 것들 */}
               <div className="rounded-2xl p-4 space-y-2" style={{ backgroundColor: section.lightColor }}>
                 <p className="text-xs font-semibold" style={{ color: section.color }}>
-                  {section.title.split(' — ')[0]}에서 네가 쓴 것들
+                  지금까지 쓴 것들
                 </p>
-                {([1, 2, 3, 5] as SlotId[]).map((slotId) => {
-                  const text = sectionData.slots[slotId]?.text?.trim();
+                {([{ id: 1 as SlotId, label: '지금의 나', text: slot1 }, { id: 2 as SlotId, label: '키워드', text: slot2 }, { id: 3 as SlotId, label: '원해', text: slot3 }, { id: 5 as SlotId, label: '이뤄졌을때', text: slot5 }]).map(({ id, label, text }) => {
                   if (!text) return null;
-                  const labels: Record<number, string> = { 1: '지금의 나', 2: '키워드', 3: '원해', 5: '이뤄졌을 때' };
                   return (
-                    <div key={slotId} className="flex gap-2">
-                      <span className="text-[10px] font-semibold text-[#9CA3AF] w-16 shrink-0 pt-0.5">{labels[slotId]}</span>
+                    <div key={id} className="flex gap-2">
+                      <span className="text-[10px] font-semibold text-[#9CA3AF] w-16 shrink-0 pt-0.5">{label}</span>
                       <span className="text-xs text-[#1C1B19] leading-relaxed">{text}</span>
                     </div>
                   );
@@ -222,7 +233,7 @@ export default function SceneSectionPage() {
                   </li>
                   <li className="flex gap-2 text-xs text-[#6B7280]">
                     <span className="shrink-0">2.</span>
-                    <span>각 장면에 예시가 미리 채워져 있어. 그대로 써도 되고, 수정해도 돼.</span>
+                    <span>각 장면에 예시가 있어. Tab 키로 채우거나 직접 써도 돼.</span>
                   </li>
                   <li className="flex gap-2 text-xs text-[#6B7280]">
                     <span className="shrink-0">3.</span>
@@ -234,13 +245,7 @@ export default function SceneSectionPage() {
 
             <div className="pt-4">
               <button
-                onClick={() => {
-                  // intro에서 scene으로 올 때 suggestions로 pre-fill
-                  if (sceneTexts.every((t) => !t.trim())) {
-                    setSceneTexts([...suggestions]);
-                  }
-                  setStep('scene');
-                }}
+                onClick={handleStartScene}
                 className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-all"
                 style={{ backgroundColor: section.color }}
               >
@@ -261,19 +266,37 @@ export default function SceneSectionPage() {
                 장면 그리기
               </span>
 
-              {keyword && (
-                <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: section.lightColor }}>
-                  <p className="text-[10px] text-[#6B7280]">내 키워드</p>
-                  <p className="font-bold text-base" style={{ color: section.color }}>{keyword}</p>
-                </div>
-              )}
+              {/* 답변 접기/펼치기 패널 */}
+              <div className="rounded-2xl overflow-hidden border" style={{ borderColor: section.color + '30' }}>
+                <button
+                  onClick={() => setAnswersExpanded(v => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  style={{ backgroundColor: section.lightColor }}
+                >
+                  <span className="text-xs font-semibold" style={{ color: section.color }}>지금까지 쓴 것들</span>
+                  <span className="text-xs text-[#9CA3AF]">{answersExpanded ? '접기 ▲' : '펼치기 ▼'}</span>
+                </button>
+                {answersExpanded && (
+                  <div className="px-4 py-3 space-y-2" style={{ backgroundColor: section.lightColor + '60' }}>
+                    {([{ label: '지금의 나', text: slot1 }, { label: '키워드', text: slot2 }, { label: '원해', text: slot3 }, { label: '이뤄졌을때', text: slot5 }]).map(({ label, text }) => {
+                      if (!text) return null;
+                      return (
+                        <div key={label} className="flex gap-2">
+                          <span className="text-[10px] font-semibold text-[#9CA3AF] w-16 shrink-0 pt-0.5">{label}</span>
+                          <span className="text-xs text-[#1C1B19] leading-relaxed">{text}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <div>
                 <p className="text-base font-bold leading-snug mb-1">
-                  이 키워드가 이루어진 하루의 장면을 3개 그려봐.
+                  이 내용이 이루어진 하루의 장면을 3개 그려봐.
                 </p>
                 <p className="text-xs text-[#9CA3AF]">
-                  예시가 미리 채워져 있어. 탭해서 수정하거나 직접 써도 돼. 장면 1개 = 이미지 1장이야.
+                  장면 1개 = 이미지 1장. Tab 키로 예시를 채우거나, 클릭해서 직접 써도 돼.
                 </p>
               </div>
 
@@ -288,13 +311,33 @@ export default function SceneSectionPage() {
                       updated[i] = e.target.value;
                       setSceneTexts(updated);
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Tab' && !sceneTexts[i].trim() && suggestions[i]) {
+                        e.preventDefault();
+                        const updated = [...sceneTexts];
+                        updated[i] = suggestions[i];
+                        setSceneTexts(updated);
+                      }
+                    }}
                     rows={3}
                     className="w-full bg-white border rounded-2xl p-3 text-sm placeholder-[#C4C2BE] focus:outline-none transition-colors leading-relaxed"
                     style={{
                       borderColor: sceneTexts[i].trim() ? section.color + '60' : '#E5E3DF',
                     }}
-                    placeholder={`장면 ${i + 1}을 직접 써봐...`}
+                    placeholder={suggestions[i] || `장면 ${i + 1}을 직접 써봐...`}
                   />
+                  {!sceneTexts[i].trim() && suggestions[i] && (
+                    <button
+                      onClick={() => {
+                        const updated = [...sceneTexts];
+                        updated[i] = suggestions[i];
+                        setSceneTexts(updated);
+                      }}
+                      className="mt-1 text-xs text-[#9CA3AF] underline"
+                    >
+                      ↹ 예시 채우기
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -341,6 +384,46 @@ export default function SceneSectionPage() {
                 </h2>
                 <p className="text-xs text-[#9CA3AF]">장면 1개당 사진 1장 — 총 3장이야.</p>
               </div>
+
+              {/* 입력 방식 탭 */}
+              <div className="flex gap-1 bg-[#F3F4F6] rounded-xl p-1">
+                <button
+                  onClick={() => setImageMode('upload')}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
+                  style={{
+                    backgroundColor: imageMode === 'upload' ? '#fff' : 'transparent',
+                    color: imageMode === 'upload' ? '#1C1B19' : '#9CA3AF',
+                    boxShadow: imageMode === 'upload' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  }}
+                >
+                  + 사진 업로드
+                </button>
+                <button
+                  onClick={() => setImageMode('suggest')}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
+                  style={{
+                    backgroundColor: imageMode === 'suggest' ? '#fff' : 'transparent',
+                    color: imageMode === 'suggest' ? '#1C1B19' : '#9CA3AF',
+                    boxShadow: imageMode === 'suggest' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  }}
+                >
+                  이미지 검색
+                </button>
+              </div>
+
+              {imageMode === 'suggest' && section && (
+                <UnsplashSearch
+                  sceneTexts={sceneTexts}
+                  keyword={keyword}
+                  section={section}
+                  images={images}
+                  onSelect={(index, url) => {
+                    const updated = [...images];
+                    updated[index] = url;
+                    setImages(updated);
+                  }}
+                />
+              )}
 
               {/* 장면 + 이미지 슬롯 3세트 */}
               <div className="space-y-4">
@@ -394,9 +477,7 @@ export default function SceneSectionPage() {
                 className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
                 style={{ backgroundColor: section.color }}
               >
-                {sectionId < 6
-                  ? (images.some((img) => img !== null) ? '다음 섹션 장면 그리기 →' : '일단 완료하고 다음으로')
-                  : (images.some((img) => img !== null) ? '내 비전보드 보러 가기 →' : '비전보드 완성하기')}
+                {images.some((img) => img !== null) ? '이 섹션 완료!' : '일단 완료하고 다음으로'}
               </button>
               <button onClick={() => setStep('scene')} className="w-full py-2 text-sm text-[#9CA3AF]">
                 장면 수정하기
@@ -404,7 +485,189 @@ export default function SceneSectionPage() {
             </div>
           </div>
         )}
+
+        {/* ── DONE 스텝 — 비전보드 채워지는 화면 ── */}
+        {step === 'done' && (
+          <div className="flex flex-col items-center min-h-[calc(100vh-140px)] animate-fadeIn pt-4">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
+              style={{ backgroundColor: section.lightColor }}
+            >
+              <span className="text-2xl">✦</span>
+            </div>
+
+            <h2 className="text-2xl font-bold mb-2 text-center">
+              {section.title.split(' — ')[0]} 완료!
+            </h2>
+
+            {/* 섹션 썸네일 3장 */}
+            {images.some(img => img !== null) && (
+              <div className="w-full grid grid-cols-3 gap-2 my-5">
+                {images.map((img, i) => (
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden" style={{ backgroundColor: section.lightColor }}>
+                    {img ? (
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-xs text-[#C4C2BE]">—</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 비전보드 진행 */}
+            <div className="w-full mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[#6B7280]">비전보드</span>
+                <span className="text-sm font-semibold">{Math.min(completedCount * 3, 18)}/18</span>
+              </div>
+              <div className="w-full bg-[#E5E3DF] rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${(Math.min(completedCount * 3, 18) / 18) * 100}%`,
+                    backgroundColor: section.color,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-[#9CA3AF] mt-2 text-center">
+                {completedCount < 6 ? `${6 - completedCount}개 섹션 남았어` : '모든 섹션 완료! 🎉'}
+              </p>
+            </div>
+
+            <div className="w-full space-y-3">
+              {sectionId < 6 && nextSection ? (
+                <button
+                  onClick={() => router.push(`/scene/${sectionId + 1}`)}
+                  className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
+                  style={{ backgroundColor: nextSection.color }}
+                >
+                  {nextSection.title.split(' — ')[0]} 장면 그리러 가기 →
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push('/board')}
+                  className="w-full py-4 rounded-2xl text-base font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
+                >
+                  내 비전보드 보러 가기 →
+                </button>
+              )}
+              <button
+                onClick={() => router.push('/board')}
+                className="w-full py-2 text-sm text-[#9CA3AF]"
+              >
+                비전보드 전체 보기
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </main>
+  );
+}
+
+// Unsplash 이미지 검색 컴포넌트
+interface UnsplashSearchProps {
+  sceneTexts: string[];
+  keyword: string;
+  section: Section;
+  images: (string | null)[];
+  onSelect: (index: number, url: string) => void;
+}
+
+function UnsplashSearch({ sceneTexts, keyword, section, images, onSelect }: UnsplashSearchProps) {
+  const [activeSlot, setActiveSlot] = useState(0);
+  const [results, setResults] = useState<{ id: string; thumb: string; regular: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const queryForSlot = (i: number) => {
+    const scene = sceneTexts[i]?.trim();
+    if (scene) return scene.split(' ').slice(0, 6).join(' ');
+    return keyword || '일상 여유 라이프스타일';
+  };
+
+  async function search(slotIdx: number) {
+    setActiveSlot(slotIdx);
+    setLoading(true);
+    setError(false);
+    try {
+      const q = encodeURIComponent(queryForSlot(slotIdx));
+      const res = await fetch(`/api/unsplash?q=${q}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setResults(data.photos || []);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    search(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      {/* 슬롯 선택 탭 */}
+      <div className="flex gap-2">
+        {[0, 1, 2].map((i) => (
+          <button
+            key={i}
+            onClick={() => search(i)}
+            className="flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+            style={{
+              borderColor: activeSlot === i ? section.color : '#E5E3DF',
+              backgroundColor: activeSlot === i ? section.lightColor : '#fff',
+              color: activeSlot === i ? section.color : '#9CA3AF',
+            }}
+          >
+            장면 {i + 1}
+          </button>
+        ))}
+      </div>
+
+      {loading && (
+        <div className="grid grid-cols-3 gap-2">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="aspect-square rounded-xl bg-[#F3F4F6] animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <p className="text-xs text-[#9CA3AF] text-center py-4">
+          이미지를 불러오지 못했어. (API 키 설정 필요)
+        </p>
+      )}
+
+      {!loading && !error && results.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {results.slice(0, 9).map((photo) => (
+            <button
+              key={photo.id}
+              onClick={() => onSelect(activeSlot, photo.regular)}
+              className={`aspect-square rounded-xl overflow-hidden relative active:opacity-80 transition-opacity ${images[activeSlot] === photo.regular ? 'ring-2' : ''}`}
+              style={{ outlineColor: section.color }}
+            >
+              <img src={photo.thumb} alt="" className="w-full h-full object-cover" />
+              {images[activeSlot] === photo.regular && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <span className="text-white text-lg">✓</span>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <p className="text-[10px] text-[#C4C2BE] text-center">
+        이미지 제공: Unsplash
+      </p>
+    </div>
   );
 }

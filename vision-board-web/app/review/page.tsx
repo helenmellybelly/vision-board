@@ -11,8 +11,10 @@ const SLOT_LABELS: Record<number, string> = {
   1: '지금의 나',
   2: '키워드',
   3: '원해',
-  5: '이뤄졌을 때',
+  5: '이뤄졌을때',
 };
+
+const SLOT_ORDER: SlotId[] = [1, 2, 3, 5];
 
 function AISummaryCard({ board }: { board: BoardData }) {
   const [summary, setSummary] = useState<string | null>(null);
@@ -72,7 +74,8 @@ function AISummaryCard({ board }: { board: BoardData }) {
   if (error) {
     return (
       <div className="mx-6 mb-5 rounded-2xl bg-[#F9F8F6] p-4">
-        <p className="text-sm text-[#9CA3AF] mb-2">AI 요약을 불러오지 못했어.</p>
+        <p className="text-xs font-semibold text-[#9CA3AF] tracking-wider mb-2">AI 종합 리뷰</p>
+        <p className="text-sm text-[#9CA3AF] mb-2">AI 요약을 불러오지 못했어. (API 키 설정 필요)</p>
         <button
           onClick={fetchSummary}
           className="text-xs text-[#6B7280] underline"
@@ -101,9 +104,6 @@ export default function ReviewPage() {
 
   if (!board) return null;
 
-  const leftSections = SECTIONS.slice(0, 3);
-  const rightSections = SECTIONS.slice(3, 6);
-
   return (
     <main className="min-h-screen flex flex-col max-w-md mx-auto w-full pb-10">
       <ProcessBar board={board} />
@@ -122,85 +122,54 @@ export default function ReviewPage() {
       {/* AI 요약 카드 */}
       <AISummaryCard board={board} />
 
-      {/* 섹션별 답변 — 2열 그리드 */}
-      <div className="px-4 mb-6">
-        <div className="grid grid-cols-2 gap-3">
-          {/* 좌측: 섹션 1·2·3 */}
-          <div className="space-y-3">
-            {leftSections.map((section) => {
-              const sectionData = board.sections[section.id];
-              return (
-                <div
-                  key={section.id}
-                  className="rounded-2xl overflow-hidden border border-[#E5E3DF]"
-                >
-                  <div
-                    className="px-3 py-2 flex items-center gap-1.5"
-                    style={{ backgroundColor: section.lightColor }}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
-                    <span className="font-semibold text-xs leading-tight" style={{ color: section.color }}>
-                      {section.title.split(' — ')[0]}
-                    </span>
-                  </div>
-                  <div className="bg-white divide-y divide-[#F3F4F6]">
-                    {[2, 3].map((slotId) => {
-                      const answer = sectionData.slots[slotId as SlotId];
-                      const label = SLOT_LABELS[slotId];
-                      const text = answer?.text?.trim();
-                      return (
-                        <div key={slotId} className="px-3 py-2">
-                          <p className="text-[10px] text-[#9CA3AF] mb-0.5">{label}</p>
-                          <p className={`text-xs leading-relaxed ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
-                            {text || '—'}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
+      {/* 섹션별 답변 — 1열 전체너비 */}
+      <div className="px-4 mb-6 space-y-3">
+        {SECTIONS.map((section) => {
+          const sectionData = board.sections[section.id];
+          return (
+            <div
+              key={section.id}
+              className="rounded-2xl overflow-hidden border border-[#E5E3DF]"
+            >
+              {/* 섹션 헤더 */}
+              <div
+                className="px-4 py-3 flex items-center justify-between"
+                style={{ backgroundColor: section.lightColor }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
+                  <span className="font-semibold text-sm" style={{ color: section.color }}>
+                    {section.title.split(' — ')[0]}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <button
+                  onClick={() => router.push(`/section/${section.id}`)}
+                  className="text-xs active:opacity-60"
+                  style={{ color: section.color }}
+                >
+                  수정하러 가기 →
+                </button>
+              </div>
 
-          {/* 우측: 섹션 4·5·6 */}
-          <div className="space-y-3">
-            {rightSections.map((section) => {
-              const sectionData = board.sections[section.id];
-              return (
-                <div
-                  key={section.id}
-                  className="rounded-2xl overflow-hidden border border-[#E5E3DF]"
-                >
-                  <div
-                    className="px-3 py-2 flex items-center gap-1.5"
-                    style={{ backgroundColor: section.lightColor }}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
-                    <span className="font-semibold text-xs leading-tight" style={{ color: section.color }}>
-                      {section.title.split(' — ')[0]}
-                    </span>
-                  </div>
-                  <div className="bg-white divide-y divide-[#F3F4F6]">
-                    {[2, 3].map((slotId) => {
-                      const answer = sectionData.slots[slotId as SlotId];
-                      const label = SLOT_LABELS[slotId];
-                      const text = answer?.text?.trim();
-                      return (
-                        <div key={slotId} className="px-3 py-2">
-                          <p className="text-[10px] text-[#9CA3AF] mb-0.5">{label}</p>
-                          <p className={`text-xs leading-relaxed ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
-                            {text || '—'}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+              {/* 4개 슬롯 */}
+              <div className="bg-white divide-y divide-[#F3F4F6]">
+                {SLOT_ORDER.map((slotId) => {
+                  const answer = sectionData.slots[slotId];
+                  const label = SLOT_LABELS[slotId];
+                  const text = answer?.text?.trim();
+                  return (
+                    <div key={slotId} className="px-4 py-2.5 flex gap-3">
+                      <p className="text-[11px] text-[#9CA3AF] w-20 shrink-0 pt-0.5 font-medium">{label}</p>
+                      <p className={`text-sm leading-relaxed flex-1 ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
+                        {text || '—'}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* 장면 그리기 온보딩 블록 */}

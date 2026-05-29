@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Section, SlotAnswer, SlotId, PHASE1_SLOTS } from '@/lib/types';
 
 const SLOT_LABELS: Record<number, string> = {
@@ -22,10 +22,14 @@ export default function DeferredCheck({ section, slots, onAnswerSlot, onDeferAll
     .map((slotId, idx) => ({ slotId, idx, answer: slots[slotId as SlotId] }))
     .filter(({ answer }) => !answer?.text?.trim() || answer.isDeferred);
 
-  if (deferredSlots.length === 0) {
-    onDeferAll();
-    return null;
-  }
+  useEffect(() => {
+    if (deferredSlots.length === 0) {
+      onDeferAll();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deferredSlots.length]);
+
+  if (deferredSlots.length === 0) return null;
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-120px)] animate-fadeIn">
