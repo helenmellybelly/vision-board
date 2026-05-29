@@ -184,10 +184,10 @@ export default function SceneSectionPage() {
 
               <div>
                 <h2 className="text-xl font-bold leading-snug mb-2">
-                  {section.title.split(' — ')[0]} 섹션의 장면을 그릴 거야
+                  {section.title.split(' — ')[0]} 섹션, 이제 장면으로 그릴 차례야.
                 </h2>
                 <p className="text-sm text-[#6B7280] leading-relaxed">
-                  지금까지 네가 답한 것들 — 원하는 것, 방향 키워드, 이뤄졌을 때의 느낌 — 을 담아서 구체적인 장면으로 만드는 단계야.
+                  네가 쓴 단어들이 실제 장면이 되는 단계야. 구체적으로 그릴수록, 원하는 것이 더 선명하게 느껴져.
                 </p>
               </div>
 
@@ -382,7 +382,7 @@ export default function SceneSectionPage() {
                 <h2 className="text-base font-bold leading-snug mb-1">
                   각 장면에 어울리는 사진을 찾아봐.
                 </h2>
-                <p className="text-xs text-[#9CA3AF]">장면 1개당 사진 1장 — 총 3장이야.</p>
+                <p className="text-xs text-[#9CA3AF]">이미지로 채우면, 머릿속 장면이 훨씬 생생해져.</p>
               </div>
 
               {/* 입력 방식 탭 */}

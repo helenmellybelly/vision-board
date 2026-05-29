@@ -2,24 +2,34 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** Stage 1 완료 + 전체 카피라이팅 완료 — https://vision-board-web.vercel.app
+- **상태:** Stage 1 완료 + UI/UX 폴리시 1차 완료 — https://vision-board-web.vercel.app
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료
-  - lumi 5단계 대화형 온보딩 (이름 입력, 공감, 초대) — 카피 v2 완전 적용
+  - lumi 5단계 대화형 온보딩 — 카피 v2 + UI 폴리시 적용 (아이콘 그라디언트, 버튼 개선, 컬러 바)
   - 6섹션 PHASE 1+2 전체 질문 흐름 + 슬롯별 CTA 다양화 + 수정 중 배지
   - Review 페이지: 1열 레이아웃 + 4슬롯 전체 표시 + 섹션별 수정 링크 + AI 요약 카드
   - Scene 페이지: 답변 패널(접기/펼치기) + Tab-to-fill 스마트 플레이스홀더 + X/18 완료 인터루드
   - 이미지: 업로드 + Unsplash 키워드 검색 탭 전환 (`/api/unsplash`)
   - localStorage 임시 저장 + 모바일 퍼스트 레이아웃
   - 전체 마이크로카피 lumi 톤으로 완전 교체 (온보딩·질문·리뷰·장면 전 영역)
+  - 대시보드: 2단계 진행 도트 + 완성 카드 섹션 색 배경 + "글 완료/✓ 완성" 상태 명확화
+  - 접근성: `button { cursor: pointer }` 전역 + `prefers-reduced-motion` 지원
 - **알려진 이슈:**
   - AI 요약: `ANTHROPIC_API_KEY` Vercel 환경변수 미설정 (설정 필요)
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` Vercel 환경변수 미설정 (설정 필요)
-  - 온보딩 예시 보드 이미지 placeholder — 실제 이미지 미제작
-  - lumi 아바타/아이콘 미결 (텍스트만)
+  - 온보딩 예시 보드 — 실제 이미지 미제작 (컬러 그리드 placeholder로 대체)
+  - 전체 UI 레퍼런스 기반 재설계 예정 (유저가 레퍼런스 제공 후 진행)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-30 (3차)
+- UI/UX Pro Max 스킬 적용: 디자인 시스템 분석 + 접근성 이슈 발견 (`cursor-pointer` 누락, `prefers-reduced-motion` 미지원)
+- `globals.css`: `button { cursor: pointer }` 전역 + `prefers-reduced-motion` 추가
+- 카피 완료: onboarding Step 5(페인포인트+효과), review 헤더, scene 인트로/이미지 안내 lumi 톤
+- 대시보드 상태 명확화: 2단계 도트 + 완성 카드 배경색 + "글 완료/✓ 완성" 라벨
+- 온보딩 UI 폴리시: lumi 아이콘 그라디언트+그림자, Step 4 버튼 개선, Step 5 컬러 바
+- Vercel 배포 2회 완료
 
 ### 2026-05-30 (2차)
 - 전체 카피 리뷰 + lumi 톤 최종 정리: 온보딩 Step1 훅 강화, Step4 불필요한 skip 버튼 삭제, Step5 비전보드 효과 담은 문구로 교체

@@ -17,6 +17,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -45,4 +53,11 @@ textarea {
 
 .animate-slideUp {
   animation: slideUp 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn,
+  .animate-slideUp {
+    animation: none;
+  }
 }

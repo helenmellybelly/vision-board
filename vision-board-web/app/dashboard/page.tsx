@@ -10,12 +10,12 @@ import ProcessBar from '@/components/ProcessBar';
 const STATUS_LABEL: Record<SectionStatus, string> = {
   not_started: '시작 전',
   in_progress: '진행 중',
-  text_complete: '답변 완료',
+  text_complete: '글 완료',
   completed: '완성',
 };
 
 const STATUS_STYLE: Record<SectionStatus, { bg: string; text: string }> = {
-  not_started: { bg: '#F3F4F6', text: '#6B7280' },
+  not_started: { bg: '#F3F4F6', text: '#9CA3AF' },
   in_progress: { bg: '#FEF9C3', text: '#D97706' },
   text_complete: { bg: '#DBEAFE', text: '#2563EB' },
   completed: { bg: '#D1FAE5', text: '#059669' },
@@ -39,7 +39,6 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen flex flex-col max-w-md mx-auto w-full pb-10">
-      {/* 전체 프로세스 바 */}
       <ProcessBar board={board} />
 
       <div className="px-6 pt-4">
@@ -78,32 +77,54 @@ export default function DashboardPage() {
         )}
 
         {/* 섹션 카드들 */}
-        <div className="space-y-3 animate-slideUp">
+        <div className="space-y-2.5 animate-slideUp">
           {SECTIONS.map((section) => {
             const sectionData = board.sections[section.id];
             const status = sectionData.status;
             const statusStyle = STATUS_STYLE[status];
+            const isCompleted = status === 'completed';
+            const isTextDone = status === 'text_complete' || status === 'completed';
 
             return (
               <button
                 key={section.id}
                 onClick={() => router.push(`/section/${section.id}`)}
-                className="w-full text-left rounded-2xl p-4 border border-[#E5E3DF] bg-white active:scale-[0.98] transition-transform"
+                className="w-full text-left rounded-2xl p-4 border transition-all active:scale-[0.98]"
+                style={{
+                  backgroundColor: isCompleted ? section.lightColor : 'white',
+                  borderColor: isCompleted ? section.color + '40' : '#E5E3DF',
+                }}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ backgroundColor: section.lightColor }}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: isCompleted ? section.color + '20' : section.lightColor }}
                     >
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: section.color }} />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm">{section.title}</p>
+                      <p className="font-semibold text-sm">{section.title.split(' — ')[0]}</p>
                       <p className="text-xs text-[#9CA3AF] mt-0.5">{section.subtitle}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+
+                  {/* 상태 표시 */}
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    {/* 2단계 진행 도트 */}
+                    <div className="flex items-center gap-1">
+                      <div
+                        className="w-2 h-2 rounded-full transition-colors"
+                        style={{ backgroundColor: isTextDone ? section.color : '#E5E3DF' }}
+                        title="글 완료"
+                      />
+                      <div
+                        className="w-2 h-2 rounded-full transition-colors"
+                        style={{ backgroundColor: isCompleted ? section.color : '#E5E3DF' }}
+                        title="장면 완료"
+                      />
+                    </div>
+                    {/* 상태 뱃지 */}
                     <span
                       className="text-xs px-2 py-0.5 rounded-full font-medium"
                       style={{
@@ -111,9 +132,8 @@ export default function DashboardPage() {
                         color: statusStyle.text,
                       }}
                     >
-                      {STATUS_LABEL[status]}
+                      {isCompleted && '✓ '}{STATUS_LABEL[status]}
                     </span>
-                    <span className="text-[#9CA3AF]">›</span>
                   </div>
                 </div>
               </button>
@@ -121,8 +141,13 @@ export default function DashboardPage() {
           })}
         </div>
 
+        {/* 2단계 범례 */}
+        <div className="mt-3 flex items-center gap-3 px-1">
+          <p className="text-[10px] text-[#C4C2BE]">●● = 완성 &nbsp; ●○ = 글만 완료 &nbsp; ○○ = 미시작</p>
+        </div>
+
         {/* 하단 액션 */}
-        <div className="mt-6 space-y-3">
+        <div className="mt-5 space-y-3">
           {allTextDone && (
             <button
               onClick={() => router.push('/review')}
