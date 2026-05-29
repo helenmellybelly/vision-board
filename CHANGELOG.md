@@ -2,21 +2,28 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** Stage 1 완료 + Vercel 배포 — https://vision-board-web.vercel.app
+- **상태:** Stage 1 완료 + Review/Scene UX 개편 — https://vision-board-web.vercel.app
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료
   - lumi 5단계 대화형 온보딩 (이름 입력, 공감, 초대)
-  - 6섹션 PHASE 1+2 전체 질문 흐름 (예시 기본 노출, 스킵, 미답변 체크)
-  - 장면 그리기 허브 (`/scene`) — 전체 섹션 완료 후 원하는 섹션부터 선택
+  - 6섹션 PHASE 1+2 전체 질문 흐름 + 완료 후 답변 수정 가능
+  - Review 페이지: 2열 그리드 + AI 종합 요약 카드 (`/api/summarize` — Claude Haiku)
+  - Scene 페이지: intro 스텝 + 3개 독립 장면 textarea + 이미지-장면 연결
   - localStorage 임시 저장 + 모바일 퍼스트 레이아웃
-  - 섹션 타이틀 PDF 기반 업데이트 (감정·성장·정체성 등)
-  - 온보딩 구현 변경사항 문서 (`Playground/docs/온보딩_구현_변경사항_v0.2.md`)
 - **알려진 이슈:**
+  - AI 요약: `ANTHROPIC_API_KEY` 환경변수 미설정 시 에러 (`.env.local` + Vercel 설정 필요)
   - 온보딩 예시 보드 이미지 placeholder — 실제 이미지 미제작
   - lumi 아바타/아이콘 미결 (텍스트만)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-29
+- Review 페이지 개편: 헤더 카피 변경, 6섹션 2열 그리드, AI 종합 요약 카드 (Claude Haiku `/api/summarize`), 장면 그리기 온보딩 블록
+- Scene 페이지 대개편: intro 스텝(맥락 설명 + 이전 답변 요약), 3개 독립 장면 textarea, 이미지-장면 연결 UX
+- 대시보드 완료 배지 색상 버그 픽스: 섹션별 색상 → 일관된 녹색
+- 섹션 답변 수정 버그 픽스: 완료 후 재진입 시 review 화면으로 시작
+- 타입/스토리지 확장: `SectionData.sceneTexts[]`, `saveSectionSceneTexts()`
 
 ### 2026-05-28
 - Stage 1 Next.js 프로토타입 구현 — 랜딩, 온보딩, 대시보드, 섹션 PHASE 1+2, 비전보드 그리드, FINISH

@@ -82,6 +82,12 @@ export function saveSectionScene(sectionId: SectionId, text: string): void {
   saveBoard(board);
 }
 
+export function saveSectionSceneTexts(sectionId: SectionId, texts: string[]): void {
+  const board = loadBoard();
+  board.sections[sectionId].sceneTexts = texts;
+  saveBoard(board);
+}
+
 export function markSectionTextComplete(sectionId: SectionId): void {
   const board = loadBoard();
   board.sections[sectionId].status = 'text_complete';
@@ -95,9 +101,16 @@ export function markSectionComplete(sectionId: SectionId): void {
   saveBoard(board);
 }
 
+export function saveOnboardingStep(step: number): void {
+  const board = loadBoard();
+  board.onboardingStep = step;
+  saveBoard(board);
+}
+
 export function markOnboardingDone(): void {
   const board = loadBoard();
   board.onboardingDone = true;
+  board.onboardingStep = undefined;
   saveBoard(board);
 }
 

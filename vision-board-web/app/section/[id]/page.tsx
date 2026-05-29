@@ -4,18 +4,19 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
 import { loadBoard, saveSlotAnswer, markSectionTextComplete } from '@/lib/storage';
-import { BoardData, Section, SlotAnswer, SlotId, PHASE1_SLOTS } from '@/lib/types';
+import { BoardData, Section, SlotAnswer, SlotId, PHASE1_SLOTS, SectionId } from '@/lib/types';
 import SlotQuestion from './SlotQuestion';
 import PhaseReview from './PhaseReview';
 import DeferredCheck from './DeferredCheck';
 import SectionComplete from './SectionComplete';
+import ProcessBar from '@/components/ProcessBar';
 
 type Phase = 'slot' | 'review' | 'deferred' | 'complete';
 
 export default function SectionPage() {
   const router = useRouter();
   const params = useParams();
-  const sectionId = Number(params.id) as 1 | 2 | 3 | 4 | 5 | 6;
+  const sectionId = Number(params.id) as SectionId;
 
   const section = getSection(sectionId);
   const [board, setBoard] = useState<BoardData | null>(null);
@@ -27,9 +28,8 @@ export default function SectionPage() {
   useEffect(() => {
     const b = loadBoard();
     setBoard(b);
-    // 이미 텍스트 완료면 완료 화면으로
     if (b.sections[sectionId]?.status === 'text_complete' || b.sections[sectionId]?.status === 'completed') {
-      setPhase('complete');
+      setPhase('review');
     }
   }, [sectionId]);
 
@@ -73,13 +73,32 @@ export default function SectionPage() {
   }
 
   function handleComplete() {
-    router.push('/dashboard');
+    const freshBoard = loadBoard();
+    const allTextDone = ([1, 2, 3, 4, 5, 6] as SectionId[]).every(
+      (id) => freshBoard.sections[id].status === 'text_complete' || freshBoard.sections[id].status === 'completed'
+    );
+    if (allTextDone) {
+      router.push('/review');
+      return;
+    }
+    const nextIncomplete = ([1, 2, 3, 4, 5, 6] as SectionId[]).find(
+      (id) => id > sectionId && (freshBoard.sections[id].status === 'not_started' || freshBoard.sections[id].status === 'in_progress')
+    );
+    if (nextIncomplete) {
+      router.push(`/section/${nextIncomplete}`);
+    } else {
+      router.push('/review');
+    }
   }
 
   const currentSlot = section.slots.find((s) => s.id === PHASE1_SLOTS[slotIndex]);
 
   return (
-    <SectionShell section={section} onBack={() => router.push('/dashboard')}>
+    <SectionShell
+      section={section}
+      board={board}
+      onDashboard={() => router.push('/dashboard')}
+    >
       {phase === 'slot' && currentSlot && (
         <SlotQuestion
           key={`slot-${slotIndex}`}
@@ -111,7 +130,13 @@ export default function SectionPage() {
         />
       )}
       {phase === 'complete' && (
-        <SectionComplete section={section} onDone={handleComplete} />
+        <SectionComplete
+          section={section}
+          sectionId={sectionId}
+          board={board}
+          onDone={handleComplete}
+          onDashboard={() => router.push('/dashboard')}
+        />
       )}
     </SectionShell>
   );
@@ -119,23 +144,31 @@ export default function SectionPage() {
 
 function SectionShell({
   section,
+  board,
+  onDashboard,
   children,
-  onBack,
 }: {
   section: Section;
+  board: BoardData;
+  onDashboard: () => void;
   children: React.ReactNode;
-  onBack: () => void;
 }) {
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
-      <header className="flex items-center gap-3 px-6 pt-10 pb-4">
-        <button onClick={onBack} className="p-2 -ml-2 text-[#6B7280] text-xl active:opacity-60">
-          ‹
-        </button>
+      {/* 전체 프로세스 바 */}
+      <ProcessBar board={board} />
+
+      <header className="flex items-center justify-between px-6 pt-2 pb-4">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
           <span className="font-semibold text-sm">{section.title}</span>
         </div>
+        <button
+          onClick={onDashboard}
+          className="text-xs text-[#9CA3AF] active:opacity-60 py-1"
+        >
+          대시보드로
+        </button>
       </header>
       <div className="flex-1 px-6 pb-10">{children}</div>
     </div>

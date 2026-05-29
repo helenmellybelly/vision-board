@@ -46,6 +46,7 @@ export interface SectionData {
   slots: Record<SlotId, SlotAnswer | undefined>;
   images: (string | null)[];
   sceneText?: string;
+  sceneTexts?: string[];
   completedAt?: number;
 }
 
@@ -55,6 +56,7 @@ export interface BoardData {
   userName: string;
   startedAt: number;
   finishedAt?: number;
+  onboardingStep?: number;
 }
 
-export const PHASE1_SLOTS: SlotId[] = [1, 2, 3, 5];
+export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];
