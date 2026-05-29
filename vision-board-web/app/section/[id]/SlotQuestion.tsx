@@ -37,7 +37,7 @@ export default function SlotQuestion({
 
   const hasText = text.trim().length > 0;
   const isLastSlot = slotIndex === totalSlots - 1;
-  const nextLabel = isLastSlot ? '다 됐다! 내 답 보여줘' : (NEXT_LABELS[slotIndex] ?? '다음 질문은 뭐야?');
+  const nextLabel = isLastSlot ? '다 썼어. 내 답 확인할게 →' : (NEXT_LABELS[slotIndex] ?? '다음 질문은 뭐야?');
 
   function handleNext() {
     onSave({ text: text.trim(), isDeferred: false });

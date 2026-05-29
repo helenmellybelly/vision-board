@@ -76,10 +76,10 @@ export default function OnboardingPage() {
                 너한테 원하는 게 뭔지 알려줄 수는 없어.
               </p>
               <p className="text-[#6B7280] leading-relaxed">
-                근데 네가 스스로 발견할 수 있게 — 옆에서 빛을 비춰줄 순 있어.
+                근데, 스스로 발견할 수 있게 빛을 비춰줄 수 있어.
               </p>
               <p className="text-[#6B7280] leading-relaxed">
-                같이 해볼래?
+                네가 원하는 삶으로 나아갈 수 있도록 — 같이 해볼래?
               </p>
             </div>
             <button
@@ -204,12 +204,6 @@ export default function OnboardingPage() {
                   {opt.label}
                 </button>
               ))}
-              <button
-                onClick={nextStep}
-                className="w-full text-[#9CA3AF] py-2 text-sm"
-              >
-                맞아, 딱 내 얘기야
-              </button>
             </div>
           </div>
         )}
@@ -222,13 +216,13 @@ export default function OnboardingPage() {
                 {savedName ? `그렇다면 잘 왔어, ${savedName}.` : '그렇다면 잘 왔어.'}
               </p>
               <p className="text-[#1C1B19] leading-relaxed">
-                내가 6개의 작은 영역으로 나눠뒀어. 한 번에 다 안 해도 돼.
+                나, 건강, 관계, 일, 돈, 공간 — 삶을 이루는 6가지야.
               </p>
               <p className="text-[#6B7280] leading-relaxed">
-                막히면 내가 옆에서 같이 찾아줄게. 속도는 네가 정해 — 저장하고 다음에 와도 되고.
+                하나씩 답하다 보면, 원하는 게 선명해질 거야.
               </p>
               <p className="text-[#6B7280] leading-relaxed">
-                준비됐어?
+                막히면 옆에서 같이 찾아줄게. 속도는 네가 정해.
               </p>
             </div>
 

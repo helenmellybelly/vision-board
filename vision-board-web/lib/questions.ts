@@ -241,7 +241,7 @@ export const SECTIONS: Section[] = [
   {
     id: 4,
     title: '일·성장 — 커리어·배움·의미',
-    subtitle: '돈을 떠나서, 어떤 일로 살고 싶어?',
+    subtitle: '어떤 일로 배우며 성장하고 싶어?',
     color: '#3B82F6',
     lightColor: '#DBEAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
@@ -320,7 +320,7 @@ export const SECTIONS: Section[] = [
   {
     id: 5,
     title: '돈·생활 — 재정·소비·여유',
-    subtitle: '액수가 아니라, 어떤 자유를 갖고 싶어?',
+    subtitle: '여유로운 상태에서 어떤 선택을 하고 싶어?',
     color: '#F97316',
     lightColor: '#FFEDD5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
@@ -399,7 +399,7 @@ export const SECTIONS: Section[] = [
   {
     id: 6,
     title: '공간·환경 — 집·동네·일상의 배경',
-    subtitle: '매일 돌아오고 싶은 공간.',
+    subtitle: '매일 돌아오고 싶은 공간은 어떤 모습이야?',
     color: '#06B6D4',
     lightColor: '#CFFAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',

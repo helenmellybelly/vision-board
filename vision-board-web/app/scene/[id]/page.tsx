@@ -296,7 +296,7 @@ export default function SceneSectionPage() {
                   이 내용이 이루어진 하루의 장면을 3개 그려봐.
                 </p>
                 <p className="text-xs text-[#9CA3AF]">
-                  장면 1개 = 이미지 1장. Tab 키로 예시를 채우거나, 클릭해서 직접 써도 돼.
+                  상상되는 장면을 짧게 써봐. Tab으로 예시를 불러올 수도 있어.
                 </p>
               </div>
 

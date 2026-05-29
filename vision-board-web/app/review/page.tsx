@@ -112,10 +112,10 @@ export default function ReviewPage() {
       <div className="px-6 pt-4 pb-4">
         <p className="text-xs font-semibold text-[#9CA3AF] tracking-widest mb-2">REVIEW</p>
         <h1 className="text-2xl font-bold leading-snug mb-1">
-          수고했어. 다각면의 너의 모습을 발견했네 ✦
+          수고했어. 써보니까, 원하는 게 보이지? ✦
         </h1>
         <p className="text-[#6B7280] text-sm leading-relaxed">
-          네가 여기까지 써온 것들을 AI가 종합해서 정리해줬어.
+          네가 쓴 말들로, lumi가 너의 이야기를 하나로 정리해봤어.
         </p>
       </div>
 
