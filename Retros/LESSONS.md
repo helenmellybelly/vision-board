@@ -27,6 +27,9 @@
 ### 섹션 고유 색을 상태 표시에 쓰면 상태 구분이 흐려진다 #coding #ux
 완료 배지에 섹션별 색을 쓰면 어떤 배지가 "완료"이고 어떤 게 "진행 중"인지 한눈에 안 보인다. 상태별 색은 전역 고정 팔레트(예: 완료=녹색, 진행=노랑)로, 섹션 고유 색은 섹션 ID 표시에만 분리해서 쓰는 게 명확하다.
 
+### 렌더 중 조건부 사이드이펙트는 useEffect로 감싸야 한다 #coding #react
+컴포넌트 렌더 함수 안에서 직접 콜백(setState 포함)을 호출하면 "Cannot update a component while rendering a different component" 에러 발생. `if (condition) callback()` 패턴 대신 `useEffect(() => { if (condition) callback(); }, [condition])` 으로 작성해야 한다. DeferredCheck의 `onDeferAll()` 직접 호출이 원인이었다.
+
 ## Deployment
 
 ### GitHub Pages 진입점은 root index.html 필요 #coding #deployment

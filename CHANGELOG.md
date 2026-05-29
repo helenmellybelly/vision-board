@@ -2,21 +2,29 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** Stage 1 완료 + Review/Scene UX 개편 — https://vision-board-web.vercel.app
+- **상태:** Stage 1 완료 + UX 전면 개선 배포 완료 — https://vision-board-web.vercel.app
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료
   - lumi 5단계 대화형 온보딩 (이름 입력, 공감, 초대)
-  - 6섹션 PHASE 1+2 전체 질문 흐름 + 완료 후 답변 수정 가능
-  - Review 페이지: 2열 그리드 + AI 종합 요약 카드 (`/api/summarize` — Claude Haiku)
-  - Scene 페이지: intro 스텝 + 3개 독립 장면 textarea + 이미지-장면 연결
+  - 6섹션 PHASE 1+2 전체 질문 흐름 + 슬롯별 CTA 다양화 + 수정 중 배지
+  - Review 페이지: 1열 레이아웃 + 4슬롯 전체 표시 + 섹션별 수정 링크 + AI 요약 카드
+  - Scene 페이지: 답변 패널(접기/펼치기) + Tab-to-fill 스마트 플레이스홀더 + X/18 완료 인터루드
+  - 이미지: 업로드 + Unsplash 키워드 검색 탭 전환 (`/api/unsplash`)
   - localStorage 임시 저장 + 모바일 퍼스트 레이아웃
 - **알려진 이슈:**
-  - AI 요약: `ANTHROPIC_API_KEY` 환경변수 미설정 시 에러 (`.env.local` + Vercel 설정 필요)
+  - AI 요약: `ANTHROPIC_API_KEY` Vercel 환경변수 미설정 (설정 필요)
+  - Unsplash 검색: `UNSPLASH_ACCESS_KEY` Vercel 환경변수 미설정 (설정 필요)
   - 온보딩 예시 보드 이미지 placeholder — 실제 이미지 미제작
   - lumi 아바타/아이콘 미결 (텍스트만)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-29 (2차)
+- 실기기 피드백 반영 UX 전면 개선: 섹션 이름 명시, CTA 다양화, Review 1열 레이아웃, Scene 답변 패널 + Tab-to-fill
+- Scene done 인터루드: 비전보드 X/18 진행 바 + 다음 섹션 CTA
+- Unsplash API 연동: 장면 텍스트 기반 이미지 키워드 검색 (`/api/unsplash`)
+- DeferredCheck 렌더 중 setState 버그 수정 (useEffect로 이전)
 
 ### 2026-05-29
 - Review 페이지 개편: 헤더 카피 변경, 6섹션 2열 그리드, AI 종합 요약 카드 (Claude Haiku `/api/summarize`), 장면 그리기 온보딩 블록
