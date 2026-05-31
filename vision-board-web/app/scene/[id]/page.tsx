@@ -153,7 +153,9 @@ export default function SceneChatPage() {
               onClick={handleSceneDone}
               className="w-full py-3.5 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white"
             >
-              이미지 찾으러 가기 →
+              {board && ([1,2,3,4,5,6] as SectionId[]).filter(id => id !== sectionId).every(id => board.sections[id].status === 'completed')
+                ? '비전보드 완성하기 →'
+                : '대시보드로 돌아가기'}
             </button>
           </div>
         )}
