@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>비전보드 플로우 v0.6</title>
+<title>비전보드 플로우 v0.7</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -131,6 +131,37 @@ body {
 .chip {
   padding:4px 12px; border-radius:20px; font-size:12px;
   background:#2a2745; color:#9490cc;
+}
+
+/* 온보딩 */
+.fb-onboarding {
+  background:#1a1a2e; border:1.5px solid #7c6fcd;
+  border-radius:12px; padding:11px 18px; font-size:12px;
+  color:#c4bfea; width:100%; text-align:center;
+}
+.fb-onboarding .tag { font-size:10px; font-weight:700; color:#7c6fcd; letter-spacing:.1em; display:block; margin-bottom:3px; }
+
+/* 대시보드 */
+.fb-dashboard {
+  background:#1e1b2e; border:2px solid #4a3fa0;
+  border-radius:12px; padding:13px 18px; font-size:13px;
+  color:#c4bfea; width:100%; text-align:center;
+}
+.fb-dashboard .tag { font-size:10px; font-weight:700; color:#7c6fcd; letter-spacing:.1em; display:block; margin-bottom:4px; }
+
+/* 리뷰 페이지 */
+.fb-allreview {
+  background:#1a1e30; border:1.5px solid #3a4560;
+  border-radius:12px; padding:13px 18px; font-size:13px;
+  color:#90a0d0; width:100%; text-align:center;
+}
+.fb-allreview .tag { font-size:10px; font-weight:700; color:#5b7acc; letter-spacing:.1em; display:block; margin-bottom:4px; }
+
+/* 조건 분기 */
+.fb-cond {
+  background:#1e1b14; border:1.5px dashed #5a5020;
+  border-radius:8px; padding:9px 14px; font-size:12px;
+  color:#c0b070; width:100%; text-align:center;
 }
 
 /* 마무리 */
@@ -293,7 +324,7 @@ body {
 <body>
 
 <div class="hd">
-  <h1>비전보드 전체 플로우 <span style="font-weight:400;color:#6e6c84;font-size:13px;">v0.6</span></h1>
+  <h1>비전보드 전체 플로우 <span style="font-weight:400;color:#6e6c84;font-size:13px;">v1.0</span></h1>
   <p>탭을 눌러 전체 플로우 또는 각 섹션 상세를 확인하세요</p>
 </div>
 
@@ -303,31 +334,47 @@ body {
 <div class="panel on" id="p-flow">
 <div class="fc">
 
-  <!-- 인트로 -->
+  <!-- 진입점 -->
   <div class="fb fb-intro" style="width:100%">
-    <span class="tag">INTRO · 시작</span>
-    6개 섹션 소개 · 순서 안내 · "막히면 같이 찾아드릴게요, 저장하고 와도 돼요"
+    <span class="tag">/ (루트)</span>
+    첫 방문 → 온보딩 &nbsp;·&nbsp; 온보딩 완료 → 대시보드 (자동 리다이렉트)
   </div>
 
   <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
 
-  <!-- 섹션 루프 -->
-  <div class="fc-loop">
-    <div class="fc-loop-title">섹션 1 ~ 6 &nbsp;·&nbsp; 아래 흐름 6회 반복</div>
+  <!-- 온보딩 -->
+  <div class="fb-onboarding" style="width:100%">
+    <span class="tag">/onboarding &nbsp;·&nbsp; 5단계 온보딩</span>
+    인사(lumi) → 이름 입력 → 비전보드 소개 → 상태 공감 (foggy/vivid) → 초대
+    <div style="font-size:11px;color:#5a5080;margin-top:4px;">step localStorage 저장 · 중단 후 재개 가능 · 완료 → /dashboard</div>
+  </div>
 
-    <!-- PHASE 1 -->
-    <div class="ph-label">PHASE 1 &nbsp;·&nbsp; 질문 답하기</div>
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- 대시보드 -->
+  <div class="fb-dashboard" style="width:100%">
+    <span class="tag">/dashboard &nbsp;·&nbsp; 허브 (홈)</span>
+    6개 섹션 카드 · 상태별 2단계 진행 도트 (●● 완성 / ●○ 글완료 / ○○ 미시작)
+    <div style="font-size:11px;color:#5a5080;margin-top:4px;">6개 글완료 → "장면 그리러 가자 →" · completedCount>0 → "비전보드 보기"</div>
+  </div>
+
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- STEP 1: 섹션 답변 루프 -->
+  <div class="fc-loop">
+    <div class="fc-loop-title">STEP 1 · 섹션 답변 &nbsp;·&nbsp; /section/[1~6]</div>
+
+    <div class="ph-label">PHASE 1 &nbsp;·&nbsp; 질문 답하기 · 슬롯 순차</div>
     <div class="ph1-row">
       <div class="ph1-chip">① 지금 (현재 상태)</div>
       <div class="ph1-chip">② 방향 키워드</div>
       <div class="ph1-chip">③ 원해!</div>
       <div class="ph1-chip">⑤ 더 들여다보기</div>
     </div>
-    <div style="text-align:center;font-size:11px;color:#4a3f80;margin-bottom:8px;">각 질문에서 막히면 → "도움이 필요해요" → AI 서브질문 (답은 본인이)</div>
+    <div style="text-align:center;font-size:11px;color:#4a3f80;margin-bottom:8px;">각 슬롯 · 저장 or 나중에 → 다음 슬롯 · ProcessBar 상시 노출</div>
 
     <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
 
-    <!-- PHASE 2 -->
     <div class="ph-label">PHASE 2 &nbsp;·&nbsp; 내 답 한눈에 보기</div>
     <div class="fb-review">
       ①②③⑤ 에서 쓴 내용을 한 화면에 모아서 보여줌 · 수정 가능
@@ -335,66 +382,91 @@ body {
 
     <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
 
-    <!-- PHASE 3 -->
-    <div class="ph-label">PHASE 3 &nbsp;·&nbsp; 장면 그리기</div>
+    <div class="fb-cond">
+      나중에 체크 (DeferredCheck)
+      <br><span style="font-size:11px">빈 슬롯 있으면 → 지금 답할게 / 그냥 넘어갈게</span>
+    </div>
+
+    <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+    <div class="fb-check">
+      섹션 N 완료 · text_complete 상태
+      <div class="sub">다음 미완료 섹션 있으면 → /section/[next] &nbsp;·&nbsp; 6개 모두 완료 → /review</div>
+    </div>
+
+    <div style="text-align:center;font-size:11px;color:#4a3f80;padding:10px 0 2px;">↺ 언제든 /dashboard 이동 가능</div>
+  </div>
+
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- 전체 답변 리뷰 -->
+  <div class="fb-allreview" style="width:100%">
+    <span class="tag">/review &nbsp;·&nbsp; 6개 섹션 전체 리뷰</span>
+    섹션별 카드 · 슬롯 4개 답변 표시 · 섹션별 수정 링크
+    <div style="font-size:11px;color:#4a5a90;margin-top:5px;">✦ AI 종합 요약 카드 (Anthropic API · 환경변수 필요)</div>
+    <div style="font-size:12px;color:#5b7acc;font-weight:600;margin-top:6px;">"장면 그리기 시작" → /scene</div>
+  </div>
+
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- 장면 허브 -->
+  <div class="fb-dashboard" style="width:100%;border-color:#2a3558;background:#0f111a;">
+    <span class="tag" style="color:#5b7acc;">/scene &nbsp;·&nbsp; 장면 허브 (순서 자유)</span>
+    글완료 섹션 목록 · 원하는 섹션부터 선택 → /scene/[id]
+    <div style="font-size:11px;color:#3a4070;margin-top:4px;">상태 표시: 그리기 전 / 사진 남음 / 완료</div>
+  </div>
+
+  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+  <!-- STEP 2: 섹션별 장면 그리기 -->
+  <div class="fc-loop" style="border-color:#2a3550;background:#0f111a">
+    <div class="fc-loop-title" style="background:#0f111a;color:#5b7acc">STEP 2 · 장면 그리기 &nbsp;·&nbsp; /scene/[id]</div>
+
+    <div class="ph-label" style="color:#5b7acc">intro &nbsp;·&nbsp; 기존 답변 확인</div>
+    <div class="fb-scene" style="text-align:center">
+      섹션 답변 패널 (접기/펼치기) · 키워드 확인 후 시작
+    </div>
+
+    <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
+
+    <div class="ph-label" style="color:#5b7acc">scene &nbsp;·&nbsp; 장면 쓰기 (3슬롯)</div>
     <div class="fb-scene">
       <div class="sc-main">④ 장면으로</div>
-      위에서 본 내 답들을 보면서 — "그 단어가 느껴지는 하루, 어디서 뭘 하고 있어?"
-      <div><span class="sc-ai">✦ 막히면 AI 장면 제안 (선택·수정·빈칸형)</span></div>
+      AI 제안 2~3개 (탭하면 입력창 채워짐) → 자유 편집 · 3개 장면 슬롯
+      <div><span class="sc-ai">✦ 섹션별 템플릿 · "{keyword}이 느껴지는…"</span></div>
     </div>
 
     <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
 
-    <!-- PHASE 4 -->
-    <div class="ph-label">PHASE 4 &nbsp;·&nbsp; 이미지 찾기</div>
+    <div class="ph-label" style="color:#5b7acc">images &nbsp;·&nbsp; 이미지 3장</div>
     <div class="fb-img">
-      ⑥ 이미지 찾기 &nbsp;·&nbsp; 3장 &nbsp;·&nbsp; 🔍 AI 검색어 제안
+      ⑥ 이미지 &nbsp;·&nbsp; 탭 전환:
+      <strong style="color:#a090d0">내 기기 업로드</strong> / <strong style="color:#7090c0">Unsplash 키워드 검색</strong>
     </div>
 
     <div class="arr arr-sm"><div class="arr-line"></div><div class="arr-head"></div></div>
 
-    <!-- 체크인 -->
     <div class="fb-check">
-      💾 섹션 완료 · 체크인 + 저장
-      <div class="sub">다음 섹션으로 가도 되고, 오늘은 여기까지 해도 돼요</div>
+      섹션 N 장면 완료 · completed 상태
+      <div class="sub">→ /scene 허브로 돌아가기 · X/18 완료 인터루드 표시</div>
     </div>
 
-    <div style="text-align:center;font-size:11px;color:#4a3f80;padding:10px 0 2px;">↺ 다음 섹션으로 (또는 저장 후 나중에)</div>
+    <div style="text-align:center;font-size:11px;color:#3a4060;padding:10px 0 2px;">↺ 다른 섹션 선택 or 모두 완료 → /board</div>
   </div>
 
   <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
 
-  <!-- 수집 -->
+  <!-- 비전보드 -->
   <div class="fb-collect">
-    <strong>18장 다 모임</strong>
-    <div class="chip-row">
-      <span class="chip">슬라이드로 천천히</span>
-      <span class="chip" style="color:#6e6c84;">→</span>
-      <span class="chip">전체 펼침</span>
-    </div>
-  </div>
-
-  <div class="arr"><div class="arr-line"></div><div class="arr-head"></div></div>
-
-  <!-- 마무리 -->
-  <div class="fb-finish">
-    <div class="finish-ttl">FINISH · 마무리</div>
-    <div class="fstep">
-      <div class="fnum">1</div>
-      <div><div class="ftext">AI가 <strong style="color:#c8e070">말</strong>로 패턴을 비춤</div>
-      <div class="fsub">6개 키워드·감정 단어·18장 반복 실 → 본인 단어 그대로, 선언 아닌 거울</div></div>
-    </div>
-    <div class="fsep">↓</div>
-    <div class="fstep" style="background:#151e18;">
-      <div class="fnum" style="background:#2a4a6a;color:#90d0f0;">✓</div>
-      <div><div class="ftext" style="color:#90c8e0;">본인이 한 문장 확정</div>
-      <div class="fsub" style="color:#4a7090;font-style:italic;">"이런 삶을 사는 나는 ___한 사람이다."</div></div>
-    </div>
-    <div class="fsep">↓</div>
-    <div class="fstep">
-      <div class="fnum">2</div>
-      <div><div class="ftext">그 문장으로 <strong style="color:#c8e070">통합 이미지 1장</strong></div>
-      <div class="fsub">콜라주 아닌 — 그 사람의 분위기를 담은 한 장</div></div>
+    <strong>/board &nbsp;·&nbsp; 비전보드</strong>
+    <div class="chip-row" style="margin-top:8px">
+      <span class="chip">섹션별 그룹</span>
+      <span class="chip" style="color:#6e6c84;">·</span>
+      <span class="chip">키워드 + 이미지 3장</span>
+      <span class="chip" style="color:#6e6c84;">·</span>
+      <span class="chip">미완료 섹션 → 장면 링크</span>
+      <span class="chip" style="color:#6e6c84;">·</span>
+      <span class="chip">ProcessBar 상시</span>
     </div>
   </div>
 
@@ -402,8 +474,9 @@ body {
 
   <!-- 완성 -->
   <div class="fb-done">
-    <span class="em">🎯</span>
-    <div class="t">완성된 나의 비전보드</div>
+    <span class="em">✦</span>
+    <div class="t">/finish &nbsp;·&nbsp; 완성된 나의 비전보드</div>
+    <div style="font-size:12px;color:#8880b8;margin-top:8px;">방향 키워드 summary · "비전보드 보러 가기" / "내 답변 다시 보기"</div>
   </div>
 
 </div>
@@ -425,180 +498,182 @@ function eg(text) {
 
 const SECTIONS = [
   {
-    num:1, name:'나', sub:'감정·성장·정체성', color:'#8b5cf6', emoji:'🪞',
-    q:[ // ① ② ③ ⑤ ④ ⑥
+    num:1, name:'나', sub:'어떤 사람으로, 어떤 감각으로 살고 싶어?', color:'#8B5CF6', emoji:'🪞',
+    q:[
       { num:'①', lbl:'지금', phase:'q',
-        q:'지금 나는 어떤 사람으로 살고 있어? 한 문장으로.',
-        ex:'예) 그냥 하루하루 버티는 사람 / 열심히 사는데 뭔가 빠진 느낌',
-        real:'★ 박지현: "몸과 마음을 챙기며, 나를 표현하는 연습을 하며 경제적 자유를 준비하는 사람"',
-        note:'좋은 답 나쁜 답 없어요. 솔직한 게 최고.' },
+        q:'지금 나는 어떤 삶을 살고 있어? 한 문장으로.',
+        ex:'그냥 하루하루 버티는 사람 / 열심히 사는데 뭔가 빠진 느낌 / 남들 눈에는 잘 사는데 속으론 모르겠는 사람',
+        real:'★ 박지현: "몸과 마음을 챙기며, 나를 표현하는 연습을 하며 경제적 자유를 준비하는 사람"' },
       { num:'②', lbl:'방향 키워드', phase:'q',
-        q:'3년 뒤의 나를 한 단어로 표현해봐.',
-        ex:'예) 여유로운 / 단단한 / 설레는 / 자유로운',
+        q:'3년 뒤의 나를 한 단어 (또는 짧은 표현)로 써봐.',
+        ex:'여유로운 / 단단한 / 설레는 / 자유로운 / 단단하고 트임 / 내 페이스로 사는',
         real:'★ 박지현: "단단하고 트임"',
-        note:'목표보다 느낌·상태를 담은 단어면 좋아요.' },
+        note:'목표가 아니어도 좋아. 어떤 느낌이나 상태면 돼.' },
       { num:'③', lbl:'원해!', phase:'q',
         q:'나를 위해 언젠가 꼭 해보고 싶은 것, 되고 싶은 모습이 있어?',
-        ex:'예) 악기 하나 배우기 / 내 이름으로 뭔가 만들기 / 번아웃 없이 사는 것',
+        ex:'악기 하나 배우기 / 내 이름으로 뭔가 만들기 / 번아웃 없이 사는 것 / 혼자 해외여행 / 내 브랜드 갖기',
         real:'★ 박지현: 내 성격 담긴 브랜드 / 영어로 자유롭게 강의 듣기 / 이미지 컨설팅' },
       { num:'⑤', lbl:'더 들여다보기', phase:'q',
-        q:'그게 이뤄진 나는 어떤 기분으로 하루를 살고 있을 것 같아?',
-        ex:'그 기분을 한 단어로 — 진짜 원함의 핵심이 여기서 나와요.',
+        q:'그게 이뤄진 나는 어떤 기분으로 하루를 살고 있을 것 같아? 그 느낌을 표현해봐.',
+        ex:'충만한 / 편안한 / 나답다는 느낌 / 불안 없이 내 하루를 사는 것 / 하루가 내 것인 느낌',
         real:'★ 박지현: "충만함·편안함으로 하루를 내 대로 잘 활동하고 싶어. 나를 평등할 줄 아는 사람."' },
     ],
     scene:{ num:'④', lbl:'장면으로',
-      q:'방금 쓴 단어가 느껴지는 하루. 어디서, 뭘 하고 있어?',
-      ex:'예) 카페 창가에서 혼자 책 읽는 중 / 아무 계획 없는 주말 아침',
-      real:'★ 박지현: "내 브랜드로 파생된 사람들을 한자리에 모아. 재택에서 나의 일을 시작하며, 메일엔 업체들만 있고, 강연 요청도 들어와. 재무적 성장도 하고 있어."' },
+      q:'방금 쓴 단어가 이루어진 나의 하루야. 어디서 뭘 하고 있어?',
+      ex:'카페 창가에서 혼자 책 읽는 중 / 아무 계획 없는 주말 아침, 느긋하게 커피 마시며 / 내 브랜드 사람들이랑 한자리에 모인 날',
+      real:'★ 박지현: "내 브랜드로 파생된 사람들을 한자리에 모아. 재택에서 나의 일을 시작하며, 메일엔 업체들만 있고, 강연 요청도 들어와."' },
     img:{ num:'⑥', lbl:'이미지 찾기',
       ex:'"여유로운 아침" "혼자만의 시간" "나만의 루틴"',
       real:'★ 박지현: 나만의 서재 / 좋은 이메일 알림 / 내 SNS·웹사이트 / 고객 후기 / 영향력 있는 모습' }
   },
   {
-    num:2, name:'건강', sub:'몸·마음·에너지', color:'#10b981', emoji:'🌿',
+    num:2, name:'건강', sub:'어떤 몸으로, 어떤 에너지로 살고 싶어?', color:'#10B981', emoji:'🌿',
     q:[
       { num:'①', lbl:'지금', phase:'q',
-        q:'지금 내 몸 상태, 10점 만점에 몇 점? 어떤 부분 때문에 그 점수야?',
-        ex:'예) 5점 — 항상 피곤해서 / 3점 — 운동을 아예 안 해서',
+        q:'지금 내 몸 상태, 10점 만점에 몇 점? 그 점수인 이유는 뭐야?',
+        ex:'5점 — 항상 피곤해서 / 3점 — 운동을 아예 안 해서 / 7점 — 유지는 되는데 뭔가 찜찜해',
         real:'★ 박지현: "7점 — 술×, 건강한 아침식사, 비타민·약 챙김. 3점 빠진 이유 — 운동·스트레칭 없음"' },
       { num:'②', lbl:'방향 키워드', phase:'q',
         q:'3년 뒤 내 몸과 나의 관계, 어떤 한 단어면 좋겠어?',
-        ex:'예) 가볍다 / 활기차다 / 내 편이다',
+        ex:'가벼운 / 활기찬 / 내 편인 / 편안한 / 가벼운 평안함',
         real:'★ 박지현: "가벼운 평안함"' },
       { num:'③', lbl:'원해!', phase:'q',
-        q:'해보고 싶은 운동, 도전해보고 싶은 것, 몸에 관해 이루고 싶은 것.',
-        ex:'예) 마라톤 완주 / 서핑 배우기 / 주 3회 운동 루틴',
+        q:'해보고 싶은 운동, 도전하고 싶은 것, 몸에 관해 이루고 싶은 것.',
+        ex:'마라톤 완주 / 서핑 배우기 / 주 3회 운동 루틴 만들기 / 한 달 금주 / 10km 런닝 / 요가',
         real:'★ 박지현: 요가 프로필 사진 / 10KM 런닝 / 수영 / 줄넘기' },
       { num:'⑤', lbl:'더 들여다보기', phase:'q',
         q:'몸이 가뿐하고 에너지 넘칠 때, 지금은 못 하지만 하고 싶어지는 게 있어?',
-        note:'건강해져서 뭘 하고 싶은지가 더 강한 동기가 돼요.',
+        ex:'새벽 5시에 일어나서 달리고 싶어 / 좋아하는 사람들이랑 하루 종일 뛰어놀고 싶어 / 등산 가고 싶어',
         real:'★ 박지현: 트래킹 / 집안 근육 바꾸기 / 집안 정비 완성하기' },
     ],
     scene:{ num:'④', lbl:'장면으로',
-      q:'방금 쓴 단어가 느껴지는 순간. 어디야? 뭘 하고 있어?',
-      ex:'예) 산 정상에서 탁 트인 뷰 / 운동 끝내고 개운하게 샤워하는 중',
+      q:'방금 쓴 단어가 이루어진 하루야. 어디서 뭘 하고 있어?',
+      ex:'산 정상에서 탁 트인 뷰를 보는 중 / 운동 끝내고 개운하게 샤워하는 중 / 자고 일어났을 때 몸이 가벼운 걸 느끼는 아침',
       real:'★ 박지현: "자고 일어났을 때 숨이 편안하게 다니는 길 느끼고 있어. 속 편한 음식을 먹고 가볍게 산책하고 있어."' },
     img:{ num:'⑥', lbl:'이미지 찾기',
-      ex:'"서핑 라이프" "등산 뷰" "새벽 러닝" "활기찬 아침"',
+      ex:'"서핑 라이프" "새벽 러닝" "활기찬 아침"',
       real:'★ 박지현: 마라톤 결승선 / 내가 가장 마음에 드는 모습 / 자연 속 쉬는 모습 / 숲길 산책' }
   },
   {
-    num:3, name:'관계·가족', sub:'남편·가족·친구', color:'#f43f5e', emoji:'💛',
+    num:3, name:'관계·가족', sub:'소중한 사람들과 어떤 시간을 나누고 싶어?', color:'#F59E0B', emoji:'💛',
     q:[
       { num:'①', lbl:'지금', phase:'q',
         q:'10년 뒤, 소중한 사람이 나를 떠올릴 때 어떤 사람으로 기억됐으면 좋겠어?',
-        ex:'예) "옆에 있으면 편한 사람"도 충분해', note:'거창하지 않아도 돼요.',
-        real:'★ 박지현: "나를 진정으로 생각하고 교류해주는 사람"' },
+        ex:'그냥 옆에 있으면 편한 사람 / 힘들 때 떠오르는 사람 / 진심으로 내 편 들어주는 사람',
+        real:'★ 박지현: "나를 진정으로 생각하고 교류해주는 사람"',
+        note:'거창하지 않아도 돼.' },
       { num:'②', lbl:'방향 키워드', phase:'q',
         q:'내가 원하는 관계의 느낌, 한 단어로 뽑아봐.',
-        ex:'예) 따뜻한 / 든든한 / 편안한',
+        ex:'따뜻한 / 든든한 / 편안한 / 교류하는 / 깊은',
         real:'★ 박지현: "교류"' },
       { num:'③', lbl:'원해!', phase:'q',
         q:'관계나 가족에 관해 꼭 이루고 싶은 것, 함께하고 싶은 것이 있어?',
-        ex:'예) 가족 해외여행 / 아이 갖기 / 매주 데이트하는 날',
+        ex:'가족 해외여행 / 아이 갖기 / 반려동물 함께 키우기 / 매주 데이트하는 날 만들기 / 우리만의 공간',
         real:'★ 박지현: 우리만의 집 / 처음처럼 함께 / 둘 다 안 해본 경험 함께하기' },
       { num:'⑤', lbl:'더 들여다보기', phase:'q',
-        q:'지금 가장 소중한데 더 가까워지고 싶은 사람이 있어? 그 사람이랑 어떤 시간을?',
-        ex:'예) 남편이랑 그냥 같이 있는 시간 / 오랜 친구랑 밥 먹으며 속 얘기',
+        q:'지금 가장 소중한데 더 가까워지고 싶은 사람이 있어? 그 사람이랑 어떤 시간을 보내고 싶어?',
+        ex:'남편이랑 그냥 같이 있는 시간 / 오랜 친구랑 밥 먹으면서 속 얘기 / 언니랑 편하게 웃는 시간',
         real:'★ 박지현: "언니. 긍정적이고, 자랑스럽고, 편한 대화."' },
     ],
     scene:{ num:'④', lbl:'장면으로',
-      q:'방금 쓴 단어가 느껴지는 관계의 장면 하나. 누구랑, 어디서?',
-      ex:'예) 여름 저녁 가족이 다 같이 밥 먹는 식탁 / 남편이랑 여행지에서 걷는 중',
+      q:'방금 쓴 단어가 이루어진 관계의 장면이야. 누구랑, 어디서?',
+      ex:'여름 저녁 가족이 다 같이 밥 먹는 식탁 / 남편이랑 여행지에서 아무 말 없이 걷는 중 / 친구랑 카페에서 수다 떠는 중',
       real:'★ 박지현: "각자의 생각에 대해서 \'그렇구나!\' 하고 도전하는 것을, 곁에서 들어주는 것."' },
     img:{ num:'⑥', lbl:'이미지 찾기',
-      ex:'"가족 여행" "커플 여행" "따뜻한 식탁"',
+      ex:'"따뜻한 식탁" "커플 여행" "가족 나들이"',
       real:'★ 박지현: 함께 있는 모습 / 서로 응원하고 지원하는 느낌 / 대화하는 모습' }
   },
   {
-    num:4, name:'일·성장', sub:'커리어·배움·의미', color:'#3b82f6', emoji:'🚀',
+    num:4, name:'일·성장', sub:'어떤 일로 배우며 성장하고 싶어?', color:'#3B82F6', emoji:'🚀',
     q:[
       { num:'①', lbl:'지금', phase:'q',
         q:'지금 일에서 제일 아쉬운 게 뭐야? 딱 하나만.',
-        ex:'예) 내가 하고 싶은 게 아니야 / 성장하는 느낌이 없어 / 자유가 없어',
+        ex:'내가 하고 싶은 게 아니야 / 성장하는 느낌이 없어 / 자유가 없어 / 의미를 못 느끼겠어 / 단순 반복만 해',
         real:'★ 박지현: "단순반복적인 것"' },
       { num:'②', lbl:'방향 키워드', phase:'q',
-        q:'일하는 나를 한 문장으로 써봐. 어떤 사람으로 일하고 싶어?',
-        ex:'예) 좋아하는 걸 하면서 돈도 버는 사람 / 성장하고 있다는 게 느껴지는 사람',
+        q:'일하는 나를 한 문장 (또는 단어)으로 써봐. 어떤 사람으로 일하고 싶어?',
+        ex:'내가 좋아하는 걸 하면서 돈도 버는 사람 / 성장하고 있다는 게 느껴지는 사람 / 내 안에 있는 걸 꺼내며 사는 사람',
         real:'★ 박지현: "내 안에 있는 걸 활용하고, 배우며 성장하는 사람"' },
       { num:'③', lbl:'원해!', phase:'q',
         q:'일이나 성장에 관한 버킷리스트가 있어? 해보고 싶은 일, 이루고 싶은 것.',
-        ex:'예) 내 사업 시작하기 / 자격증 따기 / 강의 해보기',
+        ex:'내 사업 시작하기 / 자격증 따기 / 강의 해보기 / 원하는 회사로 이직 / 내 프로그램 운영 / 브랜드 상업화',
         real:'★ 박지현: 내 브랜드 상업화 / 내 프로그램 운영 / 글로벌 회사 출장' },
       { num:'⑤', lbl:'더 들여다보기', phase:'q',
-        q:'월요일 아침, 살짝이라도 기대되는 날 — 어떤 일을 하고 있어?',
-        note:'일이 싫다면: "어떤 일이라면 월요일이 덜 싫을 것 같아?"',
+        q:'월요일 아침, 살짝이라도 기대되는 날이 있다면 — 어떤 일을 하고 있어?',
+        ex:'내가 만든 것에 누군가 반응하는 것 기다리는 날 / 좋아하는 사람들이랑 함께 일하는 날 / 당당하게 제안 메일 보내는 날',
+        note:'지금 일이 싫다면: 어떤 일이라면 월요일이 조금 덜 싫을 것 같아?',
         real:'★ 박지현: "제안 메일에 대해 당당하고 있어."' },
     ],
     scene:{ num:'④', lbl:'장면으로',
-      q:'방금 쓴 문장 속의 내가 하루를 마무리하는 장면. 어디야? 어떤 기분?',
-      ex:'예) 내가 만든 것에 누군가 반응하는 순간 / 할 일 다 끝내고 가볍게 퇴근하는 길',
+      q:'방금 쓴 단어가 이루어진 날의 하루 마무리야. 어디야? 어떤 기분이야?',
+      ex:'내가 만든 것에 누군가 반응하는 순간 / 할 일 다 끝내고 가볍게 퇴근하는 길 / 재택에서 마지막 메일 보내고 노트북 닫는 순간',
       real:'★ 박지현: "내가 배웠던 것들이 잠재되어 있다가 효율로 나타나겠다고 느끼며, 경험력을 쌓아가."' },
     img:{ num:'⑥', lbl:'이미지 찾기',
       ex:'"재택근무 라이프" "카페 작업" "내 브랜드"',
       real:'★ 박지현: 유료 크리에이터 모습 / 고객 후기 / 맥북·업무시스템 / 일의 비전보드' }
   },
   {
-    num:5, name:'돈·생활', sub:'재정·소비·여유', color:'#f59e0b', emoji:'✨',
+    num:5, name:'돈·생활', sub:'여유로운 상태에서 어떤 선택을 하고 싶어?', color:'#F97316', emoji:'✨',
     q:[
       { num:'①', lbl:'지금', phase:'q',
         q:'지금 돈 때문에 참고 있거나 못 하고 있는 게 있어? 솔직하게.',
-        ex:'예) 여행 / 좋아하는 취미 / 부모님 용돈 / 집 바꾸기',
+        ex:'여행 / 좋아하는 취미 / 부모님 용돈 / 집 바꾸기 / 하고 싶은 공부 / 요가 등록',
         real:'★ 박지현: 요가 / 북유럽 여행 / 이미지 컨설팅 / CPCC 자격증' },
       { num:'②', lbl:'방향 키워드', phase:'q',
         q:'돈이 충분할 때 느끼고 싶은 감정, 한 단어로.',
-        ex:'예) 자유 / 안정 / 여유 / 당당함',
+        ex:'자유 / 안정 / 여유 / 당당함 / 든든함',
         real:'★ 박지현: "안정"' },
       { num:'③', lbl:'원해!', phase:'q',
         q:'돈 버킷리스트가 있어? 사고 싶은 것, 가고 싶은 곳, 해주고 싶은 것.',
-        ex:'예) 하와이 여행 / 내 집 마련 / 차 바꾸기',
+        ex:'하와이 여행 / 내 집 마련 / 차 바꾸기 / 부모님 여행 보내드리기 / 한 달 살기 / 해외 경험',
         real:'★ 박지현: 하와이·제주 한 달씩 / 숲view·역세권 내 집 마련 / 해외 경험' },
       { num:'⑤', lbl:'더 들여다보기', phase:'q',
         q:'돈 걱정이 딱 사라진다면, 이번 주를 어떻게 보내고 싶어?',
-        note:'비싼 것 아니어도 괜찮아요.',
+        ex:'집안 물건 싹 바꾸기 / 요가 등록하기 / 오랫동안 미뤄온 여행 예약하기 / 그냥 아무것도 안 하기',
+        note:'꼭 비싼 게 아니어도 괜찮아.',
         real:'★ 박지현: 집안 물건 싹 바꾸기 / 요가 / 이미지 컨설팅 / 언론 관리' },
     ],
     scene:{ num:'④', lbl:'장면으로',
-      q:'방금 쓴 단어가 느껴지는 순간. 어떤 상황이야?',
-      ex:'예) 망설임 없이 항공권 끊는 중 / 부모님이랑 좋은 식당에서 밥 먹는 중',
+      q:'방금 쓴 단어가 이루어진 순간이야. 어떤 상황에 있어?',
+      ex:'망설임 없이 항공권 끊는 중 / 부모님이랑 좋은 식당에서 밥 먹는 중 / 갖고 싶었던 걸 망설임 없이 사는 순간',
       real:'★ 박지현: "당당하게 돈을 써도 불안하지 않으며, 평온하게 이것저것 하고 여행도 가는 것."' },
     img:{ num:'⑥', lbl:'이미지 찾기',
-      ex:'"하와이 여행" "내 집 마련" "여유로운 주말"',
+      ex:'"여유로운 일상" "내 집 마련" "여행의 설렘"',
       real:'★ 박지현: 원하는 것을 사는 모습 / 어떤 경험이든 활기차게 / 여유롭게 움직이는 모습' }
   },
   {
-    num:6, name:'공간·환경', sub:'집·동네·일상의 배경', color:'#14b8a6', emoji:'🏠',
+    num:6, name:'공간·환경', sub:'매일 돌아오고 싶은 공간은 어떤 모습이야?', color:'#06B6D4', emoji:'🏠',
     q:[
       { num:'①', lbl:'지금', phase:'q',
         q:'집에 돌아왔을 때 제일 먼저 하고 싶은 게 뭐야? 지금 그게 가능해?',
-        ex:'예) 소파에 눕고 싶은데 좁아서 답답해 / 혼자 있고 싶은데 내 공간이 없어',
+        ex:'소파에 눕고 싶은데 좁아서 답답해 / 혼자 있고 싶은데 내 공간이 없어 / 정돈된 곳에 옷 걸어두고 가방 정리 (지금도 가능!)',
         real:'★ 박지현: "정돈된 곳에, 옷 걸어두고, 가방 정리 → 지금도 가능한 것."' },
       { num:'②', lbl:'방향 키워드', phase:'q',
         q:'내가 원하는 공간을 딱 한 단어로 표현하면?',
-        ex:'예) 따뜻한 / 조용한 / 나다운 / 포근한',
+        ex:'따뜻한 / 조용한 / 나다운 / 포근한 / 심플한',
         real:'★ 박지현: "심플"' },
       { num:'③', lbl:'원해!', phase:'q',
         q:'살고 싶은 곳, 갖고 싶은 공간, 해보고 싶은 것.',
-        ex:'예) 제주 한 달 살기 / 마당 있는 집 / 뷰 좋은 아파트 / 내 서재 갖기',
+        ex:'제주 한 달 살기 / 마당 있는 집 / 숲 view 아파트 / 내 서재 갖기 / 정돈된 집',
         real:'★ 박지현: 정돈된 집 / 나만의 서재 / 숲view 아파트 / 성장·집중 공간' },
       { num:'⑤', lbl:'더 들여다보기', phase:'q',
         q:'이상적인 집에서 하루를 보낸다면, 아침부터 저녁까지 어떻게 흘러가?',
-        ex:'예) 햇빛 드는 창가에서 커피로 시작 / 조용한 서재에서 잠들기 전 독서',
+        ex:'숲 view 보며 스트레칭·명상 → 간단한 아침 → 서재에서 작업 → 제대로 요리 → 아로마 켜고 폭 잠',
         real:'★ 박지현: "숲View 보며 스트레칭·명상 → 간단한 아침 → 서재에서 작업 → 제대로 요리 → 아로마 켜고 폭 잠."' },
     ],
     scene:{ num:'④', lbl:'장면으로',
-      q:'그 공간에서 제일 오래 있고 싶은 곳은 어디야? 거기서 보통 뭐 해?',
-      ex:'예) 소파에 누워 좋아하는 거 틀어놓기 / 넓은 주방에서 주말 아침 요리하기',
+      q:'방금 쓴 단어가 이루어진 공간이야. 거기서 뭘 하고 있어?',
+      ex:'소파에 누워 좋아하는 거 틀어놓기 / 넓은 주방에서 주말 아침 요리하기 / 서재에서 내 생각 정리하고 세상에 펼쳐놓기',
       real:'★ 박지현: "내 서재. 내 생각을 구체화하고, 정리하고, 세상에 펼쳐놓기."' },
     img:{ num:'⑥', lbl:'이미지 찾기',
-      ex:'"따뜻한 인테리어" "마당 있는 집" "감성 서재"',
+      ex:'"감성 인테리어" "나만의 서재" "포근한 집"',
       real:'★ 박지현: 세탁·욕실 분리 공간 / 큰 거실 / 독서 식탁 / 숲View / 미니멀한 공간 / 완전한 수면 안방' }
   },
 ];
 
 // 탭 렌더
 const tabs = document.getElementById('tabs');
-const colors = {flow:'#4a3fa0', 0:'#8b5cf6',1:'#10b981',2:'#f43f5e',3:'#3b82f6',4:'#f59e0b',5:'#14b8a6'};
+const colors = {flow:'#4a3fa0', 0:'#8B5CF6',1:'#10B981',2:'#F59E0B',3:'#3B82F6',4:'#F97316',5:'#06B6D4'};
 
 function makeTab(id, label, color) {
   const t = document.createElement('button');
@@ -702,21 +777,19 @@ SECTIONS.forEach((sec, idx) => {
       </div>
     </div>
 
-    <div class="phase-block phase-s">
-      <div class="phase-title">PHASE 3 · 장면 그리기</div>
-      ${sceneHtml}
-    </div>
-
-    <div class="phase-block phase-i">
-      <div class="phase-title">PHASE 4 · 이미지 찾기</div>
-      ${imgHtml}
+    <div class="phase-block" style="margin-bottom:14px;">
+      <div class="phase-title" style="background:#1c1a14;color:#806a30;">나중에 체크 (DeferredCheck)</div>
+      <div class="review-box" style="border-color:#3a3020;background:#1a1810;">
+        <div class="rtitle" style="color:#c0a050;">빈 슬롯 있으면 → 지금 답할게 / 그냥 넘어갈게</div>
+        <div class="rsub">"나중에" 선택한 슬롯이 없으면 이 단계 건너뜀</div>
+      </div>
     </div>
 
     <div class="checkin">
-      <div class="ci-icon">💾</div>
+      <div class="ci-icon">✓</div>
       <div>
-        <div class="ci-t">섹션 완료 · 저장</div>
-        <div class="ci-s">지금까지 쓴 내용이 저장돼요. 다음 섹션으로 가도 되고, 오늘은 여기까지 해도 돼요.</div>
+        <div class="ci-t">섹션 완료 · text_complete 상태</div>
+        <div class="ci-s">다음 미완료 섹션으로 이동 · 6개 모두 완료 시 /review로. 장면(PHASE 3+4)은 /scene에서 진행.</div>
       </div>
     </div>`;
 });

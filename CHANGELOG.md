@@ -2,7 +2,7 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** Stage 1 완료 + UI/UX 폴리시 1차 완료 — https://vision-board-web.vercel.app
+- **상태:** Stage 1 완료 + UI/UX 폴리시 1차 완료 + 플로우차트 v1.0 — https://vision-board-web.vercel.app
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료
   - lumi 5단계 대화형 온보딩 — 카피 v2 + UI 폴리시 적용 (아이콘 그라디언트, 버튼 개선, 컬러 바)
@@ -14,6 +14,7 @@
   - 전체 마이크로카피 lumi 톤으로 완전 교체 (온보딩·질문·리뷰·장면 전 영역)
   - 대시보드: 2단계 진행 도트 + 완성 카드 섹션 색 배경 + "글 완료/✓ 완성" 상태 명확화
   - 접근성: `button { cursor: pointer }` 전역 + `prefers-reduced-motion` 지원
+  - `Playground/flowchart.html` v1.0: 현재 빌드 기준 전체 플로우 + 6섹션 질문 최신화
 - **알려진 이슈:**
   - AI 요약: `ANTHROPIC_API_KEY` Vercel 환경변수 미설정 (설정 필요)
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` Vercel 환경변수 미설정 (설정 필요)
@@ -22,6 +23,12 @@
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-31
+- `Playground/flowchart.html` v0.7 → v1.0 업데이트: 현재 빌드 기준 전체 플로우 반영
+- 전체 플로우: deferred phase(DeferredCheck), /scene 허브(순서 자유), /finish 완성 페이지, AI 요약 카드 추가
+- 섹션 상세 탭: PHASE 3+4 제거, 최신 질문 텍스트(questions.ts) + 컬러(관계#F59E0B/돈#F97316/공간#06B6D4) 동기화
+- 로컬 HTTP 서버(포트 8765) 실행 → 크롬에서 라이브 URL로 오픈
 
 ### 2026-05-30 (3차)
 - UI/UX Pro Max 스킬 적용: 디자인 시스템 분석 + 접근성 이슈 발견 (`cursor-pointer` 누락, `prefers-reduced-motion` 미지원)
