@@ -54,6 +54,11 @@
 
 ## Deployment
 
+## AI API
+
+### Gemini 무료 티어는 모델 버전마다 다르다 #coding #ai-api
+`gemini-2.0-flash`는 무료 티어 quota=0 (유료 전용). 무료로 사용하려면 `gemini-1.5-flash` 또는 `gemini-1.5-flash-8b`를 써야 한다. 최신 모델이라고 무료 티어를 지원하지 않으므로, AI 모델 선택 시 Google AI Studio 무료 티어 지원 목록을 먼저 확인할 것.
+
 ### cursor:pointer 는 전역 CSS로 한 번에 처리한다 #coding #accessibility
 개별 버튼마다 `cursor-pointer` 클래스를 추가하면 누락이 생긴다. `globals.css`에 `button { cursor: pointer }` 하나로 전체 앱에 적용. `prefers-reduced-motion` 도 같은 방식으로 전역 처리 가능. 접근성 기본기는 개별 컴포넌트가 아닌 전역 CSS에서 한 번에 잡는다.
 

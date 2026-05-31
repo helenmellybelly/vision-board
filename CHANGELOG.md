@@ -2,26 +2,30 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v2.2 대화형 재설계 진행 중 (Task 4/10 인터럽트) — https://vision-board-web.vercel.app
+- **상태:** v2.2 대화형 재설계 완료 — 로컬 테스트 중, Vercel 배포 전
 - **주요 기능:**
-  - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료
-  - **[v2.2 진행 중]** PRD v2.2 기반 슬롯→채팅 전면 재설계 구현 중
-  - `lib/types.ts`: ChatMessage, ExtractedSlots 타입 추가
-  - `lib/storage.ts`: saveSectionChat, saveExtractedSlots, saveSceneChat, saveOneSentence, saveFutureDayStory 추가
-  - `/api/chat/section`: 섹션 채팅 API (lumi가 4개 슬롯을 자연 대화로 추출)
-  - `components/ChatBubble.tsx`, `ChatInput.tsx`: 채팅 UI 공용 컴포넌트
-  - `app/section/[id]/page.tsx`: 채팅 UI로 재작성 완료 (기존 컴포넌트 삭제 대기)
-  - 구현 플랜: `docs/superpowers/plans/2026-05-31-v2-chat-redesign.md` (Task 5~10 미완)
-  - lumi 5단계 대화형 온보딩 — 카피 v2 + UI 폴리시 (이전 버전)
+  - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료 (구 버전)
+  - **[v2.2 완료]** 슬롯→채팅 전면 재설계 구현 완료 (Task 1~10)
+  - 전체 AI 백엔드: Anthropic → Gemini (`gemini-1.5-flash`) 마이그레이션 완료
+  - `/api/chat/section`, `/api/chat/scene`, `/api/story`, `/api/summarize`: 모두 Gemini 사용
+  - `section/[id]`: lumi 채팅 UI (슬롯 추출 + 미러링 + 완료)
+  - `scene/[id]`: lumi 장면 대화 UI (공간/사람/감각 캐묻기 → 장면 완성)
+  - `finish`: 패턴→한 문장→미래의 하루 스토리→완성 4페이즈
+  - 온보딩 7단계 (효과성 체감 + 완성 미리보기 추가)
+  - ProcessBar 4 STEP (대화/장면/이미지/마무리)
   - localStorage 임시 저장 + 모바일 퍼스트 레이아웃
 - **알려진 이슈:**
-  - Task 4 미완: 기존 슬롯 컴포넌트 6개 삭제 필요 (빌드 시 충돌 가능)
-  - Task 5~10 미시작: ProcessBar, 온보딩, /api/chat/scene, scene/[id], /api/story, finish 페이지
-  - `.env.local` `ANTHROPIC_API_KEY` 값 설정 필요 (채팅 API 작동 필수)
+  - Vercel 재배포 필요 (v2.2 변경사항 반영 안 됨)
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정
+  - `gemini-1.5-flash` 무료 티어 분당 15 RPM 제한 (로컬 테스트 중 429 발생 가능)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-31 (v2.2 완료)
+- Anthropic → Gemini 전체 마이그레이션: `@google/generative-ai` 설치, 4개 API 라우트 교체 (`gemini-1.5-flash`)
+- v2.2 플랜 Task 4~10 완료: 구 컴포넌트 6개 삭제, ProcessBar 4-STEP, 온보딩 7단계, `/api/chat/scene`, `scene/[id]` 채팅 UI, `/api/story`, `finish` 4페이즈
+- 로컬 실행 후 버그 수정: `gemini-2.0-flash` 무료 쿼터 초과 → `gemini-1.5-flash` 전환, 온보딩 step 7 뒤로가기 버튼 + 첫 질문 프리뷰 문구 수정
 
 ### 2026-05-31 (v2.2 재설계 시작)
 - PRD v2.2 수령 + 구현 플랜 10개 Task 작성 (`docs/superpowers/plans/2026-05-31-v2-chat-redesign.md`)

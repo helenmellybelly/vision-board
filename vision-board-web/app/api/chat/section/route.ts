@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface SectionChatRequest {
   sectionId: number;
@@ -56,7 +56,7 @@ const SYSTEM_PROMPT = `너는 lumi야. 사용자가 비전보드 한 섹션의 �
 }`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
@@ -79,25 +79,33 @@ export async function POST(req: NextRequest) {
 
   const systemWithContext = `${SYSTEM_PROMPT}\n\n${contextNote}`;
 
-  // 첫 메시지 요청 (빈 messages) 처리
-  const apiMessages = messages.length === 0
-    ? [{ role: 'user' as const, content: '(대화 시작)' }]
-    : messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-
   try {
-    const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
-      system: systemWithContext,
-      messages: apiMessages,
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: systemWithContext,
     });
 
-    const raw = (response.content[0] as { type: string; text: string }).text.trim();
+    let raw: string;
+
+    if (messages.length === 0) {
+      const chat = model.startChat();
+      const result = await chat.sendMessage('(대화 시작)');
+      raw = result.response.text().trim();
+    } else {
+      // history = 마지막 user 메시지 제외한 이전 대화 (assistant → model로 매핑)
+      const history = messages.slice(0, -1).map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+      const lastMessage = messages[messages.length - 1];
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(lastMessage.content);
+      raw = result.response.text().trim();
+    }
 
     let parsed: SectionChatResponse;
     try {
-      // JSON 블록 추출 (코드펜스 감싸진 경우 처리)
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
     } catch {
