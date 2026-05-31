@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 interface SectionInput {
   title: string;
@@ -15,7 +15,7 @@ interface RequestBody {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
@@ -50,13 +50,17 @@ ${sectionLines}
 "당신은" 대신 "너는"으로, 존댓말 없이 반말로 써줘.`;
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const result = await model.generateContent(prompt);
-    const summary = result.response.text();
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+    });
+
+    const summary = completion.choices[0]?.message?.content ?? '';
     return NextResponse.json({ summary });
   } catch (err) {
-    console.error('Gemini API error:', err);
+    console.error('Summarize API error:', err);
     return NextResponse.json({ error: 'Failed to generate summary' }, { status: 500 });
   }
 }

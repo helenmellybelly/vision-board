@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 export interface SceneChatRequest {
   sectionTitle: string;
@@ -34,7 +34,7 @@ const SCENE_SYSTEM = `너는 lumi야. 사용자가 자신의 비전이 이루어
 }`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
@@ -56,29 +56,27 @@ export async function POST(req: NextRequest) {
 
   const systemWithContext = `${SCENE_SYSTEM}\n\n${context}`;
 
+  const groqMessages: Groq.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemWithContext },
+    ...messages.map((m) => ({
+      role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
+      content: m.content,
+    })),
+  ];
+
+  if (messages.length === 0) {
+    groqMessages.push({ role: 'user', content: '(대화 시작)' });
+  }
+
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: systemWithContext,
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: groqMessages,
+      temperature: 0.7,
     });
 
-    let raw: string;
-
-    if (messages.length === 0) {
-      const chat = model.startChat();
-      const result = await chat.sendMessage('(대화 시작)');
-      raw = result.response.text().trim();
-    } else {
-      const history = messages.slice(0, -1).map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      }));
-      const lastMessage = messages[messages.length - 1];
-      const chat = model.startChat({ history });
-      const result = await chat.sendMessage(lastMessage.content);
-      raw = result.response.text().trim();
-    }
+    const raw = completion.choices[0]?.message?.content?.trim() ?? '';
 
     let parsed: { message: string; phase: string; sceneText?: string };
     try {
