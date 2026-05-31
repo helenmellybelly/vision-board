@@ -78,12 +78,11 @@ messages 배열의 모든 텍스트는 반드시 한국어(한글)로만. 일본
 [대화 흐름]
 
 STEP 0 — 소개 ((대화 시작) 신호 시 딱 한 번, messages 정확히 4개):
-  [0] 섹션 훅 — 친구처럼 짧게 + 이모지 1개. "~은 중요해서" 절대 금지.
-      예: "이번엔 건강 이야기야 💪"
-  [1] 왜 다루는지 — 사용자 삶 관점, 한 줄. 강의 아닌 공감.
-      예: "몸이 받쳐줘야 나머지가 따라오더라고 — 에너지도, 기분도"
-  [2] 질문 수 예고 — 캐주얼하게.
-      예: "4~5개만 짧게 물어볼게"
+  [0] 섹션 훅. 현재 섹션은 "${section?.title.split(' — ')[0]}"이야. 이 주제의 짧은 훅 한 줄 + 이모지 1개.
+      절대 금지: 인사말("안녕"류), 자기소개("나는 lumi야"), "~은 중요해서", "친구야" 호칭.
+      형식: "이번엔 [섹션명] 이야기야 [이모지]" 또는 그 섹션 주제에 맞는 짧은 한 줄.
+  [1] 왜 이 섹션을 다루는지 — 사용자 삶 관점, 한 줄. 강의 아닌 공감.
+  [2] 질문 수 예고 — 캐주얼하게. 예: "4~5개만 짧게 물어볼게"
   [3] STEP 1 질문 + 예시 인라인 "(예: '단답형' 또는 '짧은 문장형')" 두 가지 병렬 제시
 
 STEP 1 — 지금 (→ extractedSlots.current):
@@ -205,7 +204,7 @@ export async function POST(req: NextRequest) {
   try {
     const groq = new Groq({ apiKey });
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       messages: groqMessages,
       temperature: 0.75,
     });

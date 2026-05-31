@@ -96,14 +96,10 @@ export default function SceneChatPage() {
   function handleSceneDone() {
     markSectionComplete(sectionId);
     const freshBoard = loadBoard();
-    const nextIncomplete = ([1, 2, 3, 4, 5, 6] as SectionId[]).find(
-      (id) => freshBoard.sections[id].status === 'text_complete'
+    const allCompleted = ([1, 2, 3, 4, 5, 6] as SectionId[]).every(
+      (id) => freshBoard.sections[id].status === 'completed'
     );
-    if (nextIncomplete) {
-      router.push(`/scene/${nextIncomplete}`);
-    } else {
-      router.push('/board');
-    }
+    router.push(allCompleted ? '/board' : '/dashboard');
   }
 
   if (!section || !board) return null;

@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   try {
     const groq = new Groq({ apiKey });
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       messages: groqMessages,
       temperature: 0.7,
     });

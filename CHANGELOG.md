@@ -2,14 +2,15 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v2.4b 채팅 UX 개선 완료 — 로컬 실행 중, v2.4c 버그 수정 플랜 대기
+- **상태:** v2.5 섹션 입력 UX 재설계 + 완료 전환 개선 — Vercel 배포 완료
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
-  - AI 백엔드: Groq (`llama-3.3-70b-versatile`) — 모든 API 라우트 사용
-  - `section/[id]`: 다중 말풍선 채팅 UI (300ms 스태거, 소개 → 4단계 질문 → 미러링)
+  - AI 백엔드: Groq (`llama-3.1-8b-instant`, 500K TPD) — 모든 API 라우트 사용
+  - `section/[id]`: InlineInput — lumi 질문 아래 인라인 텍스트박스 (슬라이드 애니메이션, step별 placeholder)
+  - 도움 UX: "답변 도와줘" 버튼 → 섹션별 helpQuestions + example 데이터 패널 (InlineInput 하단)
+  - 섹션 완료 전환: "장면 바로 그려가기" / "다른 섹션 질문 시작하기" + 각 설명 가이드
+  - Scene 완료 후 → 전체 완료 시 `/board`, 아닌 경우 `/dashboard` 허브
   - 질문 순서: 지금(current) → 원해(want) → 더 들여다보기(feeling) → 방향 키워드(keyword)
-  - "다른 질문 형태로 볼게" 패널 (스텝당 최대 2회, 대체 질문 + 예시 카드 탭 전송)
-  - Enter=줄바꿈 / "다 썼어 →" 버튼 전송 / placeholder 가이드 텍스트
   - lumi 질문 주어: "너는/[이름]이는" (userName 온보딩에서 주입)
   - CJK 문자(한자·히라가나·가타카나) 응답 필터 (`stripCJK`)
   - `scene/[id]`: lumi 장면 대화 UI
@@ -17,10 +18,17 @@
   - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
 - **알려진 이슈:**
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 기능 비활성)
-  - v2.4c 미구현: 점수 반응 오류 / 말풍선 질문 2개 / 외국어(라틴) 잔존 / 슬롯 반복 질문 / "맞아" 버튼 완료 미이동
+  - llama-3.1-8b-instant: 70b 대비 생성 품질 저하 가능 (모델 한도 초과 시 임시 조치)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-31 (v2.5 섹션 UX 재설계)
+- InlineInput 컴포넌트 신규 (`components/InlineInput.tsx`): 하단 고정 입력창 제거 → lumi 질문 아래 인라인 텍스트박스 (슬라이드 애니메이션, step별 placeholder 예시)
+- 도움 버튼 재설계: "다른 질문 형태로 볼게" 제거 → InlineInput 하단 "답변 도와줘" + 섹션별 helpQuestions/example 데이터로 패널 내용 교체, 예시 버튼 → 텍스트
+- 섹션 완료 전환: "장면 바로 그려가기" / "다른 섹션 질문 시작하기" + 가이드 설명, Scene 완료 후 dashboard 허브 방식
+- AI 버그 수정: STEP 0 하드코딩 "건강" 예시 → 실제 섹션명 주입, "안녕하세요 친구" 인사 버그 프롬프트 수정
+- Groq 모델 변경: llama-3.3-70b-versatile (100K TPD 소진) → llama-3.1-8b-instant (500K TPD)
 
 ### 2026-05-31 (v2.4 채팅 UX + 입력 개선)
 - v2.4: 언어 혼용 차단 강화 (CJK 필터 `stripCJK`, 시스템 프롬프트 최상단 언어 규칙), 예시 형식 개선 (단답+문장형 병렬), `lib/helpContent.ts` 신규, "다른 질문 형태로 볼게" 도움 패널 (스텝당 최대 2회, 예시 카드 탭 전송)

@@ -10,10 +10,11 @@ import {
   markSectionTextComplete,
 } from '@/lib/storage';
 import { ChatMessage, SectionId, ExtractedSlots, BoardData } from '@/lib/types';
-import { HELP_CONTENT, getCurrentStep } from '@/lib/helpContent';
+import { getCurrentStep } from '@/lib/helpContent';
+import { STEP_PLACEHOLDERS } from '@/lib/placeholders';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
-import ChatInput from '@/components/ChatInput';
+import InlineInput from '@/components/InlineInput';
 
 type ChatPhase = 'chatting' | 'mirroring' | 'done' | 'confirmed';
 
@@ -140,10 +141,9 @@ export default function SectionChatPage() {
     setShowHelpPanel(true);
   }
 
-  function handleConfirm() {
+  function handleNextSection() {
     markSectionTextComplete(sectionId);
     setPhase('confirmed');
-
     const freshBoard = loadBoard();
     const allTextDone = ([1, 2, 3, 4, 5, 6] as SectionId[]).every(
       (id) => freshBoard.sections[id].status === 'text_complete' || freshBoard.sections[id].status === 'completed'
@@ -160,10 +160,20 @@ export default function SectionChatPage() {
     router.push(next ? `/section/${next}` : '/dashboard');
   }
 
+  function handleGoToScene() {
+    markSectionTextComplete(sectionId);
+    router.push(`/scene/${sectionId}`);
+  }
+
   if (!section || !board) return null;
 
   const currentStep = getCurrentStep(extractedSlots);
-  const helpContent = HELP_CONTENT[currentStep];
+  const STEP_TO_SLOT_ID: Record<1|2|3|4, number> = { 1: 1, 2: 3, 3: 5, 4: 2 };
+  const currentSlot = section.slots.find(s => s.id === STEP_TO_SLOT_ID[currentStep]);
+  const helpContent = {
+    alternativeQuestions: currentSlot?.helpQuestions.map(h => h.text) ?? [],
+    exampleAnswers: currentSlot?.example ? currentSlot.example.split(' / ') : [],
+  };
   const showHelpButton =
     phase === 'chatting' &&
     !isLoading &&
@@ -194,53 +204,6 @@ export default function SectionChatPage() {
         ))}
         {isLoading && <ChatBubble role="assistant" content="" isLoading />}
 
-        {/* 도움 버튼 + 패널 */}
-        {showHelpButton && (
-          <div className="flex justify-start mt-1 mb-2 ml-10">
-            <button
-              onClick={handleHelpButtonClick}
-              className="px-3 py-1.5 rounded-full text-xs text-[#9CA3AF] bg-[#F5F5F3] border border-[#E5E3DF] active:opacity-70"
-            >
-              다른 질문 형태로 볼게 🔍
-            </button>
-          </div>
-        )}
-
-        {showHelpPanel && (
-          <div className="ml-10 mr-1 mb-3 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
-            <div className="px-4 pt-3 pb-1">
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">이런 방식으로 물어볼게</p>
-              {helpContent.alternativeQuestions.map((q, i) => (
-                <p key={i} className="text-xs text-[#6B7280] leading-relaxed before:content-['○'] before:mr-1.5 before:text-[#C9C5BE]">
-                  {q}
-                </p>
-              ))}
-            </div>
-            <div className="px-4 pt-2 pb-3">
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">이런 식으로 써봐도 돼</p>
-              <div className="flex flex-wrap gap-1.5">
-                {helpContent.exampleAnswers.map((ex, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleUserMessage(ex)}
-                    className="px-3 py-1.5 rounded-full text-xs bg-[#F5F5F3] text-[#1C1B19] border border-[#E5E3DF] active:bg-[#E5E3DF] text-left"
-                  >
-                    {ex}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="border-t border-[#F5F5F3] px-4 py-2.5">
-              <button
-                onClick={() => setShowHelpPanel(false)}
-                className="text-xs text-[#9CA3AF] w-full text-center"
-              >
-                직접 쓸게 ✏️
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* 미러링 확인 버튼 */}
         {phase === 'mirroring' && !isLoading && (
           <div className="flex gap-2 mt-3 mb-1">
@@ -259,14 +222,66 @@ export default function SectionChatPage() {
           </div>
         )}
 
+        {/* 인라인 입력창 */}
+        {phase === 'chatting' && !isLoading && (
+          <InlineInput
+            onSubmit={handleUserMessage}
+            placeholder={STEP_PLACEHOLDERS[currentStep]}
+            disabled={isLoading}
+            onHelp={handleHelpButtonClick}
+            showHelp={showHelpButton}
+          />
+        )}
+
+        {/* 도움 패널 (InlineInput 아래) */}
+        {showHelpPanel && (
+          <div className="mb-3 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
+            <div className="px-4 pt-3 pb-1">
+              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">이런 방식으로 물어볼게</p>
+              {helpContent.alternativeQuestions.map((q, i) => (
+                <p key={i} className="text-xs text-[#6B7280] leading-relaxed mb-1 before:content-['○'] before:mr-1.5 before:text-[#C9C5BE]">
+                  {q}
+                </p>
+              ))}
+            </div>
+            <div className="px-4 pt-2 pb-4">
+              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">이런 식으로 써봐도 돼</p>
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                {helpContent.exampleAnswers.map((ex, i) => (
+                  <p key={i} className="text-xs text-[#6B7280]">{ex}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 완료 버튼 */}
         {phase === 'done' && !isLoading && (
-          <button
-            onClick={handleConfirm}
-            className="w-full mt-3 py-3.5 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white active:opacity-80"
-          >
-            다음 섹션으로 →
-          </button>
+          <div className="mt-4 mb-2 space-y-3">
+            <p className="text-xs text-center text-[#9CA3AF]">{sectionId}/6 섹션 완료 ✓</p>
+            <div>
+              <button
+                onClick={handleGoToScene}
+                className="w-full py-3.5 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white active:opacity-80"
+              >
+                장면 바로 그려가기
+              </button>
+              <p className="text-xs text-center text-[#9CA3AF] mt-1.5">
+                방금 쓴 내용으로 비전 장면을 바로 써볼 수 있어
+              </p>
+            </div>
+            <div>
+              <button
+                onClick={handleNextSection}
+                className="w-full py-3 rounded-xl text-sm text-[#6B7280] border border-[#E5E3DF] active:opacity-70"
+              >
+                다른 섹션 질문 시작하기
+              </button>
+              <p className="text-xs text-center text-[#9CA3AF] mt-1.5">
+                나머지 섹션 먼저 쓰고 장면은 나중에 한꺼번에
+              </p>
+            </div>
+          </div>
         )}
 
         {/* 이미 완료된 섹션 */}
@@ -285,9 +300,6 @@ export default function SectionChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {phase === 'chatting' && (
-        <ChatInput onSend={handleUserMessage} disabled={isLoading} />
-      )}
     </div>
   );
 }
