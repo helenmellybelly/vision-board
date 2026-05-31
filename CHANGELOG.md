@@ -2,27 +2,33 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** Stage 1 완료 + UI/UX 폴리시 1차 완료 + 플로우차트 v1.0 — https://vision-board-web.vercel.app
+- **상태:** v2.2 대화형 재설계 진행 중 (Task 4/10 인터럽트) — https://vision-board-web.vercel.app
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료
-  - lumi 5단계 대화형 온보딩 — 카피 v2 + UI 폴리시 적용 (아이콘 그라디언트, 버튼 개선, 컬러 바)
-  - 6섹션 PHASE 1+2 전체 질문 흐름 + 슬롯별 CTA 다양화 + 수정 중 배지
-  - Review 페이지: 1열 레이아웃 + 4슬롯 전체 표시 + 섹션별 수정 링크 + AI 요약 카드
-  - Scene 페이지: 답변 패널(접기/펼치기) + Tab-to-fill 스마트 플레이스홀더 + X/18 완료 인터루드
-  - 이미지: 업로드 + Unsplash 키워드 검색 탭 전환 (`/api/unsplash`)
+  - **[v2.2 진행 중]** PRD v2.2 기반 슬롯→채팅 전면 재설계 구현 중
+  - `lib/types.ts`: ChatMessage, ExtractedSlots 타입 추가
+  - `lib/storage.ts`: saveSectionChat, saveExtractedSlots, saveSceneChat, saveOneSentence, saveFutureDayStory 추가
+  - `/api/chat/section`: 섹션 채팅 API (lumi가 4개 슬롯을 자연 대화로 추출)
+  - `components/ChatBubble.tsx`, `ChatInput.tsx`: 채팅 UI 공용 컴포넌트
+  - `app/section/[id]/page.tsx`: 채팅 UI로 재작성 완료 (기존 컴포넌트 삭제 대기)
+  - 구현 플랜: `docs/superpowers/plans/2026-05-31-v2-chat-redesign.md` (Task 5~10 미완)
+  - lumi 5단계 대화형 온보딩 — 카피 v2 + UI 폴리시 (이전 버전)
   - localStorage 임시 저장 + 모바일 퍼스트 레이아웃
-  - 전체 마이크로카피 lumi 톤으로 완전 교체 (온보딩·질문·리뷰·장면 전 영역)
-  - 대시보드: 2단계 진행 도트 + 완성 카드 섹션 색 배경 + "글 완료/✓ 완성" 상태 명확화
-  - 접근성: `button { cursor: pointer }` 전역 + `prefers-reduced-motion` 지원
-  - `Playground/flowchart.html` v1.0: 현재 빌드 기준 전체 플로우 + 6섹션 질문 최신화
 - **알려진 이슈:**
-  - AI 요약: `ANTHROPIC_API_KEY` Vercel 환경변수 미설정 (설정 필요)
-  - Unsplash 검색: `UNSPLASH_ACCESS_KEY` Vercel 환경변수 미설정 (설정 필요)
-  - 온보딩 예시 보드 — 실제 이미지 미제작 (컬러 그리드 placeholder로 대체)
-  - 전체 UI 레퍼런스 기반 재설계 예정 (유저가 레퍼런스 제공 후 진행)
+  - Task 4 미완: 기존 슬롯 컴포넌트 6개 삭제 필요 (빌드 시 충돌 가능)
+  - Task 5~10 미시작: ProcessBar, 온보딩, /api/chat/scene, scene/[id], /api/story, finish 페이지
+  - `.env.local` `ANTHROPIC_API_KEY` 값 설정 필요 (채팅 API 작동 필수)
+  - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-31 (v2.2 재설계 시작)
+- PRD v2.2 수령 + 구현 플랜 10개 Task 작성 (`docs/superpowers/plans/2026-05-31-v2-chat-redesign.md`)
+- Task 1: `lib/types.ts` + `lib/storage.ts` — ChatMessage, ExtractedSlots 타입 + 채팅 저장 함수 5개
+- Task 2: `/api/chat/section` — lumi 섹션 채팅 API (슬롯 추출 + JSON 반환)
+- Task 3: `ChatBubble.tsx` + `ChatInput.tsx` 공용 컴포넌트 생성
+- Task 4 진행 중: `section/[id]/page.tsx` 채팅 UI로 재작성 완료, 기존 컴포넌트 삭제 전 인터럽트
 
 ### 2026-05-31
 - `Playground/flowchart.html` v0.7 → v1.0 업데이트: 현재 빌드 기준 전체 플로우 반영

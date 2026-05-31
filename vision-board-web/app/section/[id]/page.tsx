@@ -1,80 +1,109 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
-import { loadBoard, saveSlotAnswer, markSectionTextComplete } from '@/lib/storage';
-import { BoardData, Section, SlotAnswer, SlotId, PHASE1_SLOTS, SectionId } from '@/lib/types';
-import SlotQuestion from './SlotQuestion';
-import PhaseReview from './PhaseReview';
-import DeferredCheck from './DeferredCheck';
-import SectionComplete from './SectionComplete';
+import {
+  loadBoard,
+  saveSectionChat,
+  saveExtractedSlots,
+  markSectionTextComplete,
+} from '@/lib/storage';
+import { ChatMessage, SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
+import ChatBubble from '@/components/ChatBubble';
+import ChatInput from '@/components/ChatInput';
 
-type Phase = 'slot' | 'review' | 'deferred' | 'complete';
-type SlotSource = 'flow' | 'edit';
+type ChatPhase = 'chatting' | 'mirroring' | 'done' | 'confirmed';
 
-export default function SectionPage() {
+export default function SectionChatPage() {
   const router = useRouter();
   const params = useParams();
   const sectionId = Number(params.id) as SectionId;
-
   const section = getSection(sectionId);
-  const [board, setBoard] = useState<BoardData | null>(null);
-  const [phase, setPhase] = useState<Phase>('slot');
-  const [slotIndex, setSlotIndex] = useState(0);
-  const [slotSource, setSlotSource] = useState<SlotSource>('flow');
 
-  const refreshBoard = useCallback(() => setBoard(loadBoard()), []);
+  const [board, setBoard] = useState<BoardData | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [extractedSlots, setExtractedSlots] = useState<ExtractedSlots>({});
+  const [phase, setPhase] = useState<ChatPhase>('chatting');
+  const [isLoading, setIsLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   useEffect(() => {
     const b = loadBoard();
     setBoard(b);
-    if (b.sections[sectionId]?.status === 'text_complete' || b.sections[sectionId]?.status === 'completed') {
-      setPhase('review');
+    const sec = b.sections[sectionId];
+    if (sec.chatMessages && sec.chatMessages.length > 0) {
+      setMessages(sec.chatMessages);
+      if (sec.extractedSlots) setExtractedSlots(sec.extractedSlots);
+      if (sec.status === 'text_complete' || sec.status === 'completed') {
+        setPhase('confirmed');
+      }
+    } else {
+      fetchLumiMessage([], {});
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionId]);
 
-  if (!section || !board) return null;
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading, scrollToBottom]);
 
-  const sectionData = board.sections[sectionId];
+  async function fetchLumiMessage(currentMessages: ChatMessage[], currentSlots: ExtractedSlots) {
+    if (!section) return;
+    setIsLoading(true);
 
-  function handleSlotSave(answer: SlotAnswer) {
-    saveSlotAnswer(sectionId, PHASE1_SLOTS[slotIndex] as SlotId, answer);
-    refreshBoard();
-    if (slotIndex < PHASE1_SLOTS.length - 1) {
-      setSlotIndex((i) => i + 1);
-    } else {
-      setPhase('review');
+    try {
+      const res = await fetch('/api/chat/section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionId,
+          sectionTitle: section.title,
+          messages: currentMessages,
+          extractedSlots: currentSlots,
+        }),
+      });
+
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+
+      const lumiMsg: ChatMessage = { role: 'assistant', content: data.message };
+      const newMessages = [...currentMessages, lumiMsg];
+      setMessages(newMessages);
+      setExtractedSlots(data.extractedSlots || currentSlots);
+      setPhase(data.phase || 'chatting');
+
+      saveSectionChat(sectionId, newMessages);
+      if (data.extractedSlots) saveExtractedSlots(sectionId, data.extractedSlots);
+      setBoard(loadBoard());
+    } catch {
+      const errMsg: ChatMessage = {
+        role: 'assistant',
+        content: '잠깐, 연결이 좀 느린 것 같아. 다시 시도해볼게.',
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setIsLoading(false);
     }
   }
 
-  function handleSlotSkip() {
-    saveSlotAnswer(sectionId, PHASE1_SLOTS[slotIndex] as SlotId, { text: '', isDeferred: true });
-    refreshBoard();
-    if (slotIndex < PHASE1_SLOTS.length - 1) {
-      setSlotIndex((i) => i + 1);
-    } else {
-      setPhase('review');
-    }
+  async function handleUserMessage(text: string) {
+    const userMsg: ChatMessage = { role: 'user', content: text };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    saveSectionChat(sectionId, newMessages);
+    await fetchLumiMessage(newMessages, extractedSlots);
   }
 
-  function handleReviewDone() {
-    setPhase('deferred');
-  }
-
-  function handleDeferredAnswer(slotIdx: number) {
-    setSlotIndex(slotIdx);
-    setPhase('slot');
-  }
-
-  function handleDeferAll() {
+  function handleConfirm() {
     markSectionTextComplete(sectionId);
-    refreshBoard();
-    setPhase('complete');
-  }
+    setPhase('confirmed');
 
-  function handleComplete() {
     const freshBoard = loadBoard();
     const allTextDone = ([1, 2, 3, 4, 5, 6] as SectionId[]).every(
       (id) => freshBoard.sections[id].status === 'text_complete' || freshBoard.sections[id].status === 'completed'
@@ -83,97 +112,86 @@ export default function SectionPage() {
       router.push('/review');
       return;
     }
-    const nextIncomplete = ([1, 2, 3, 4, 5, 6] as SectionId[]).find(
-      (id) => id > sectionId && (freshBoard.sections[id].status === 'not_started' || freshBoard.sections[id].status === 'in_progress')
+    const next = ([1, 2, 3, 4, 5, 6] as SectionId[]).find(
+      (id) =>
+        id > sectionId &&
+        (freshBoard.sections[id].status === 'not_started' || freshBoard.sections[id].status === 'in_progress')
     );
-    if (nextIncomplete) {
-      router.push(`/section/${nextIncomplete}`);
-    } else {
-      router.push('/review');
-    }
+    router.push(next ? `/section/${next}` : '/dashboard');
   }
 
-  const currentSlot = section.slots.find((s) => s.id === PHASE1_SLOTS[slotIndex]);
+  if (!section || !board) return null;
 
-  return (
-    <SectionShell
-      section={section}
-      board={board}
-      onDashboard={() => router.push('/dashboard')}
-    >
-      {phase === 'slot' && currentSlot && (
-        <SlotQuestion
-          key={`slot-${slotIndex}-${slotSource}`}
-          section={section}
-          slot={currentSlot}
-          slotIndex={slotIndex}
-          totalSlots={PHASE1_SLOTS.length}
-          savedAnswer={sectionData.slots[PHASE1_SLOTS[slotIndex] as SlotId]}
-          isEditing={slotSource === 'edit'}
-          onSave={(answer) => { setSlotSource('flow'); handleSlotSave(answer); }}
-          onSkip={handleSlotSkip}
-          onBack={slotIndex > 0 ? () => { setSlotSource('flow'); setSlotIndex((i) => i - 1); } : undefined}
-        />
-      )}
-      {phase === 'review' && (
-        <PhaseReview
-          section={section}
-          slots={sectionData.slots}
-          onEdit={(slotIdx) => { setSlotIndex(slotIdx); setSlotSource('edit'); setPhase('slot'); }}
-          onNext={handleReviewDone}
-          onBack={() => { setSlotIndex(PHASE1_SLOTS.length - 1); setSlotSource('flow'); setPhase('slot'); }}
-        />
-      )}
-      {phase === 'deferred' && (
-        <DeferredCheck
-          section={section}
-          slots={sectionData.slots}
-          onAnswerSlot={handleDeferredAnswer}
-          onDeferAll={handleDeferAll}
-        />
-      )}
-      {phase === 'complete' && (
-        <SectionComplete
-          section={section}
-          sectionId={sectionId}
-          board={board}
-          onDone={handleComplete}
-          onDashboard={() => router.push('/dashboard')}
-        />
-      )}
-    </SectionShell>
-  );
-}
-
-function SectionShell({
-  section,
-  board,
-  onDashboard,
-  children,
-}: {
-  section: Section;
-  board: BoardData;
-  onDashboard: () => void;
-  children: React.ReactNode;
-}) {
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
-      {/* 전체 프로세스 바 */}
       <ProcessBar board={board} />
 
-      <header className="flex items-center justify-between px-6 pt-2 pb-4">
+      <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-sm">{section.title}</span>
+          <span className="font-semibold text-sm">{section.title.split(' — ')[0]}</span>
         </div>
         <button
-          onClick={onDashboard}
-          className="text-xs text-[#9CA3AF] active:opacity-60 py-1"
+          onClick={() => router.push('/dashboard')}
+          className="text-xs text-[#9CA3AF] py-1"
         >
           대시보드로
         </button>
       </header>
-      <div className="flex-1 px-6 pb-10">{children}</div>
+
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+        {messages.map((msg, i) => (
+          <ChatBubble key={i} role={msg.role} content={msg.content} />
+        ))}
+        {isLoading && <ChatBubble role="assistant" content="" isLoading />}
+
+        {/* 미러링 확인 버튼 */}
+        {phase === 'mirroring' && !isLoading && (
+          <div className="flex gap-2 mt-3 mb-1">
+            <button
+              onClick={() => handleUserMessage('맞아, 딱 내 얘기야!')}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white active:opacity-80"
+            >
+              맞아, 딱 내 얘기야!
+            </button>
+            <button
+              onClick={() => handleUserMessage('조금 달라, 다시 말해볼게')}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-[#E5E3DF] text-[#6B7280] active:opacity-80"
+            >
+              조금 달라
+            </button>
+          </div>
+        )}
+
+        {/* 완료 버튼 */}
+        {phase === 'done' && !isLoading && (
+          <button
+            onClick={handleConfirm}
+            className="w-full mt-3 py-3.5 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white active:opacity-80"
+          >
+            다음 섹션으로 →
+          </button>
+        )}
+
+        {/* 이미 완료된 섹션 */}
+        {phase === 'confirmed' && (
+          <div className="mt-3 p-4 bg-[#F5F5F3] rounded-xl text-center">
+            <p className="text-sm text-[#6B7280]">이 섹션은 완료됐어. ✓</p>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="mt-2 text-sm font-semibold text-[#1C1B19]"
+            >
+              대시보드로 돌아가기
+            </button>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {phase === 'chatting' && (
+        <ChatInput onSend={handleUserMessage} disabled={isLoading} />
+      )}
     </div>
   );
 }

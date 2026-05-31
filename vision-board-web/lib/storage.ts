@@ -1,4 +1,4 @@
-import { BoardData, SectionData, SectionId, SlotAnswer, SlotId } from './types';
+import { BoardData, SectionData, SectionId, SlotAnswer, SlotId, ChatMessage, ExtractedSlots } from './types';
 
 const STORAGE_KEY = 'vision-board-data';
 
@@ -123,4 +123,44 @@ export function markBoardFinished(): void {
 export function resetBoard(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
+}
+
+// ── 채팅 기반 신규 함수 ──
+
+export function saveSectionChat(sectionId: SectionId, messages: ChatMessage[]): void {
+  const board = loadBoard();
+  board.sections[sectionId].chatMessages = messages;
+  if (board.sections[sectionId].status === 'not_started' && messages.length > 1) {
+    board.sections[sectionId].status = 'in_progress';
+  }
+  saveBoard(board);
+}
+
+export function saveExtractedSlots(sectionId: SectionId, slots: ExtractedSlots): void {
+  const board = loadBoard();
+  board.sections[sectionId].extractedSlots = slots;
+  // 하위 호환: 기존 SlotAnswer 형식으로도 저장
+  if (slots.current) board.sections[sectionId].slots[1] = { text: slots.current, isDeferred: false };
+  if (slots.keyword) board.sections[sectionId].slots[2] = { text: slots.keyword, isDeferred: false };
+  if (slots.want) board.sections[sectionId].slots[3] = { text: slots.want, isDeferred: false };
+  if (slots.feeling) board.sections[sectionId].slots[5] = { text: slots.feeling, isDeferred: false };
+  saveBoard(board);
+}
+
+export function saveSceneChat(sectionId: SectionId, messages: ChatMessage[]): void {
+  const board = loadBoard();
+  board.sections[sectionId].sceneMessages = messages;
+  saveBoard(board);
+}
+
+export function saveOneSentence(sentence: string): void {
+  const board = loadBoard();
+  board.oneSentence = sentence;
+  saveBoard(board);
+}
+
+export function saveFutureDayStory(story: string): void {
+  const board = loadBoard();
+  board.futureDayStory = story;
+  saveBoard(board);
 }
