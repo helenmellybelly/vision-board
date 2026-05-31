@@ -8,7 +8,7 @@ interface Props {
   placeholder?: string;
 }
 
-export default function ChatInput({ onSend, disabled, placeholder = '여기에 써봐...' }: Props) {
+export default function ChatInput({ onSend, disabled, placeholder = '여기에 써봐...\n(Enter로 줄바꿈, 다 쓰면 버튼 눌러)' }: Props) {
   const [text, setText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -27,43 +27,42 @@ export default function ChatInput({ onSend, disabled, placeholder = '여기에 �
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Ctrl+Enter or Cmd+Enter to send (desktop shortcut)
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
     }
+    // plain Enter = newline (default textarea behavior)
   }
 
+  const canSend = !!text.trim() && !disabled;
+
   return (
-    <div className="flex items-end gap-2 px-4 py-3 border-t border-[#E5E3DF] bg-white">
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        disabled={disabled}
-        rows={1}
-        className="flex-1 resize-none text-sm leading-relaxed bg-[#F5F5F3] rounded-xl px-3 py-2.5 outline-none max-h-32 overflow-y-auto"
-        style={{ color: '#1C1B19' }}
-      />
-      <button
-        onClick={handleSend}
-        disabled={!text.trim() || disabled}
-        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
-        style={{
-          backgroundColor: text.trim() && !disabled ? '#1C1B19' : '#E5E3DF',
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M5 12h14M12 5l7 7-7 7"
-            stroke={text.trim() && !disabled ? '#fff' : '#9CA3AF'}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
+    <div className="border-t border-[#E5E3DF] bg-white px-4 pt-3 pb-3">
+      <div className="flex items-end gap-2">
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          rows={1}
+          className="flex-1 resize-none text-sm leading-relaxed bg-[#F5F5F3] rounded-xl px-3 py-2.5 outline-none max-h-32 overflow-y-auto"
+          style={{ color: '#1C1B19' }}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!canSend}
+          className="px-4 py-2.5 rounded-xl text-sm font-semibold flex-shrink-0 transition-colors"
+          style={{
+            backgroundColor: canSend ? '#1C1B19' : '#E5E3DF',
+            color: canSend ? '#fff' : '#9CA3AF',
+          }}
+        >
+          다 썼어 →
+        </button>
+      </div>
     </div>
   );
 }

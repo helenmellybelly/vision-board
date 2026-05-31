@@ -2,22 +2,30 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v2.3 섹션 채팅 UX 개선 완료 — Vercel 프로덕션 배포됨
+- **상태:** v2.4b 채팅 UX 개선 완료 — 로컬 실행 중, v2.4c 버그 수정 플랜 대기
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
   - AI 백엔드: Groq (`llama-3.3-70b-versatile`) — 모든 API 라우트 사용
   - `section/[id]`: 다중 말풍선 채팅 UI (300ms 스태거, 소개 → 4단계 질문 → 미러링)
   - 질문 순서: 지금(current) → 원해(want) → 더 들여다보기(feeling) → 방향 키워드(keyword)
-  - "잘 모르겠어 😅" 도움 버튼 (lumi 질문 말풍선 아래 고정)
-  - lumi 대화 품질: 한국어 전용, STEP 브릿지, 슬롯 추출 강제, 미러링 안전 조건
+  - "다른 질문 형태로 볼게" 패널 (스텝당 최대 2회, 대체 질문 + 예시 카드 탭 전송)
+  - Enter=줄바꿈 / "다 썼어 →" 버튼 전송 / placeholder 가이드 텍스트
+  - lumi 질문 주어: "너는/[이름]이는" (userName 온보딩에서 주입)
+  - CJK 문자(한자·히라가나·가타카나) 응답 필터 (`stripCJK`)
   - `scene/[id]`: lumi 장면 대화 UI
   - `finish`: 패턴→한 문장→스토리→완성 4페이즈
   - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
 - **알려진 이슈:**
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 기능 비활성)
+  - v2.4c 미구현: 점수 반응 오류 / 말풍선 질문 2개 / 외국어(라틴) 잔존 / 슬롯 반복 질문 / "맞아" 버튼 완료 미이동
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-31 (v2.4 채팅 UX + 입력 개선)
+- v2.4: 언어 혼용 차단 강화 (CJK 필터 `stripCJK`, 시스템 프롬프트 최상단 언어 규칙), 예시 형식 개선 (단답+문장형 병렬), `lib/helpContent.ts` 신규, "다른 질문 형태로 볼게" 도움 패널 (스텝당 최대 2회, 예시 카드 탭 전송)
+- v2.4b: Enter=줄바꿈/"다 썼어 →" 버튼 전송으로 변경, 가이드 텍스트 placeholder 통합, lumi 질문 주어 "나는"→"너는/[이름]이는" 수정 (userName을 API에 주입)
+- v2.4c 플랜 완료(미구현): 점수 범위별 반응 지침 / 말풍선당 역할 1개 원칙 / nextSlot contextNote 주입 / temperature 0.5 / "맞아" 버튼 API 없이 직접 완료 처리
 
 ### 2026-05-31 (v2.3 섹션 채팅 UX)
 - Groq API 키 Vercel 등록 (Production + Development), 프로덕션 배포

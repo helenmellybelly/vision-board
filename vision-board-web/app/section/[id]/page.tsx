@@ -10,11 +10,14 @@ import {
   markSectionTextComplete,
 } from '@/lib/storage';
 import { ChatMessage, SectionId, ExtractedSlots, BoardData } from '@/lib/types';
+import { HELP_CONTENT, getCurrentStep } from '@/lib/helpContent';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 import ChatInput from '@/components/ChatInput';
 
 type ChatPhase = 'chatting' | 'mirroring' | 'done' | 'confirmed';
+
+const MAX_HELP_PER_STEP = 2;
 
 export default function SectionChatPage() {
   const router = useRouter();
@@ -27,7 +30,10 @@ export default function SectionChatPage() {
   const [extractedSlots, setExtractedSlots] = useState<ExtractedSlots>({});
   const [phase, setPhase] = useState<ChatPhase>('chatting');
   const [isLoading, setIsLoading] = useState(false);
+  const [helpClickCount, setHelpClickCount] = useState(0);
+  const [showHelpPanel, setShowHelpPanel] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const prevStepRef = useRef<number>(0);
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,7 +50,7 @@ export default function SectionChatPage() {
         setPhase('confirmed');
       }
     } else {
-      fetchLumiMessage([], {});
+      fetchLumiMessage([], {}, b.userName);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionId]);
@@ -53,7 +59,17 @@ export default function SectionChatPage() {
     scrollToBottom();
   }, [messages, isLoading, scrollToBottom]);
 
-  async function fetchLumiMessage(currentMessages: ChatMessage[], currentSlots: ExtractedSlots) {
+  // 스텝이 바뀌면 도움 카운트 리셋
+  useEffect(() => {
+    const step = getCurrentStep(extractedSlots);
+    if (step !== prevStepRef.current) {
+      prevStepRef.current = step;
+      setHelpClickCount(0);
+      setShowHelpPanel(false);
+    }
+  }, [extractedSlots]);
+
+  async function fetchLumiMessage(currentMessages: ChatMessage[], currentSlots: ExtractedSlots, userName?: string) {
     if (!section) return;
     setIsLoading(true);
 
@@ -65,6 +81,7 @@ export default function SectionChatPage() {
           sectionId,
           sectionTitle: section.title,
           sectionSubtitle: section.subtitle,
+          userName: userName ?? board?.userName ?? '',
           messages: currentMessages,
           extractedSlots: currentSlots,
         }),
@@ -110,11 +127,17 @@ export default function SectionChatPage() {
   }
 
   async function handleUserMessage(text: string) {
+    setShowHelpPanel(false);
     const userMsg: ChatMessage = { role: 'user', content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     saveSectionChat(sectionId, newMessages);
     await fetchLumiMessage(newMessages, extractedSlots);
+  }
+
+  function handleHelpButtonClick() {
+    setHelpClickCount((c) => c + 1);
+    setShowHelpPanel(true);
   }
 
   function handleConfirm() {
@@ -139,6 +162,15 @@ export default function SectionChatPage() {
 
   if (!section || !board) return null;
 
+  const currentStep = getCurrentStep(extractedSlots);
+  const helpContent = HELP_CONTENT[currentStep];
+  const showHelpButton =
+    phase === 'chatting' &&
+    !isLoading &&
+    messages.length > 0 &&
+    messages[messages.length - 1].role === 'assistant' &&
+    helpClickCount < MAX_HELP_PER_STEP;
+
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
       <ProcessBar board={board} />
@@ -162,15 +194,50 @@ export default function SectionChatPage() {
         ))}
         {isLoading && <ChatBubble role="assistant" content="" isLoading />}
 
-        {/* 질문 어려울 때 도움 버튼 */}
-        {phase === 'chatting' && !isLoading && messages.length > 0 && messages[messages.length - 1].role === 'assistant' && (
+        {/* 도움 버튼 + 패널 */}
+        {showHelpButton && (
           <div className="flex justify-start mt-1 mb-2 ml-10">
             <button
-              onClick={() => handleUserMessage('잘 모르겠어 😅')}
+              onClick={handleHelpButtonClick}
               className="px-3 py-1.5 rounded-full text-xs text-[#9CA3AF] bg-[#F5F5F3] border border-[#E5E3DF] active:opacity-70"
             >
-              잘 모르겠어 😅
+              다른 질문 형태로 볼게 🔍
             </button>
+          </div>
+        )}
+
+        {showHelpPanel && (
+          <div className="ml-10 mr-1 mb-3 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
+            <div className="px-4 pt-3 pb-1">
+              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">이런 방식으로 물어볼게</p>
+              {helpContent.alternativeQuestions.map((q, i) => (
+                <p key={i} className="text-xs text-[#6B7280] leading-relaxed before:content-['○'] before:mr-1.5 before:text-[#C9C5BE]">
+                  {q}
+                </p>
+              ))}
+            </div>
+            <div className="px-4 pt-2 pb-3">
+              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">이런 식으로 써봐도 돼</p>
+              <div className="flex flex-wrap gap-1.5">
+                {helpContent.exampleAnswers.map((ex, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleUserMessage(ex)}
+                    className="px-3 py-1.5 rounded-full text-xs bg-[#F5F5F3] text-[#1C1B19] border border-[#E5E3DF] active:bg-[#E5E3DF] text-left"
+                  >
+                    {ex}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="border-t border-[#F5F5F3] px-4 py-2.5">
+              <button
+                onClick={() => setShowHelpPanel(false)}
+                className="text-xs text-[#9CA3AF] w-full text-center"
+              >
+                직접 쓸게 ✏️
+              </button>
+            </div>
           </div>
         )}
 
