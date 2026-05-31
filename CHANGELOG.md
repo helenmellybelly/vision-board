@@ -2,14 +2,16 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v2.5 섹션 입력 UX 재설계 + 완료 전환 개선 — Vercel 배포 완료
+- **상태:** v2.6 랜딩 페이지 신규 + UX 전환 개선 — Vercel 배포 완료
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
+  - **랜딩 페이지** (`/`): hero + problem + how it works + what you get 4섹션 (신규 사용자만 노출, 기존 사용자 → `/dashboard` 자동 리다이렉트)
+  - 온보딩 완료 후 `/dashboard` → `/section/1` 직행 (Activation Energy 개선)
+  - 장면 완료 버튼: 완료 상태 기반 동적 텍스트 ("비전보드 완성하기 →" / "대시보드로 돌아가기")
   - AI 백엔드: Groq (`llama-3.1-8b-instant`, 500K TPD) — 모든 API 라우트 사용
   - `section/[id]`: InlineInput — lumi 질문 아래 인라인 텍스트박스 (슬라이드 애니메이션, step별 placeholder)
   - 도움 UX: "답변 도와줘" 버튼 → 섹션별 helpQuestions + example 데이터 패널 (InlineInput 하단)
   - 섹션 완료 전환: "장면 바로 그려가기" / "다른 섹션 질문 시작하기" + 각 설명 가이드
-  - Scene 완료 후 → 전체 완료 시 `/board`, 아닌 경우 `/dashboard` 허브
   - 질문 순서: 지금(current) → 원해(want) → 더 들여다보기(feeling) → 방향 키워드(keyword)
   - lumi 질문 주어: "너는/[이름]이는" (userName 온보딩에서 주입)
   - CJK 문자(한자·히라가나·가타카나) 응답 필터 (`stripCJK`)
@@ -22,6 +24,11 @@
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-31 (v2.6 랜딩 페이지 + UX 전환 개선)
+- 랜딩 페이지 신규 (`app/page.tsx`): hero("목표가 없어도 괜찮아.") + problem + how it works + what you get, 기존 사용자 자동 대시보드 리다이렉트
+- 온보딩 완료(`handleFinish`) → `/dashboard` 대신 `/section/1` 직행, 대시보드 첫 방문 배너 카피 "어디서부터 해도 괜찮아" → "나 섹션부터 시작해봐"
+- 장면 완료 버튼 "이미지 찾으러 가기 →" → 완료 상태 기반 동적 텍스트 (마지막 섹션: "비전보드 완성하기 →", 중간: "대시보드로 돌아가기")
 
 ### 2026-05-31 (v2.5 섹션 UX 재설계)
 - InlineInput 컴포넌트 신규 (`components/InlineInput.tsx`): 하단 고정 입력창 제거 → lumi 질문 아래 인라인 텍스트박스 (슬라이드 애니메이션, step별 placeholder 예시)
