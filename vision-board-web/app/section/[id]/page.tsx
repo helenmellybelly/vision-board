@@ -64,6 +64,7 @@ export default function SectionChatPage() {
         body: JSON.stringify({
           sectionId,
           sectionTitle: section.title,
+          sectionSubtitle: section.subtitle,
           messages: currentMessages,
           extractedSlots: currentSlots,
         }),
@@ -72,13 +73,29 @@ export default function SectionChatPage() {
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
 
-      const lumiMsg: ChatMessage = { role: 'assistant', content: data.message };
-      const newMessages = [...currentMessages, lumiMsg];
-      setMessages(newMessages);
-      setExtractedSlots(data.extractedSlots || currentSlots);
+      // messages[] 배열 또는 구버전 message 단일 문자열 호환
+      const rawMsgs: string[] = Array.isArray(data.messages)
+        ? data.messages
+        : data.message
+        ? [data.message]
+        : [];
+
+      setIsLoading(false);
+
+      // 말풍선을 300ms 간격으로 순서대로 추가
+      let accumulated = [...currentMessages];
+      for (let i = 0; i < rawMsgs.length; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, 300));
+        const msg: ChatMessage = { role: 'assistant', content: rawMsgs[i] };
+        accumulated = [...accumulated, msg];
+        setMessages([...accumulated]);
+      }
+
+      const newSlots = data.extractedSlots || currentSlots;
+      setExtractedSlots(newSlots);
       setPhase(data.phase || 'chatting');
 
-      saveSectionChat(sectionId, newMessages);
+      saveSectionChat(sectionId, accumulated);
       if (data.extractedSlots) saveExtractedSlots(sectionId, data.extractedSlots);
       setBoard(loadBoard());
     } catch {
@@ -144,6 +161,18 @@ export default function SectionChatPage() {
           <ChatBubble key={i} role={msg.role} content={msg.content} />
         ))}
         {isLoading && <ChatBubble role="assistant" content="" isLoading />}
+
+        {/* 질문 어려울 때 도움 버튼 */}
+        {phase === 'chatting' && !isLoading && messages.length > 0 && messages[messages.length - 1].role === 'assistant' && (
+          <div className="flex justify-start mt-1 mb-2 ml-10">
+            <button
+              onClick={() => handleUserMessage('잘 모르겠어 😅')}
+              className="px-3 py-1.5 rounded-full text-xs text-[#9CA3AF] bg-[#F5F5F3] border border-[#E5E3DF] active:opacity-70"
+            >
+              잘 모르겠어 😅
+            </button>
+          </div>
+        )}
 
         {/* 미러링 확인 버튼 */}
         {phase === 'mirroring' && !isLoading && (

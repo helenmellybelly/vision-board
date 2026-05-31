@@ -64,3 +64,9 @@
 
 ### GitHub Pages 진입점은 root index.html 필요 #coding #deployment
 Pages에서 하위 폴더 HTML 파일은 직접 URL로 접근은 되지만, 기본 진입점(/)은 root의 index.html만 인식한다. Playground 내 파일을 배포 진입점으로 쓰려면 root에 복사하거나 /docs 폴더 설정 필요.
+
+### llama-3.3-70b는 한국어 전용 명시 없이 쓰면 언어 혼용이 생긴다 #coding #ai-api
+JSON 배열 안 텍스트를 생성할 때 영어 단어가 섞여 나오는 현상 발생. 프롬프트 최상단에 "모든 텍스트는 반드시 한국어로만. 영어 단어·로마자 혼용 절대 금지"를 명시해야 억제된다. 한국어 앱에서 LLM을 쓸 때 언어 규칙은 항상 맨 위에 둘 것.
+
+### AI 채팅 슬롯 추출은 필드·시점을 STEP별로 명시해야 한다 #coding #ai-api
+"추출하라"는 지시만으로는 AI가 null을 반환하거나 이전 값을 덮어쓴다. "STEP 1 답변 → extractedSlots.current = 사용자 답 그대로 (필수)"처럼 어느 STEP에서 어느 필드에 무엇을 저장하는지 명시해야 한다. 모호하면 슬롯이 빈 채로 미러링에 진입해 빈 요약이 생성된다.

@@ -2,25 +2,29 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v2.2 대화형 재설계 완료 — 로컬 테스트 중, Vercel 배포 전
+- **상태:** v2.3 섹션 채팅 UX 개선 완료 — Vercel 프로덕션 배포됨
 - **주요 기능:**
-  - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 완료 (구 버전)
-  - **[v2.2 완료]** 슬롯→채팅 전면 재설계 구현 완료 (Task 1~10)
-  - 전체 AI 백엔드: Anthropic → Gemini (`gemini-1.5-flash`) 마이그레이션 완료
-  - `/api/chat/section`, `/api/chat/scene`, `/api/story`, `/api/summarize`: 모두 Gemini 사용
-  - `section/[id]`: lumi 채팅 UI (슬롯 추출 + 미러링 + 완료)
-  - `scene/[id]`: lumi 장면 대화 UI (공간/사람/감각 캐묻기 → 장면 완성)
-  - `finish`: 패턴→한 문장→미래의 하루 스토리→완성 4페이즈
-  - 온보딩 7단계 (효과성 체감 + 완성 미리보기 추가)
-  - ProcessBar 4 STEP (대화/장면/이미지/마무리)
-  - localStorage 임시 저장 + 모바일 퍼스트 레이아웃
+  - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
+  - AI 백엔드: Groq (`llama-3.3-70b-versatile`) — 모든 API 라우트 사용
+  - `section/[id]`: 다중 말풍선 채팅 UI (300ms 스태거, 소개 → 4단계 질문 → 미러링)
+  - 질문 순서: 지금(current) → 원해(want) → 더 들여다보기(feeling) → 방향 키워드(keyword)
+  - "잘 모르겠어 😅" 도움 버튼 (lumi 질문 말풍선 아래 고정)
+  - lumi 대화 품질: 한국어 전용, STEP 브릿지, 슬롯 추출 강제, 미러링 안전 조건
+  - `scene/[id]`: lumi 장면 대화 UI
+  - `finish`: 패턴→한 문장→스토리→완성 4페이즈
+  - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
 - **알려진 이슈:**
-  - Vercel 재배포 필요 (v2.2 변경사항 반영 안 됨)
-  - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정
-  - `gemini-1.5-flash` 무료 티어 분당 15 RPM 제한 (로컬 테스트 중 429 발생 가능)
+  - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 기능 비활성)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-05-31 (v2.3 섹션 채팅 UX)
+- Groq API 키 Vercel 등록 (Production + Development), 프로덕션 배포
+- 섹션 채팅 다중 말풍선 구조: `message: string` → `messages: string[]`, 300ms 스태거 딜레이
+- lumi 질문 순서 재설계: 지금 → 원해 → 더 들여다보기 → 방향 키워드
+- 프롬프트 품질 개선: 한국어 전용, STEP 브릿지 패턴, 슬롯 추출 강제, 미러링 안전 조건 (4개 슬롯 모두 채워야 진입)
+- "잘 모르겠어 😅" 도움 버튼 추가 (lumi 마지막 말풍선 아래, helpQuestions 트리거)
 
 ### 2026-05-31 (v2.2 완료)
 - Anthropic → Gemini 전체 마이그레이션: `@google/generative-ai` 설치, 4개 API 라우트 교체 (`gemini-1.5-flash`)
