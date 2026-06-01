@@ -45,6 +45,7 @@ export interface SectionQuestion {
 export interface Section {
   id: SectionId;
   title: string;
+  shortTitle?: string;
   subtitle: string;
   color: string;
   lightColor: string;
@@ -52,6 +53,7 @@ export interface Section {
   imageHints: string[];
   imageHintIntro: string;
   introText: string;
+  whyText: string;
   phaseOneQuestions: SectionQuestion[];
   reviewTemplate: string;
 }

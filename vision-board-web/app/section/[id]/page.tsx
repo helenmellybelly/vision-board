@@ -88,7 +88,10 @@ export default function SectionChatPage() {
 
   // Derive message list from current state
   type MsgItem = { type: 'lumi' | 'user'; text: string };
-  const msgs: MsgItem[] = [{ type: 'lumi', text: section.introText }];
+  const msgs: MsgItem[] = [
+    { type: 'lumi', text: section.introText },
+    { type: 'lumi', text: section.whyText },
+  ];
 
   const displayCount = Math.min(qIdx, 4);
   for (let i = 0; i < displayCount; i++) {

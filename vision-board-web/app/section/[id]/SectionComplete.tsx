@@ -34,7 +34,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
       </div>
 
       <h2 className="text-2xl font-bold mb-3">
-        {section.title.split(' — ')[0]}, 다 썼어.
+        {section.shortTitle ?? section.title.split(' — ')[0]} 이야기, 다 썼어.
       </h2>
       <p className="text-[#6B7280] text-base leading-relaxed mb-1">
         수고했어. 잠깐 쉬어도 돼.
@@ -59,7 +59,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
           {allTextDone
             ? '내 답변 모두 볼게 →'
             : nextIncomplete
-            ? `${SECTIONS.find(s => s.id === nextIncomplete)?.title.split(' — ')[0] ?? '다음'}도 써볼래? →`
+            ? `${(SECTIONS.find(s => s.id === nextIncomplete)?.shortTitle ?? SECTIONS.find(s => s.id === nextIncomplete)?.title.split(' — ')[0]) ?? '다음'}도 써볼래? →`
             : '내 답변 모두 볼게 →'}
         </button>
         <button

@@ -107,7 +107,7 @@ export default function DashboardPage() {
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: section.color }} />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm">{section.title.split(' — ')[0]}</p>
+                      <p className="font-semibold text-sm">{section.shortTitle ?? section.title.split(' — ')[0]}</p>
                       <p className="text-xs text-[#9CA3AF] mt-0.5">{section.subtitle}</p>
                     </div>
                   </div>
