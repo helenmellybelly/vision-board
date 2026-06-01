@@ -2,16 +2,17 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v2.6 랜딩 페이지 신규 + UX 전환 개선 — Vercel 배포 완료
+- **상태:** v2.8 섹션 카피 개선 — Vercel 배포 완료
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
   - **랜딩 페이지** (`/`): hero + problem + how it works + what you get 4섹션 (신규 사용자만 노출, 기존 사용자 → `/dashboard` 자동 리다이렉트)
   - 온보딩 완료 후 `/dashboard` → `/section/1` 직행 (Activation Energy 개선)
-  - 장면 완료 버튼: 완료 상태 기반 동적 텍스트 ("비전보드 완성하기 →" / "대시보드로 돌아가기")
+  - **섹션 입력 UX (v2.7):** AI 채팅 제거 → 고정 질문 4개 + 내러티브 리뷰 방식
+  - **섹션 카피 (v2.8):** `shortTitle`(Section 1: "나 자신"), 6개 `introText` "이번엔" 제거, 6개 `whyText` 공감 버블 신규, SectionComplete "{title} 이야기, 다 썼어." 패턴
+  - **장면 페이지 (v2.7):** AI 채팅 제거 → 이전 답변 컨텍스트 + 고정 질문 방식
   - AI 백엔드: Groq (`llama-3.1-8b-instant`, 500K TPD) — 모든 API 라우트 사용
   - `section/[id]`: InlineInput — lumi 질문 아래 인라인 텍스트박스 (슬라이드 애니메이션, step별 placeholder)
-  - 도움 UX: "답변 도와줘" 버튼 → 섹션별 helpQuestions + example 데이터 패널 (InlineInput 하단)
-  - 섹션 완료 전환: "장면 바로 그려가기" / "다른 섹션 질문 시작하기" + 각 설명 가이드
+  - 도움 UX: "답변 도와줘" 버튼 → 섹션별 helpQuestions + example 데이터 패널
   - 질문 순서: 지금(current) → 원해(want) → 더 들여다보기(feeling) → 방향 키워드(keyword)
   - lumi 질문 주어: "너는/[이름]이는" (userName 온보딩에서 주입)
   - CJK 문자(한자·히라가나·가타카나) 응답 필터 (`stripCJK`)
@@ -24,6 +25,20 @@
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-01 (v2.8 섹션 카피 개선 구현 + 배포)
+- `types.ts` `shortTitle?` / `whyText` 필드 추가, `questions.ts` 6개 introText "이번엔" 제거 + Section 1 `shortTitle: '나 자신'` + 6개 `whyText` 공감 버블 신규
+- `dashboard`: 섹션 카드 제목 shortTitle 우선 표시, `section/[id]`: introText 다음 whyText 버블 노출, `SectionComplete`: "{title} 이야기, 다 썼어." 패턴 통일
+- Vercel 프로덕션 배포 완료 (commit 99e3284)
+
+### 2026-06-01 (섹션 카피 개선 — 플랜 완성, 구현 대기)
+- /copywriting + /marketing-psychology 스킬 적용 — 대시보드 "나" 단독 표시, 섹션 introText "이번엔" 패턴, SectionComplete 문구 문제 분석
+- 최종 플랜 확정: `shortTitle` 필드 추가(Section 1 → "나 자신"), 6개 `introText` 전면 교체(패턴 다양화), 6개 `whyText` 신규(공감 메시지), SectionComplete " 이야기" suffix
+- 변경 대상: `lib/types.ts`, `lib/questions.ts`, `app/dashboard/page.tsx`, `app/section/[id]/page.tsx`, `SectionComplete.tsx` — 구현 미진행
+
+### 2026-05-31 (v2.7 섹션 입력 + 장면 페이지 개편)
+- v2.7 섹션 입력 UX 전면 개편: AI 채팅 제거 → 고정 질문 4개 + 내러티브 리뷰 방식으로 전환
+- 장면 페이지 개편: AI 채팅 제거 → 이전 답변 컨텍스트 활용 + 고정 질문 방식으로 전환
 
 ### 2026-05-31 (v2.6 랜딩 페이지 + UX 전환 개선)
 - 랜딩 페이지 신규 (`app/page.tsx`): hero("목표가 없어도 괜찮아.") + problem + how it works + what you get, 기존 사용자 자동 대시보드 리다이렉트
