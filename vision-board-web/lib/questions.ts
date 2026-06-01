@@ -9,6 +9,38 @@ export const SECTIONS: Section[] = [
     lightColor: '#EDE9FE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"여유로운 아침"', '"혼자만의 시간"', '"나만의 루틴"'],
+    introText: '이번엔 나 이야기야. 지금의 나와 원하는 나를 같이 들여다보자.',
+    phaseOneQuestions: [
+      {
+        key: 'current',
+        label: '지금',
+        cushionText: '나는 네가 지금 어떻게 살고 있는지 궁금해.',
+        questionText: '지금 너는 어떤 사람으로 살고 있어? 한 문장으로.',
+        placeholder: '솔직한 게 제일 좋아.',
+      },
+      {
+        key: 'want',
+        label: '원해',
+        cushionText: '이번엔 진짜 원하는 게 뭔지 물어볼게.',
+        questionText: '나를 위해 언젠가 해보고 싶은 것, 되고 싶은 게 있어?',
+        placeholder: '크든 작든 다 괜찮아.',
+      },
+      {
+        key: 'feeling',
+        label: '더 들여다보기',
+        cushionText: '그게 이뤄졌을 때를 한번 상상해봐.',
+        questionText: '그게 이뤄진 나는 어떤 기분으로 살고 있을 것 같아?',
+        placeholder: '느낌이든, 상태든, 한 단어든 좋아.',
+      },
+      {
+        key: 'keyword',
+        label: '방향 키워드',
+        cushionText: '마지막 질문이야.',
+        questionText: '3년 뒤의 나를 한 단어로 표현해봐.',
+        placeholder: '단어도, 짧은 표현도 좋아.',
+      },
+    ],
+    reviewTemplate: '{name}{eun} 지금 {current}. 언젠가 {want}를 해보고 싶고, 그게 이뤄지면 {feeling}. 3년 뒤엔 \'{keyword}\'.',
     slots: [
       {
         id: 1,
@@ -88,6 +120,38 @@ export const SECTIONS: Section[] = [
     lightColor: '#D1FAE5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"서핑 라이프"', '"새벽 러닝"', '"활기찬 아침"'],
+    introText: '이번엔 건강 이야기야. 몸, 마음, 에너지를 들여다보자.',
+    phaseOneQuestions: [
+      {
+        key: 'current',
+        label: '지금',
+        cushionText: '지금 몸 상태가 어떤지 들어보고 싶어.',
+        questionText: '지금 내 몸 상태는 어때? 한 문장으로.',
+        placeholder: '솔직하게 써봐.',
+      },
+      {
+        key: 'want',
+        label: '원해',
+        cushionText: '몸에 관해 해보고 싶은 게 있어?',
+        questionText: '해보고 싶은 운동, 도전하고 싶은 것, 몸에 관해 이루고 싶은 것.',
+        placeholder: '거창하지 않아도 돼.',
+      },
+      {
+        key: 'feeling',
+        label: '더 들여다보기',
+        cushionText: '몸이 가볍고 에너지 넘치는 날을 상상해봐.',
+        questionText: '그때 하고 싶어지는 게 뭐야?',
+        placeholder: '뭐든 좋아.',
+      },
+      {
+        key: 'keyword',
+        label: '방향 키워드',
+        cushionText: '마지막 질문이야.',
+        questionText: '3년 뒤 내 몸과의 관계를 한 단어로 표현해봐.',
+        placeholder: '어떤 관계로 살고 싶어?',
+      },
+    ],
+    reviewTemplate: '지금 몸은 {current}. 언젠가 {want}를 해보고 싶고, 몸이 가벼워지면 {feeling}. 3년 뒤 몸과의 관계는 \'{keyword}\'.',
     slots: [
       {
         id: 1,
@@ -167,6 +231,38 @@ export const SECTIONS: Section[] = [
     lightColor: '#FEF3C7',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"따뜻한 식탁"', '"커플 여행"', '"가족 나들이"'],
+    introText: '이번엔 관계 이야기야. 소중한 사람들과의 시간을 들여다보자.',
+    phaseOneQuestions: [
+      {
+        key: 'current',
+        label: '지금',
+        cushionText: '소중한 사람들 이야기를 들어볼게.',
+        questionText: '10년 뒤, 소중한 사람이 나를 떠올릴 때 어떤 사람으로 기억됐으면 좋겠어?',
+        placeholder: '거창하지 않아도 돼.',
+      },
+      {
+        key: 'want',
+        label: '원해',
+        cushionText: '관계에서 꼭 이루고 싶은 게 있어?',
+        questionText: '관계나 가족에 관해 꼭 이루고 싶은 것, 함께하고 싶은 것.',
+        placeholder: '소소한 것도 좋아.',
+      },
+      {
+        key: 'feeling',
+        label: '더 들여다보기',
+        cushionText: '가장 소중한 사람 이야기를 해봐.',
+        questionText: '지금 가장 소중한데 더 가까워지고 싶은 사람이 있어? 그 사람과 어떤 시간을 보내고 싶어?',
+        placeholder: '한 명이어도, 여러 명이어도 좋아.',
+      },
+      {
+        key: 'keyword',
+        label: '방향 키워드',
+        cushionText: '원하는 관계를 한 단어로 담는다면.',
+        questionText: '내가 원하는 관계의 느낌, 한 단어로 뽑아봐.',
+        placeholder: '따뜻한, 든든한, 편안한...',
+      },
+    ],
+    reviewTemplate: '{name}{eun} 소중한 사람에게 {current}으로 기억되고 싶어. 그러면서 {want}를 이루고 싶고, {feeling}. 원하는 관계의 느낌은 \'{keyword}\'.',
     slots: [
       {
         id: 1,
@@ -246,6 +342,38 @@ export const SECTIONS: Section[] = [
     lightColor: '#DBEAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"재택근무 라이프"', '"카페 작업"', '"내 브랜드"'],
+    introText: '이번엔 일 이야기야. 커리어, 배움, 의미를 들여다보자.',
+    phaseOneQuestions: [
+      {
+        key: 'current',
+        label: '지금',
+        cushionText: '지금 일에 대한 이야기를 들어볼게.',
+        questionText: '지금 일에서 제일 아쉬운 게 뭐야? 딱 하나만.',
+        placeholder: '불만이어도 괜찮아. 솔직하게.',
+      },
+      {
+        key: 'want',
+        label: '원해',
+        cushionText: '일이나 성장에 관한 버킷리스트가 있어?',
+        questionText: '해보고 싶은 일, 이루고 싶은 것.',
+        placeholder: '현실 가능 여부는 생각하지 말고.',
+      },
+      {
+        key: 'feeling',
+        label: '더 들여다보기',
+        cushionText: '월요일 아침을 상상해봐.',
+        questionText: '살짝이라도 기대되는 날이 있다면 — 어떤 일을 하고 있어?',
+        placeholder: '지금 일이 싫다면, 어떤 일이라면 덜 싫을 것 같아?',
+      },
+      {
+        key: 'keyword',
+        label: '방향 키워드',
+        cushionText: '일하는 나를 담는다면.',
+        questionText: '어떤 사람으로 일하고 싶어? 한 단어나 한 문장으로.',
+        placeholder: '단어도, 짧은 문장도 좋아.',
+      },
+    ],
+    reviewTemplate: '지금 일에서 아쉬운 건 {current}. 언젠가 {want}를 해보고 싶고, {feeling}. 일하는 나를 표현하면 \'{keyword}\'.',
     slots: [
       {
         id: 1,
@@ -325,6 +453,38 @@ export const SECTIONS: Section[] = [
     lightColor: '#FFEDD5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"여유로운 일상"', '"내 집 마련"', '"여행의 설렘"'],
+    introText: '이번엔 돈 이야기야. 여유, 자유, 선택을 들여다보자.',
+    phaseOneQuestions: [
+      {
+        key: 'current',
+        label: '지금',
+        cushionText: '지금 돈 때문에 못 하고 있는 게 있어?',
+        questionText: '지금 돈 때문에 참고 있거나 못 하고 있는 게 있어? 솔직하게.',
+        placeholder: '부끄럽지 않아. 솔직한 게 제일 좋아.',
+      },
+      {
+        key: 'want',
+        label: '원해',
+        cushionText: '돈 버킷리스트가 있어?',
+        questionText: '사고 싶은 것, 가고 싶은 곳, 해주고 싶은 것.',
+        placeholder: '크든 작든, 거창하든 소소하든 다 써봐.',
+      },
+      {
+        key: 'feeling',
+        label: '더 들여다보기',
+        cushionText: '돈 걱정이 딱 사라진다면.',
+        questionText: '이번 주를 어떻게 보내고 싶어?',
+        placeholder: '꼭 비싼 게 아니어도 괜찮아.',
+      },
+      {
+        key: 'keyword',
+        label: '방향 키워드',
+        cushionText: '돈이 충분할 때 느끼고 싶은 감정이 뭐야?',
+        questionText: '한 단어로 표현해봐.',
+        placeholder: '자유, 안정, 여유...',
+      },
+    ],
+    reviewTemplate: '지금 돈 때문에 {current}를 못 하고 있어. 언젠가 {want}를 하고 싶고, 여유가 생기면 {feeling}. 돈이 충분할 때 느끼고 싶은 건 \'{keyword}\'.',
     slots: [
       {
         id: 1,
@@ -404,6 +564,38 @@ export const SECTIONS: Section[] = [
     lightColor: '#CFFAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"감성 인테리어"', '"나만의 서재"', '"포근한 집"'],
+    introText: '이번엔 공간 이야기야. 집, 동네, 일상의 배경을 들여다보자.',
+    phaseOneQuestions: [
+      {
+        key: 'current',
+        label: '지금',
+        cushionText: '지금 집 이야기를 들어볼게.',
+        questionText: '집에 돌아왔을 때 제일 먼저 하고 싶은 게 뭐야? 지금 그게 가능해?',
+        placeholder: '현재 집의 현실을 솔직하게 써봐.',
+      },
+      {
+        key: 'want',
+        label: '원해',
+        cushionText: '살고 싶은 공간, 갖고 싶은 환경이 있어?',
+        questionText: '살고 싶은 곳, 갖고 싶은 공간, 해보고 싶은 것.',
+        placeholder: '크든 작든 다 괜찮아.',
+      },
+      {
+        key: 'feeling',
+        label: '더 들여다보기',
+        cushionText: '이상적인 집에서 하루를 보낸다면.',
+        questionText: '아침부터 저녁까지 어떻게 흘러가?',
+        placeholder: '시간 순서대로 써봐.',
+      },
+      {
+        key: 'keyword',
+        label: '방향 키워드',
+        cushionText: '원하는 공간을 한 단어로 담는다면.',
+        questionText: '내가 원하는 공간을 딱 한 단어로 표현하면?',
+        placeholder: '따뜻한, 조용한, 나다운...',
+      },
+    ],
+    reviewTemplate: '지금은 {current}. 언젠가 {want}를 이루고 싶고, 이상적인 공간에서는 {feeling}. 원하는 공간을 한 단어로 하면 \'{keyword}\'.',
     slots: [
       {
         id: 1,

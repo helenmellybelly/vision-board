@@ -34,6 +34,14 @@ export interface Slot {
   phase: 1 | 3 | 4;
 }
 
+export interface SectionQuestion {
+  key: keyof ExtractedSlots;
+  label: string;
+  cushionText: string;
+  questionText: string;
+  placeholder: string;
+}
+
 export interface Section {
   id: SectionId;
   title: string;
@@ -43,6 +51,9 @@ export interface Section {
   slots: Slot[];
   imageHints: string[];
   imageHintIntro: string;
+  introText: string;
+  phaseOneQuestions: SectionQuestion[];
+  reviewTemplate: string;
 }
 
 export interface SlotAnswer {

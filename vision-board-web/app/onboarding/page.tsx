@@ -42,7 +42,7 @@ export default function OnboardingPage() {
 
   function handleFinish() {
     markOnboardingDone();
-    router.replace('/section/1');
+    router.replace('/dashboard');
   }
 
   const totalSteps = 7;

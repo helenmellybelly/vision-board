@@ -6,6 +6,7 @@ import { loadBoard } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionStatus } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
+import ProcessGuide from '@/components/ProcessGuide';
 
 const STATUS_LABEL: Record<SectionStatus, string> = {
   not_started: '시작 전',
@@ -44,9 +45,12 @@ export default function DashboardPage() {
       <div className="px-6 pt-4">
         {/* 헤더 */}
         <div className="mb-6 animate-fadeIn">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">✦</span>
-            <span className="text-sm text-[#6B7280]">lumi와 함께</span>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✦</span>
+              <span className="text-sm text-[#6B7280]">lumi와 함께</span>
+            </div>
+            <ProcessGuide />
           </div>
           <h1 className="text-2xl font-bold">
             {userName ? `${userName}의 비전보드` : '내 비전보드'}
@@ -56,9 +60,8 @@ export default function DashboardPage() {
         {/* 섹션 소개 — 처음 시작하는 경우 */}
         {textCompleteCount === 0 && (
           <div className="mb-5 bg-white rounded-2xl p-4 border border-[#E5E3DF] animate-slideUp">
-            <p className="text-sm font-semibold mb-2">✦ lumi의 추천</p>
             <p className="text-sm text-[#6B7280] leading-relaxed">
-              '나' 섹션부터 시작해봐. 나 자신을 먼저 들여다보면 나머지 영역들도 더 선명하게 보여.
+              어떤 주제부터 시작해도 괜찮아. 순서는 상관없어.
             </p>
           </div>
         )}

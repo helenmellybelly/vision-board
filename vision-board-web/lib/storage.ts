@@ -139,6 +139,9 @@ export function saveSectionChat(sectionId: SectionId, messages: ChatMessage[]): 
 export function saveExtractedSlots(sectionId: SectionId, slots: ExtractedSlots): void {
   const board = loadBoard();
   board.sections[sectionId].extractedSlots = slots;
+  if (board.sections[sectionId].status === 'not_started') {
+    board.sections[sectionId].status = 'in_progress';
+  }
   // 하위 호환: 기존 SlotAnswer 형식으로도 저장
   if (slots.current) board.sections[sectionId].slots[1] = { text: slots.current, isDeferred: false };
   if (slots.keyword) board.sections[sectionId].slots[2] = { text: slots.keyword, isDeferred: false };
