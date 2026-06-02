@@ -2,25 +2,30 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v3.0 `/moment/[id]` 신규 — 상황 묘사 → AI 미니 스토리 → DALL-E 3 이미지 생성 (빌드 완료, 배포 대기)
+- **상태:** v3.1 배포 완료 — 스토리 품질 개선·흐름 재설계·이미지 생성 강화 (프로덕션 라이브)
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
-  - **`/moment/[id]` (v3.0 신규):** 장면 완료 후 3단계 — 상황 묘사(자유작성+예시칩) → Groq 미니 스토리 → DALL-E 3 이미지 3장 생성/업로드
-  - **섹션 흐름 변경:** `/section/[id]` → `/scene/[id]` → `/moment/[id]` → `/dashboard`
-  - **신규 API:** `/api/story/section` (섹션별 미니스토리), `/api/image/generate` (Groq 프롬프트 변환 → DALL-E 3 병렬 생성)
-  - **데이터 확장:** `situationText`, `miniStory`, `generatedImages` 필드 추가, 섹션별 `situationChips` 4개
-  - **랜딩 페이지 (v2.9 재설계):** Hero("비전보드, 원하는 게 생각나야 만들 수 있다고 생각했나요?") + Contrast + How it works + CTA
-  - **프로세스 오버뷰 (`/welcome`):** 온보딩 완료 후 경유 — 4단계 타임라인, 기존 사용자 skip
+  - **`/moment/[id]` (v3.0+):** 장면 완료 후 3단계 — 상황 묘사(자유작성+예시칩) → Groq 미니 스토리(아침→저녁 구조, **볼드** 렌더링) → DALL-E 3 이미지
+  - **섹션 흐름:** `/section/[id]` → `/scene/[id]` → `/moment/[id]` → `/dashboard`
+  - **AI 스토리 (v3.1 개선):** 확장 허용 프롬프트, 350-450자, 아침→저녁 구조, 마크다운 볼드, temperature 0.85
+  - **이미지 생성 (v3.1 강화):** Promise.allSettled(부분 성공 허용), Groq JSON 파싱 fallback
+  - **랜딩 (v2.9):** Hero + Contrast + How it works + CTA
+  - **`/welcome`:** 4단계 타임라인, 기존 사용자 skip
   - AI 백엔드: Groq (`llama-3.1-8b-instant`) + OpenAI DALL-E 3 (이미지)
-  - `finish`: 패턴→한 문장→스토리(situationText 반영)→완성 4페이즈
   - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
 - **알려진 이슈:**
-  - Vercel `OPENAI_API_KEY` 미설정 — 수동으로 추가 후 배포 필요 (`vercel env add OPENAI_API_KEY production`)
-  - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 기능 비활성)
+  - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 검색 기능 비활성)
+  - `ANTHROPIC_API_KEY` 미설정 (요약 API 비활성)
   - llama-3.1-8b-instant: 70b 대비 생성 품질 저하 가능
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-02 (v3.1 스토리 품질·흐름·이미지 강화)
+- `api/story/section`: 프롬프트 전면 개선 — "복사 금지" 지침 삭제→확장 허용, 350-450자, 아침→저녁 구조, **볼드** 지침, temperature 0.85
+- `moment/[id]`: `renderStory()` 마크다운 볼드 렌더링, `usedAdditional` 추가입력 1회 제한, placeholder 가이드 텍스트 개선
+- `scene/[id]`: 버튼 카피 "구체적인 순간 담고 하루 그리기 →" + 서브텍스트 (흐름 명확화); `image/generate`: `Promise.allSettled` 부분 성공, JSON 파싱 fallback
+- v2.4c 구식 플랜 파일 삭제, `OPENAI_API_KEY` Vercel 등록 + v3.0 첫 프로덕션 배포
 
 ### 2026-06-02 (v3.0 /moment/[id] — 상황 묘사·미니 스토리·DALL-E 이미지)
 - `/moment/[id]` 신규 페이지: 3단계(상황 묘사 → Groq 미니스토리 → DALL-E 3 이미지 3장), 재생성·라이트박스 포함
