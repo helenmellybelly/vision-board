@@ -2,27 +2,30 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v2.9 UX 전면 개편 + 카피 개선 — Vercel 배포 완료
+- **상태:** v3.0 `/moment/[id]` 신규 — 상황 묘사 → AI 미니 스토리 → DALL-E 3 이미지 생성 (빌드 완료, 배포 대기)
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
-  - **랜딩 페이지 (v2.9 재설계):** Hero("비전보드, 원하는 게 생각나야 만들 수 있다고 생각했나요?") + Contrast(기존 vs lumi) + How it works(재작성) + CTA
-  - **프로세스 오버뷰 (`/welcome`):** 온보딩 완료 후 경유 — 4단계 타임라인(발견→장면→이미지→완성), 기존 사용자 skip
-  - 온보딩 완료 → `/welcome` → `/dashboard` 흐름 (신규 사용자 최초 1회)
-  - **섹션 입력 UX (v2.9):** introText 맥락 연결, 질문 어조 부드럽게, 예시 긍정/혼합, 도움말 "③" 참조 제거
-  - **장면 페이지 (v2.9):** cushionText 설명+이유, keyword 반복 제거, 멀티힌트, 2선택지(서브텍스트 통합)
-  - **대시보드 카드:** shortTitle + 키워드 서브라인 ("나 자신 / 감정·성장·정체성")
-  - AI 백엔드: Groq (`llama-3.1-8b-instant`, 500K TPD) — 모든 API 라우트 사용
-  - `section/[id]`: InlineInput — example·hint prop, 도움말 패널 외부 렌더
-  - 질문 순서: 지금(current) → 원해(want) → 더 들여다보기(feeling) → 방향 키워드(keyword)
-  - CJK 문자(한자·히라가나·가타카나) 응답 필터 (`stripCJK`)
-  - `finish`: 패턴→한 문장→스토리→완성 4페이즈
+  - **`/moment/[id]` (v3.0 신규):** 장면 완료 후 3단계 — 상황 묘사(자유작성+예시칩) → Groq 미니 스토리 → DALL-E 3 이미지 3장 생성/업로드
+  - **섹션 흐름 변경:** `/section/[id]` → `/scene/[id]` → `/moment/[id]` → `/dashboard`
+  - **신규 API:** `/api/story/section` (섹션별 미니스토리), `/api/image/generate` (Groq 프롬프트 변환 → DALL-E 3 병렬 생성)
+  - **데이터 확장:** `situationText`, `miniStory`, `generatedImages` 필드 추가, 섹션별 `situationChips` 4개
+  - **랜딩 페이지 (v2.9 재설계):** Hero("비전보드, 원하는 게 생각나야 만들 수 있다고 생각했나요?") + Contrast + How it works + CTA
+  - **프로세스 오버뷰 (`/welcome`):** 온보딩 완료 후 경유 — 4단계 타임라인, 기존 사용자 skip
+  - AI 백엔드: Groq (`llama-3.1-8b-instant`) + OpenAI DALL-E 3 (이미지)
+  - `finish`: 패턴→한 문장→스토리(situationText 반영)→완성 4페이즈
   - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
 - **알려진 이슈:**
+  - Vercel `OPENAI_API_KEY` 미설정 — 수동으로 추가 후 배포 필요 (`vercel env add OPENAI_API_KEY production`)
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 기능 비활성)
-  - llama-3.1-8b-instant: 70b 대비 생성 품질 저하 가능 (모델 한도 초과 시 임시 조치)
+  - llama-3.1-8b-instant: 70b 대비 생성 품질 저하 가능
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-02 (v3.0 /moment/[id] — 상황 묘사·미니 스토리·DALL-E 이미지)
+- `/moment/[id]` 신규 페이지: 3단계(상황 묘사 → Groq 미니스토리 → DALL-E 3 이미지 3장), 재생성·라이트박스 포함
+- `/api/story/section`, `/api/image/generate` 신규 API; `openai` npm 패키지 설치
+- `lib/types.ts·storage.ts·questions.ts` 확장 (situationText/miniStory/generatedImages 필드, 6섹션 situationChips); scene 라우팅 `/moment/[id]`로 변경
 
 ### 2026-06-02 (카피 개선 7개 이슈 + 배포)
 - `questions.ts`: introText 6개 맥락 연결, current questionText 3개 어조 개선, example 4개 긍정/혼합 교체, helpQuestion "③" 참조 제거

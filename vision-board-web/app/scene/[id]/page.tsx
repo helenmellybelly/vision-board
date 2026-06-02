@@ -58,17 +58,13 @@ export default function ScenePage() {
   }
 
   function handleFindImages() {
-    markSectionComplete(sectionId);
-    router.push('/board');
+    saveSectionScene(sectionId, sceneText);
+    router.push(`/moment/${sectionId}`);
   }
 
   function handleImageLater() {
-    markSectionComplete(sectionId);
-    const freshBoard = loadBoard();
-    const allCompleted = ([1, 2, 3, 4, 5, 6] as SectionId[]).every(
-      (id) => freshBoard.sections[id].status === 'completed'
-    );
-    router.push(allCompleted ? '/board' : '/dashboard');
+    saveSectionScene(sectionId, sceneText);
+    router.push('/dashboard');
   }
 
   if (!section || !board) return null;
@@ -186,14 +182,14 @@ export default function ScenePage() {
                 onClick={handleFindImages}
                 className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm leading-relaxed active:opacity-70"
               >
-                이 장면에 어울리는 이미지 지금 찾으러 가기 →
+                이 장면으로 이미지 만들러 가기 →
               </button>
               <button
                 onClick={handleImageLater}
                 className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm active:opacity-70 flex flex-col items-start gap-0.5"
               >
                 <span className="leading-relaxed">다른 영역 먼저 해보기</span>
-                <span className="text-xs text-[#9CA3AF] font-normal">이미지는 나중에 한꺼번에 찾아도 돼</span>
+                <span className="text-xs text-[#9CA3AF] font-normal">이미지는 나중에 만들어도 돼</span>
               </button>
             </div>
           </>

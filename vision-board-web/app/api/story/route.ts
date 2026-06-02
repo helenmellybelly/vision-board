@@ -7,6 +7,7 @@ interface StorySection {
   want?: string;
   feeling?: string;
   sceneText?: string;
+  situationText?: string;
 }
 
 interface StoryRequest {
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       if (s.keyword) parts.push(`방향: ${s.keyword}`);
       if (s.want) parts.push(`원하는 것: ${s.want}`);
       if (s.sceneText) parts.push(`장면: ${s.sceneText}`);
+      if (s.situationText) parts.push(`원하는 순간들: ${s.situationText}`);
       return `[${s.title}] ${parts.join(' / ')}`;
     })
     .join('\n');

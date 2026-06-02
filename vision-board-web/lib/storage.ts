@@ -173,3 +173,21 @@ export function saveFutureDayStory(story: string): void {
   board.futureDayStory = story;
   saveBoard(board);
 }
+
+export function saveSituationText(sectionId: SectionId, text: string): void {
+  const board = loadBoard();
+  board.sections[sectionId].situationText = text;
+  saveBoard(board);
+}
+
+export function saveMiniStory(sectionId: SectionId, story: string): void {
+  const board = loadBoard();
+  board.sections[sectionId].miniStory = story;
+  saveBoard(board);
+}
+
+export function saveGeneratedImages(sectionId: SectionId, urls: string[]): void {
+  const board = loadBoard();
+  board.sections[sectionId].generatedImages = urls;
+  saveBoard(board);
+}

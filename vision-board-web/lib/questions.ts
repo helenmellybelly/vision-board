@@ -10,6 +10,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#EDE9FE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"여유로운 아침"', '"혼자만의 시간"', '"나만의 루틴"'],
+    situationChips: ['통창 있는 내 서재', '영어로 화상 미팅하는 나', '고객 후기가 쌓인 내 SNS', '내 이름이 담긴 웹사이트'],
     introText: '너 자신에 대해 이야기해보자. 지금의 나, 원하는 나를 같이 들여다볼게.',
     whyText: '비전보드에서 가장 먼저 들여다봐야 할 건 나 자신이야. 어떤 사람으로 살고 싶은지 알아야 나머지 이야기도 선명해지거든.',
     phaseOneQuestions: [
@@ -122,6 +123,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#D1FAE5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"서핑 라이프"', '"새벽 러닝"', '"활기찬 아침"'],
+    situationChips: ['새벽 러닝 후 개운한 나', '주 3회 운동이 루틴인 일상', '활기찬 에너지로 하루를 시작', '몸이 가벼운 주말 아침'],
     introText: '이번엔 몸 이야기야. 몸, 마음, 에너지를 들여다보자.',
     whyText: '원하는 삶을 살려면 몸이 따라줘야 해. 지금 몸 상태를 솔직하게 들여다보는 것, 그게 시작이야.',
     phaseOneQuestions: [
@@ -234,6 +236,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#FEF3C7',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"따뜻한 식탁"', '"커플 여행"', '"가족 나들이"'],
+    situationChips: ['가족이 함께하는 저녁 식탁', '남편과 여행지에서 걷는 중', '친구와 카페에서 깊은 수다', '편하게 통화하는 일상'],
     introText: '이번엔 관계 이야기야. 소중한 사람들과의 시간을 들여다보자.',
     whyText: '삶에서 가장 많은 에너지를 주고받는 게 관계야. 어떤 사람들과 어떻게 지내고 싶은지, 같이 생각해보자.',
     phaseOneQuestions: [
@@ -346,6 +349,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#DBEAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"재택근무 라이프"', '"카페 작업"', '"내 브랜드"'],
+    situationChips: ['내 브랜드 웹사이트', '고객 의뢰 이메일이 오는 아침', '재택으로 집중 작업하는 오후', '강의 또는 프로젝트 후기'],
     introText: '이번엔 일 이야기야. 커리어, 배움, 의미를 들여다보자.',
     whyText: '하루의 많은 시간을 일에 써. 그 시간이 어떻게 느껴지는지가 삶 전체에 영향을 주거든.',
     phaseOneQuestions: [
@@ -458,6 +462,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#FFEDD5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"여유로운 일상"', '"내 집 마련"', '"여행의 설렘"'],
+    situationChips: ['망설임 없이 항공권을 결제하는 나', '부모님과 좋은 식당에서 밥 먹는 중', '원하는 물건을 고민 없이 담는 순간', '여유롭게 다음 여행을 계획 중'],
     introText: '이번엔 돈 이야기야. 여유, 자유, 선택을 들여다보자.',
     whyText: '돈은 액수가 아니라 어떤 선택을 하게 해주는지야. 어떤 자유를 원하는지 같이 들여다보자.',
     phaseOneQuestions: [
@@ -570,6 +575,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#CFFAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"감성 인테리어"', '"나만의 서재"', '"포근한 집"'],
+    situationChips: ['창가에서 커피 마시며 시작하는 아침', '서재에서 나만의 시간', '마당이나 테라스에서 보내는 저녁', '정돈된 공간에서의 주말'],
     introText: '이번엔 공간 이야기야. 집, 동네, 일상의 배경을 들여다보자.',
     whyText: '매일 돌아오는 공간이 어떤 느낌이냐가 생각보다 삶에 큰 영향을 줘. 어떤 공간에서 살고 싶어?',
     phaseOneQuestions: [

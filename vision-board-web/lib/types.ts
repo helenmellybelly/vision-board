@@ -56,6 +56,7 @@ export interface Section {
   whyText: string;
   phaseOneQuestions: SectionQuestion[];
   reviewTemplate: string;
+  situationChips?: string[];
 }
 
 export interface SlotAnswer {
@@ -77,6 +78,9 @@ export interface SectionData {
   sceneText?: string;
   sceneTexts?: string[];
   completedAt?: number;
+  situationText?: string;
+  miniStory?: string;
+  generatedImages?: string[];
 }
 
 export interface BoardData {
