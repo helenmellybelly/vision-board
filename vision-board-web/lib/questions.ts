@@ -10,14 +10,14 @@ export const SECTIONS: Section[] = [
     lightColor: '#EDE9FE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"여유로운 아침"', '"혼자만의 시간"', '"나만의 루틴"'],
-    introText: '나 이야기야. 지금의 나와 원하는 나를 같이 들여다보자.',
+    introText: '너 자신에 대해 이야기해보자. 지금의 나, 원하는 나를 같이 들여다볼게.',
     whyText: '비전보드에서 가장 먼저 들여다봐야 할 건 나 자신이야. 어떤 사람으로 살고 싶은지 알아야 나머지 이야기도 선명해지거든.',
     phaseOneQuestions: [
       {
         key: 'current',
         label: '지금',
         cushionText: '나는 네가 지금 어떻게 살고 있는지 궁금해.',
-        questionText: '지금 너는 어떤 사람으로 살고 있어? 한 문장으로.',
+        questionText: '지금 너는 어떤 사람으로 살고 있어? 한 문장으로 말해줄래?',
         placeholder: '솔직한 게 제일 좋아.',
       },
       {
@@ -49,7 +49,7 @@ export const SECTIONS: Section[] = [
         phase: 1,
         mainQuestion: '지금 나는 어떤 삶을 살고 있어? 한 문장으로.',
         placeholder: '좋은 답 나쁜 답 없어. 솔직한 게 제일 좋아.',
-        example: '그냥 하루하루 버티는 사람 / 열심히 사는데 뭔가 빠진 느낌 / 남들 눈에는 잘 사는데 속으론 모르겠는 사람',
+        example: '몸과 마음을 챙기며 나를 표현하는 연습을 하는 사람 / 열심히 사는데 방향이 아직 안 보이는 사람 / 하루하루 버티면서도 뭔가 쌓아가고 있는 사람',
         helpQuestions: [
           { id: 1, text: '요즘 아침에 일어날 때 가장 먼저 드는 감정이 뭐야?' },
           { id: 2, text: '지금 내 삶에서 가장 많은 에너지를 쓰는 게 뭐야?' },
@@ -87,7 +87,7 @@ export const SECTIONS: Section[] = [
         placeholder: '기분이든, 상태든, 한 단어든 문장이든 좋아.',
         example: '충만한 / 편안한 / 나답다는 느낌 / 불안 없이 내 하루를 사는 것 / 하루가 내 것인 느낌',
         helpQuestions: [
-          { id: 1, text: '③에서 쓴 것들이 다 이뤄졌어. 그날 아침, 뭐가 달라져 있을 것 같아?' },
+          { id: 1, text: '아까 원하는 것으로 써준 것들이 다 이뤄졌어. 그날 아침, 뭐가 달라져 있을 것 같아?' },
           { id: 2, text: '지금 가장 \'나답지 않다\'는 느낌이 드는 게 뭐야?' },
           { id: 3, text: '진짜 원하는 게 이뤄졌을 때, 누구한테 제일 먼저 말하고 싶어?' },
         ],
@@ -122,14 +122,14 @@ export const SECTIONS: Section[] = [
     lightColor: '#D1FAE5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"서핑 라이프"', '"새벽 러닝"', '"활기찬 아침"'],
-    introText: '건강 이야기야. 몸, 마음, 에너지를 들여다보자.',
+    introText: '이번엔 몸 이야기야. 몸, 마음, 에너지를 들여다보자.',
     whyText: '원하는 삶을 살려면 몸이 따라줘야 해. 지금 몸 상태를 솔직하게 들여다보는 것, 그게 시작이야.',
     phaseOneQuestions: [
       {
         key: 'current',
         label: '지금',
         cushionText: '지금 몸 상태가 어떤지 들어보고 싶어.',
-        questionText: '지금 내 몸 상태는 어때? 한 문장으로.',
+        questionText: '지금 내 몸 상태는 어때? 한 문장으로 말해줄래?',
         placeholder: '솔직하게 써봐.',
       },
       {
@@ -161,7 +161,7 @@ export const SECTIONS: Section[] = [
         phase: 1,
         mainQuestion: '지금 내 몸 상태, 10점 만점에 몇 점? 그 점수인 이유는 뭐야?',
         placeholder: '숫자 + 한 줄이면 충분해.',
-        example: '5점 — 항상 피곤해서 / 3점 — 운동을 아예 안 해서 / 7점 — 유지는 되는데 뭔가 찜찜해',
+        example: '8점 — 꾸준히 운동 중인데 잠이 부족해 / 5점 — 유지는 되는데 뭔가 찜찜해 / 4점 — 항상 피곤하고 운동을 못 하고 있어',
         helpQuestions: [
           { id: 1, text: '요즘 하루 중 몸이 제일 힘든 시간이 언제야?' },
           { id: 2, text: '수면은 어때? 자고 나도 피곤해?' },
@@ -234,7 +234,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#FEF3C7',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"따뜻한 식탁"', '"커플 여행"', '"가족 나들이"'],
-    introText: '관계 이야기야. 소중한 사람들과의 시간을 들여다보자.',
+    introText: '이번엔 관계 이야기야. 소중한 사람들과의 시간을 들여다보자.',
     whyText: '삶에서 가장 많은 에너지를 주고받는 게 관계야. 어떤 사람들과 어떻게 지내고 싶은지, 같이 생각해보자.',
     phaseOneQuestions: [
       {
@@ -346,14 +346,14 @@ export const SECTIONS: Section[] = [
     lightColor: '#DBEAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"재택근무 라이프"', '"카페 작업"', '"내 브랜드"'],
-    introText: '일 이야기야. 커리어, 배움, 의미를 들여다보자.',
+    introText: '이번엔 일 이야기야. 커리어, 배움, 의미를 들여다보자.',
     whyText: '하루의 많은 시간을 일에 써. 그 시간이 어떻게 느껴지는지가 삶 전체에 영향을 주거든.',
     phaseOneQuestions: [
       {
         key: 'current',
         label: '지금',
         cushionText: '지금 일에 대한 이야기를 들어볼게.',
-        questionText: '지금 일에서 제일 아쉬운 게 뭐야? 딱 하나만.',
+        questionText: '지금 일에서 제일 아쉬운 게 뭐야? 딱 하나만 말해줄래?',
         placeholder: '불만이어도 괜찮아. 솔직하게.',
       },
       {
@@ -385,7 +385,7 @@ export const SECTIONS: Section[] = [
         phase: 1,
         mainQuestion: '지금 일에서 제일 아쉬운 게 뭐야? 딱 하나만.',
         placeholder: '불만이어도 괜찮아. 솔직하게.',
-        example: '내가 하고 싶은 게 아니야 / 성장하는 느낌이 없어 / 자유가 없어 / 의미를 못 느끼겠어 / 단순 반복만 해',
+        example: '좋아하는 일인데 번아웃이 올 것 같아 / 성장하는 느낌이 없어 / 일 자체는 괜찮은데 환경이 아쉬워 / 의미를 못 느끼겠어',
         helpQuestions: [
           { id: 1, text: '지금 일에서 에너지 빠지는 순간이 언제야?' },
           { id: 2, text: '지금 일을 이대로 5년 더 한다고 상상하면 어때?' },
@@ -458,7 +458,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#FFEDD5',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"여유로운 일상"', '"내 집 마련"', '"여행의 설렘"'],
-    introText: '돈 이야기야. 여유, 자유, 선택을 들여다보자.',
+    introText: '이번엔 돈 이야기야. 여유, 자유, 선택을 들여다보자.',
     whyText: '돈은 액수가 아니라 어떤 선택을 하게 해주는지야. 어떤 자유를 원하는지 같이 들여다보자.',
     phaseOneQuestions: [
       {
@@ -570,7 +570,7 @@ export const SECTIONS: Section[] = [
     lightColor: '#CFFAFE',
     imageHintIntro: '이 느낌이 담긴 사진 3장을 찾아봐.',
     imageHints: ['"감성 인테리어"', '"나만의 서재"', '"포근한 집"'],
-    introText: '공간 이야기야. 집, 동네, 일상의 배경을 들여다보자.',
+    introText: '이번엔 공간 이야기야. 집, 동네, 일상의 배경을 들여다보자.',
     whyText: '매일 돌아오는 공간이 어떤 느낌이냐가 생각보다 삶에 큰 영향을 줘. 어떤 공간에서 살고 싶어?',
     phaseOneQuestions: [
       {
@@ -609,7 +609,7 @@ export const SECTIONS: Section[] = [
         phase: 1,
         mainQuestion: '집에 돌아왔을 때 제일 먼저 하고 싶은 게 뭐야? 지금 그게 가능해?',
         placeholder: '현재 집의 현실을 솔직하게 써봐.',
-        example: '소파에 눕고 싶은데 좁아서 답답해 / 혼자 있고 싶은데 내 공간이 없어 / 정돈된 곳에 옷 걸어두고 가방 정리 (지금도 가능!)',
+        example: '창가에서 커피 마시고 싶은데 딱 맞는 자리가 없어 / 지금도 정돈된 곳에 앉아서 쉬는 게 좋아 / 좋은데 내 공간이 없어서 아쉬워',
         helpQuestions: [
           { id: 1, text: '지금 집에서 가장 좋아하는 공간은 어디야? 왜?' },
           { id: 2, text: '집에서 제일 불편한 게 뭐야?' },

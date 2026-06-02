@@ -62,10 +62,6 @@ export default function ScenePage() {
     router.push('/board');
   }
 
-  function handleNextSection() {
-    router.push('/dashboard');
-  }
-
   function handleImageLater() {
     markSectionComplete(sectionId);
     const freshBoard = loadBoard();
@@ -81,11 +77,11 @@ export default function ScenePage() {
   const examples = sceneSlot?.example ? sceneSlot.example.split(' / ') : [];
   const keyword = slots.keyword || '';
   const cushionText = keyword
-    ? `'${keyword}'${getEunga(keyword)} 이루어진 하루야.`
-    : '지금까지 말해준 것들이 이루어진 하루야.';
+    ? `이제 장면을 그려볼 거야. '${keyword}' 상태가 이루어진 3년 뒤의 하루야. 이 장면이 비전보드의 핵심이 될 거야.`
+    : '이제 장면을 그려볼 거야. 지금까지 말해준 것들이 이루어진 3년 뒤의 하루야.';
 
   const sceneQuestion = keyword
-    ? `'${keyword}' 상태로 사는 하루. 어디서 뭘 하고 있어?`
+    ? '그날 어디서 뭘 하고 있어? 느낌과 상황을 구체적으로 써봐.'
     : (sceneSlot?.mainQuestion ?? '그 장면을 구체적으로 써봐.');
 
   const slotEntries = (Object.keys(SLOT_LABELS) as Array<keyof ExtractedSlots>).filter(
@@ -167,6 +163,7 @@ export default function ScenePage() {
           <InlineInput
             onSubmit={handleSubmit}
             placeholder={sceneSlot.placeholder || '구체적일수록 좋아. 장소, 행동, 감각까지.'}
+            hint="여러 장면이어도 좋아. 느낌, 장소, 상황 모두 담아봐."
           />
         )}
 
@@ -192,16 +189,11 @@ export default function ScenePage() {
                 이 장면에 어울리는 이미지 지금 찾으러 가기 →
               </button>
               <button
-                onClick={handleNextSection}
-                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm leading-relaxed active:opacity-70"
-              >
-                다른 영역 먼저 해보기
-              </button>
-              <button
                 onClick={handleImageLater}
-                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm leading-relaxed active:opacity-70 text-[#9CA3AF]"
+                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm active:opacity-70 flex flex-col items-start gap-0.5"
               >
-                이미지는 나중에 한꺼번에 찾을게
+                <span className="leading-relaxed">다른 영역 먼저 해보기</span>
+                <span className="text-xs text-[#9CA3AF] font-normal">이미지는 나중에 한꺼번에 찾아도 돼</span>
               </button>
             </div>
           </>
