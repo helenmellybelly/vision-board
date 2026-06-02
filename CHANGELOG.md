@@ -2,17 +2,17 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v2.9 UX 전면 개편 — 코드 완성, 배포 전
+- **상태:** v2.9 UX 전면 개편 + 카피 개선 — Vercel 배포 완료
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
-  - **랜딩 페이지 (v2.9 재설계):** Hero("비전보드, 원하는 게 생각나야 만들 수 있다고 생각했나요?") + Contrast(기존 vs lumi) + How it works(재작성) + What you get + CTA
-  - **프로세스 오버뷰 (`/welcome`):** 온보딩 완료 후 경유 — 4단계 타임라인(발견→장면→이미지→완성), 6색점, 기존 사용자 skip
+  - **랜딩 페이지 (v2.9 재설계):** Hero("비전보드, 원하는 게 생각나야 만들 수 있다고 생각했나요?") + Contrast(기존 vs lumi) + How it works(재작성) + CTA
+  - **프로세스 오버뷰 (`/welcome`):** 온보딩 완료 후 경유 — 4단계 타임라인(발견→장면→이미지→완성), 기존 사용자 skip
   - 온보딩 완료 → `/welcome` → `/dashboard` 흐름 (신규 사용자 최초 1회)
-  - **섹션 입력 UX (v2.9):** 브릿지 쿠션 메시지, InlineInput 예시 텍스트, want 멀티힌트, 도움말 패널 연결, 리뷰 라벨+값 행 레이아웃
-  - **장면 페이지 (v2.9):** keyword 기반 동적 질문 텍스트, 완성 후 3선택지(이미지 지금/다른 영역/나중에)
+  - **섹션 입력 UX (v2.9):** introText 맥락 연결, 질문 어조 부드럽게, 예시 긍정/혼합, 도움말 "③" 참조 제거
+  - **장면 페이지 (v2.9):** cushionText 설명+이유, keyword 반복 제거, 멀티힌트, 2선택지(서브텍스트 통합)
   - **대시보드 카드:** shortTitle + 키워드 서브라인 ("나 자신 / 감정·성장·정체성")
   - AI 백엔드: Groq (`llama-3.1-8b-instant`, 500K TPD) — 모든 API 라우트 사용
-  - `section/[id]`: InlineInput — example·hint prop 추가, 도움말 패널 외부 렌더
+  - `section/[id]`: InlineInput — example·hint prop, 도움말 패널 외부 렌더
   - 질문 순서: 지금(current) → 원해(want) → 더 들여다보기(feeling) → 방향 키워드(keyword)
   - CJK 문자(한자·히라가나·가타카나) 응답 필터 (`stripCJK`)
   - `finish`: 패턴→한 문장→스토리→완성 4페이즈
@@ -20,10 +20,14 @@
 - **알려진 이슈:**
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 기능 비활성)
   - llama-3.1-8b-instant: 70b 대비 생성 품질 저하 가능 (모델 한도 초과 시 임시 조치)
-  - v2.9 변경사항 Vercel 미배포 (shell 툴 일시 불가로 런타임 검증 + 배포 대기)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-02 (카피 개선 7개 이슈 + 배포)
+- `questions.ts`: introText 6개 맥락 연결, current questionText 3개 어조 개선, example 4개 긍정/혼합 교체, helpQuestion "③" 참조 제거
+- `scene/[id]`: cushionText 설명+이유 추가·keyword 반복 제거, 멀티힌트, 3선택지→2선택지+서브텍스트
+- v2.9 전체 Vercel 프로덕션 배포 완료 (commit fd35a5c)
 
 ### 2026-06-02 (v2.9 UX 전면 개편 — 랜딩·프로세스오버뷰·섹션·장면)
 - 랜딩 페이지 구조 재설계: Hero 차별점 강조 + Contrast 섹션(기존 비전보드 vs lumi) 신규 + How it works·CTA 카피 전면 교체
