@@ -86,8 +86,9 @@ export interface BoardData {
   startedAt: number;
   finishedAt?: number;
   onboardingStep?: number;
-  oneSentence?: string;          // 마무리 한 문장
-  futureDayStory?: string;       // 미래의 하루 스토리
+  welcomeSeen?: boolean;
+  oneSentence?: string;
+  futureDayStory?: string;
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];

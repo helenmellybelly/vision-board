@@ -57,7 +57,16 @@ export default function ScenePage() {
     saveSectionScene(sectionId, text);
   }
 
-  function handleDone() {
+  function handleFindImages() {
+    markSectionComplete(sectionId);
+    router.push('/board');
+  }
+
+  function handleNextSection() {
+    router.push('/dashboard');
+  }
+
+  function handleImageLater() {
     markSectionComplete(sectionId);
     const freshBoard = loadBoard();
     const allCompleted = ([1, 2, 3, 4, 5, 6] as SectionId[]).every(
@@ -75,15 +84,13 @@ export default function ScenePage() {
     ? `'${keyword}'${getEunga(keyword)} 이루어진 하루야.`
     : '지금까지 말해준 것들이 이루어진 하루야.';
 
+  const sceneQuestion = keyword
+    ? `'${keyword}' 상태로 사는 하루. 어디서 뭘 하고 있어?`
+    : (sceneSlot?.mainQuestion ?? '그 장면을 구체적으로 써봐.');
+
   const slotEntries = (Object.keys(SLOT_LABELS) as Array<keyof ExtractedSlots>).filter(
     (k) => slots[k]
   );
-
-  const isDoneButtonFinal =
-    board &&
-    ([1, 2, 3, 4, 5, 6] as SectionId[])
-      .filter((id) => id !== sectionId)
-      .every((id) => board.sections[id].status === 'completed');
 
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
@@ -136,10 +143,8 @@ export default function ScenePage() {
         {/* 쿠션 버블 */}
         <ChatBubble role="assistant" content={cushionText} />
 
-        {/* 질문 버블 */}
-        {sceneSlot && (
-          <ChatBubble role="assistant" content={sceneSlot.mainQuestion} />
-        )}
+        {/* 질문 버블 — keyword 기반 동적 생성 */}
+        <ChatBubble role="assistant" content={sceneQuestion} />
 
         {/* 예시 답변 패널 */}
         {examples.length > 0 && !submitted && (
@@ -165,24 +170,38 @@ export default function ScenePage() {
           />
         )}
 
-        {/* 제출 후 */}
+        {/* 제출 후 — 3선택지 */}
         {submitted && (
           <>
             <ChatBubble role="user" content={sceneText} />
 
-            <div className="mt-4 mb-2 space-y-3">
-              <div className="bg-[#F5F5F3] rounded-2xl p-4">
-                <p className="text-[11px] text-[#9CA3AF] font-semibold mb-2 uppercase tracking-wide">
-                  완성된 장면
-                </p>
-                <p className="text-sm leading-relaxed">{sceneText}</p>
-              </div>
+            <div className="mt-4 bg-[#F5F5F3] rounded-2xl p-4 mb-4">
+              <p className="text-[11px] text-[#9CA3AF] font-semibold mb-2 uppercase tracking-wide">
+                완성된 장면
+              </p>
+              <p className="text-sm leading-relaxed">{sceneText}</p>
+            </div>
 
+            <ChatBubble role="assistant" content="좋아. 이제 어떻게 할까?" />
+
+            <div className="mt-3 space-y-2.5 mb-2">
               <button
-                onClick={handleDone}
-                className="w-full py-3.5 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white active:opacity-80"
+                onClick={handleFindImages}
+                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm leading-relaxed active:opacity-70"
               >
-                {isDoneButtonFinal ? '비전보드 완성하기 →' : '대시보드로 돌아가기'}
+                이 장면에 어울리는 이미지 지금 찾으러 가기 →
+              </button>
+              <button
+                onClick={handleNextSection}
+                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm leading-relaxed active:opacity-70"
+              >
+                다른 영역 먼저 해보기
+              </button>
+              <button
+                onClick={handleImageLater}
+                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm leading-relaxed active:opacity-70 text-[#9CA3AF]"
+              >
+                이미지는 나중에 한꺼번에 찾을게
               </button>
             </div>
           </>

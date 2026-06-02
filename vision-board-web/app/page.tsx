@@ -34,74 +34,86 @@ export default function LandingPage() {
           >
             <span className="text-white text-2xl">✦</span>
           </div>
-          <p className="text-sm text-[#9CA3AF] mb-2">lumi</p>
-          <h1 className="text-4xl font-bold leading-tight mb-5">
-            목표가<br />없어도 괜찮아.
+          <p className="text-sm text-[#9CA3AF] mb-3">lumi</p>
+          <h1 className="text-3xl font-bold leading-tight mb-5">
+            비전보드,<br />
+            원하는 게 생각나야<br />
+            만들 수 있다고<br />
+            생각했나요?
           </h1>
           <p className="text-[#6B7280] leading-relaxed mb-10">
-            뭘 원하는지 몰라도 괜찮아요.<br />lumi랑 대화하다 보면 보여요.
+            lumi는 먼저 질문해요. 막연해도 괜찮아요.
           </p>
           <button
             onClick={() => router.push('/onboarding')}
             className="w-full py-4 rounded-2xl text-base font-semibold text-white"
             style={{ backgroundColor: '#1C1B19' }}
           >
-            lumi랑 시작하기 →
+            나 발견하러 가기 →
           </button>
           <p className="text-center text-xs text-[#C4C2BE] mt-3">무료 · 가입 없이 바로 시작</p>
         </div>
-
-        <div className="flex justify-center mt-16">
-          <span className="text-[#C4C2BE] text-sm animate-bounce">↓</span>
-        </div>
       </section>
 
-      {/* Problem */}
+      {/* Contrast: 기존 vs lumi */}
       <section className="px-6 py-14" style={{ backgroundColor: '#F5F5F3' }}>
-        <h2 className="text-xl font-bold leading-snug mb-6">
-          비전보드,<br />만들어보려 했는데 막혔죠?
-        </h2>
-        <div className="space-y-3 mb-6">
-          {[
-            '"뭘 원하는지 모르겠어서" 빈칸 앞에서 멈춘 적',
-            '"잘 살고 싶다"는 마음은 있는데 막상 쓰려니 막막했던 적',
-            '남들 비전보드는 멋있는데 내 건 왜 이렇게 어색한지',
-          ].map((text, i) => (
-            <div key={i} className="flex items-start gap-2.5">
-              <span className="text-[#C4C2BE] mt-0.5 flex-shrink-0">○</span>
-              <p className="text-sm text-[#6B7280] leading-relaxed">{text}</p>
+        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-5">lumi가 다른 이유</p>
+        <div className="space-y-3">
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#ECEAE6' }}>
+            <p className="text-[11px] font-semibold text-[#9CA3AF] mb-3 uppercase tracking-wide">기존 비전보드 / Pinterest</p>
+            <div className="space-y-2">
+              {[
+                '원하는 이미지를 찾아 붙인다',
+                '이미 목표가 있다는 전제에서 시작',
+                '"경제적 자유" — 나에겐 뭘 의미하는지 모른 채 끝남',
+              ].map((text, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-[#C4C2BE] mt-0.5 flex-shrink-0 text-xs font-bold">×</span>
+                  <p className="text-sm text-[#9CA3AF] leading-relaxed">{text}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="bg-white rounded-2xl p-4 border border-[#E5E3DF]">
-          <p className="text-sm leading-relaxed font-medium">
-            혼자 채우는 게 어려운 거예요.<br />처음부터 알고 있을 필요 없어요.
-          </p>
+          </div>
+          <div className="rounded-2xl p-4 bg-white border border-[#E5E3DF]">
+            <p className="text-[11px] font-semibold text-[#1C1B19] mb-3 uppercase tracking-wide">lumi</p>
+            <div className="space-y-2">
+              {[
+                '먼저 질문으로 나를 발견한다',
+                '막연한 상태에서 시작해도 된다',
+                '"경제적 자유"가 나에게 구체적으로 무엇인지 알게 된 채 끝남',
+              ].map((text, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-[#1C1B19] mt-0.5 flex-shrink-0 text-xs font-bold">✓</span>
+                  <p className="text-sm leading-relaxed">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* How it works */}
+      {/* How lumi works */}
       <section className="px-6 py-14">
         <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-2">이렇게 만들어요</p>
         <h2 className="text-xl font-bold leading-snug mb-10">
-          lumi가 질문하고,<br />당신이 답하면 돼요
+          lumi가 묻고,<br />당신이 답하면 보여요
         </h2>
         <div className="space-y-8">
           {[
             {
               step: '01',
-              title: 'lumi가 질문해요',
-              desc: '"지금 이 영역에서 어떤 상태야?" 형식 없이, 대화하듯 물어봐요.',
+              title: '나를 발견하기',
+              desc: '"지금 어떤 삶을 살고 있어?"부터 시작해. 막연한 바람 뒤에 있는 진짜 욕구를 질문으로 꺼내.',
             },
             {
               step: '02',
-              title: '떠오르는 대로 답해요',
-              desc: '틀린 답 없어요. 막히면 lumi가 다른 각도로 다시 물어봐요.',
+              title: '원하는 삶의 장면을 그리기',
+              desc: '발견한 나를 바탕으로, 3년 뒤의 구체적인 하루를 그려봐. 느낌과 상황이 살아있는 장면이 나와.',
             },
             {
               step: '03',
-              title: '나만의 장면이 완성돼요',
-              desc: '막연했던 마음이 생생한 비전 장면이 돼요.',
+              title: '비전보드로 완성하기',
+              desc: '장면에 맞는 이미지를 찾아 붙이면 나만의 비전보드가 완성돼. 미래의 하루 이야기도 함께.',
             },
           ].map((item) => (
             <div key={item.step} className="flex gap-5">
@@ -139,9 +151,9 @@ export default function LandingPage() {
           ))}
         </div>
         <div className="bg-white rounded-xl p-4 border border-[#E5E3DF]">
-          <p className="text-xs text-[#9CA3AF] mb-2">미래의 하루 이야기 (예시)</p>
+          <p className="text-xs text-[#9CA3AF] mb-2">완성되면 이런 장면이 나와</p>
           <p className="text-sm leading-relaxed text-[#6B7280]">
-            "새벽 러닝 후 커피 한 잔. 몸이 가볍고 하루가 내 것인 느낌. 오늘도 내가 원하는 방식으로 살고 있어."
+            "카페 창가, 혼자 책 읽는 오전.<br />이게 내가 원하는 &apos;나&apos; 영역의 하루야."
           </p>
         </div>
       </section>
@@ -154,14 +166,14 @@ export default function LandingPage() {
         >
           <span className="text-white text-xl">✦</span>
         </div>
-        <h2 className="text-2xl font-bold mb-2">지금 시작해봐요.</h2>
-        <p className="text-sm text-[#6B7280] mb-8">15분이면 첫 번째 영역을 채울 수 있어요.</p>
+        <h2 className="text-2xl font-bold mb-2">지금, 첫 질문 하나부터.</h2>
+        <p className="text-sm text-[#6B7280] mb-8">막연해도 괜찮아. lumi가 물어볼게.</p>
         <button
           onClick={() => router.push('/onboarding')}
           className="w-full py-4 rounded-2xl text-base font-semibold text-white"
           style={{ backgroundColor: '#1C1B19' }}
         >
-          lumi랑 시작하기 →
+          나 발견하러 가기 →
         </button>
         <p className="text-xs text-[#C4C2BE] mt-3">무료 · 가입 없이 바로 시작</p>
       </section>

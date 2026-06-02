@@ -13,23 +13,9 @@ type Phase = 'questions' | 'review';
 
 const Q_KEYS: Array<keyof ExtractedSlots> = ['current', 'want', 'feeling', 'keyword'];
 
-function getEun(name: string): string {
-  if (!name) return '은';
-  const code = name.charCodeAt(name.length - 1);
-  if (code < 0xAC00 || code > 0xD7A3) return '은';
-  return (code - 0xAC00) % 28 === 0 ? '는' : '은';
-}
+const KEY_TO_SLOT_ID: Record<string, number> = { current: 1, want: 3, feeling: 5, keyword: 2 };
 
-function fillTemplate(template: string, answers: Partial<ExtractedSlots>, name: string): string {
-  const eun = getEun(name);
-  return template
-    .replace(/\{name\}/g, name || '너')
-    .replace(/\{eun\}/g, eun)
-    .replace(/\{current\}/g, answers.current || '—')
-    .replace(/\{want\}/g, answers.want || '—')
-    .replace(/\{feeling\}/g, answers.feeling || '—')
-    .replace(/\{keyword\}/g, answers.keyword || '—');
-}
+
 
 export default function SectionChatPage() {
   const router = useRouter();
@@ -41,6 +27,7 @@ export default function SectionChatPage() {
   const [qIdx, setQIdx] = useState(0);
   const [answers, setAnswers] = useState<Partial<ExtractedSlots>>({});
   const [phase, setPhase] = useState<Phase>('questions');
+  const [showHelp, setShowHelp] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,6 +54,7 @@ export default function SectionChatPage() {
 
   function handleAnswer(text: string) {
     if (!section || qIdx >= 4) return;
+    setShowHelp(false);
     const key = section.phaseOneQuestions[qIdx].key;
     const newAnswers = { ...answers, [key]: text };
     setAnswers(newAnswers);
@@ -86,11 +74,21 @@ export default function SectionChatPage() {
 
   if (!section || !board) return null;
 
+  const currentQ = phase === 'questions' && qIdx < 4 ? section.phaseOneQuestions[qIdx] : null;
+  const currentSlotId = currentQ ? KEY_TO_SLOT_ID[currentQ.key] : null;
+  const helpQs = currentSlotId
+    ? (section.slots.find((s) => s.id === currentSlotId)?.helpQuestions ?? [])
+    : [];
+  const currentExample = currentSlotId
+    ? (section.slots.find((s) => s.id === currentSlotId)?.example ?? '')
+    : '';
+
   // Derive message list from current state
   type MsgItem = { type: 'lumi' | 'user'; text: string };
   const msgs: MsgItem[] = [
     { type: 'lumi', text: section.introText },
     { type: 'lumi', text: section.whyText },
+    { type: 'lumi', text: '천천히, 떠오르는 대로 답해줘. 틀린 답은 없어.' },
   ];
 
   const displayCount = Math.min(qIdx, 4);
@@ -107,9 +105,6 @@ export default function SectionChatPage() {
     msgs.push({ type: 'lumi', text: q.cushionText });
     msgs.push({ type: 'lumi', text: q.questionText });
   }
-
-  const currentQ = phase === 'questions' && qIdx < 4 ? section.phaseOneQuestions[qIdx] : null;
-  const reviewText = fillTemplate(section.reviewTemplate, answers, board.userName);
 
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
@@ -138,19 +133,62 @@ export default function SectionChatPage() {
         ))}
 
         {currentQ && (
-          <InlineInput
-            onSubmit={handleAnswer}
-            placeholder={currentQ.placeholder}
-          />
+          <>
+            <InlineInput
+              onSubmit={handleAnswer}
+              placeholder={currentQ.placeholder}
+              example={currentExample}
+              hint={currentQ.key === 'want' ? '여러 개여도 좋아. 줄 바꿔서 써봐.' : undefined}
+              onHelp={helpQs.length > 0 ? () => setShowHelp(true) : undefined}
+            />
+            {showHelp && (
+              <div className="mb-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3">
+                <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">
+                  이런 각도로 생각해봐
+                </p>
+                <div className="space-y-1.5">
+                  {helpQs.map((hq) => (
+                    <p key={hq.id} className="text-xs text-[#6B7280] leading-relaxed">
+                      ○ {hq.text}
+                    </p>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowHelp(false)}
+                  className="text-xs text-[#9CA3AF] mt-2.5 block"
+                >
+                  닫기
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {phase === 'review' && (
           <div className="mt-4 mb-2">
-            <div className="bg-[#F5F5F3] rounded-2xl p-5 mb-4">
-              <p className="text-[11px] text-[#9CA3AF] font-semibold mb-3 uppercase tracking-wide">
-                지금까지 말해준 것들
-              </p>
-              <p className="text-sm leading-relaxed text-[#1C1B19]">{reviewText}</p>
+            <div className="rounded-2xl border border-[#E5E3DF] overflow-hidden mb-4">
+              <div className="px-4 pt-3 pb-1" style={{ backgroundColor: section.lightColor }}>
+                <p
+                  className="text-[11px] font-semibold uppercase tracking-wide"
+                  style={{ color: section.color }}
+                >
+                  지금까지 말해준 것들
+                </p>
+              </div>
+              <div className="bg-white divide-y divide-[#F3F4F6]">
+                {section.phaseOneQuestions.map((q) => {
+                  const val = answers[q.key];
+                  if (!val) return null;
+                  return (
+                    <div key={q.key} className="flex gap-3 px-4 py-2.5">
+                      <p className="text-[11px] text-[#9CA3AF] w-20 shrink-0 pt-0.5 font-medium">
+                        {q.label}
+                      </p>
+                      <p className="text-sm leading-relaxed flex-1 text-[#1C1B19]">{val}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <button
               onClick={handleComplete}

@@ -108,7 +108,9 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-sm">{section.shortTitle ?? section.title.split(' — ')[0]}</p>
-                      <p className="text-xs text-[#9CA3AF] mt-0.5">{section.subtitle}</p>
+                      {section.title.split(' — ')[1] && (
+                        <p className="text-xs text-[#9CA3AF] mt-0.5">{section.title.split(' — ')[1]}</p>
+                      )}
                     </div>
                   </div>
 

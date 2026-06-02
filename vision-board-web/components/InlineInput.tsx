@@ -7,10 +7,11 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   onHelp?: () => void;
-  showHelp?: boolean;
+  example?: string;
+  hint?: string;
 }
 
-export default function InlineInput({ onSubmit, placeholder = '여기에 써봐...', disabled = false, onHelp, showHelp }: Props) {
+export default function InlineInput({ onSubmit, placeholder = '여기에 써봐...', disabled = false, onHelp, example, hint }: Props) {
   const [text, setText] = useState('');
   const [visible, setVisible] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -53,6 +54,15 @@ export default function InlineInput({ onSubmit, placeholder = '여기에 써봐.
         transition: 'opacity 0.3s ease, transform 0.3s ease',
       }}
     >
+      {example && (
+        <div className="px-4 pt-3 pb-2 border-b border-[#F5F5F3]">
+          <p className="text-[11px] text-[#B0ADA8] font-medium mb-1">이런 식으로 써봐</p>
+          <p className="text-xs text-[#B0ADA8] leading-relaxed">{example}</p>
+        </div>
+      )}
+      {hint && (
+        <p className="text-[11px] text-[#C4C2BE] px-4 pt-2">{hint}</p>
+      )}
       <textarea
         ref={textareaRef}
         value={text}
@@ -64,7 +74,17 @@ export default function InlineInput({ onSubmit, placeholder = '여기에 써봐.
         className="w-full resize-none text-sm leading-relaxed px-4 pt-3 pb-2 outline-none max-h-40 overflow-y-auto bg-transparent"
         style={{ color: '#1C1B19' }}
       />
-      <div className="flex justify-end px-3 pb-3">
+      <div className="flex items-center justify-between px-3 pb-3">
+        {onHelp ? (
+          <button
+            onClick={onHelp}
+            className="text-xs text-[#9CA3AF] active:opacity-60"
+          >
+            답변 도와줘
+          </button>
+        ) : (
+          <span />
+        )}
         <button
           onClick={handleSend}
           disabled={!canSend}
@@ -77,14 +97,6 @@ export default function InlineInput({ onSubmit, placeholder = '여기에 써봐.
           다 썼어 →
         </button>
       </div>
-      {onHelp && showHelp && (
-        <button
-          onClick={onHelp}
-          className="w-full text-xs text-[#9CA3AF] pb-3 text-center active:opacity-60"
-        >
-          답변 도와줘
-        </button>
-      )}
     </div>
   );
 }
