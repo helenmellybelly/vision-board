@@ -17,6 +17,23 @@ import ChatBubble from '@/components/ChatBubble';
 
 type Step = 'situation' | 'story' | 'images';
 
+function renderStory(text: string) {
+  const lines = text.split('\n');
+  return lines.map((line, li) => {
+    const parts = line.split(/\*\*(.*?)\*\*/g);
+    return (
+      <span key={li}>
+        {parts.map((part, i) =>
+          i % 2 === 1
+            ? <strong key={i} className="font-semibold text-[#1C1B19]">{part}</strong>
+            : part
+        )}
+        {li < lines.length - 1 && <br />}
+      </span>
+    );
+  });
+}
+
 interface GeneratedImage {
   url: string;
   prompt: string;
@@ -42,6 +59,7 @@ export default function MomentPage() {
   const [additionalInput, setAdditionalInput] = useState('');
   const [showAdditional, setShowAdditional] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [usedAdditional, setUsedAdditional] = useState(false);
 
   // images step
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
@@ -121,6 +139,7 @@ export default function MomentPage() {
     setAdditionalInput('');
     setShowAdditional(false);
     setRegenerating(false);
+    setUsedAdditional(true);
   }
 
   async function handleGenerateImages() {
@@ -263,24 +282,24 @@ export default function MomentPage() {
                   <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: section.color }}>
                     이 삶의 하루
                   </p>
-                  <p className="text-sm leading-relaxed">{story}</p>
+                  <p className="text-sm leading-relaxed">{renderStory(story)}</p>
                 </div>
 
                 {step === 'story' && (
                   <>
-                    {!showAdditional ? (
+                    {!usedAdditional && !showAdditional ? (
                       <button
                         onClick={() => setShowAdditional(true)}
                         className="text-xs text-[#9CA3AF] underline mb-3"
                       >
                         더 담고 싶은 장면이 있어요
                       </button>
-                    ) : (
+                    ) : showAdditional ? (
                       <div className="mb-3">
                         <textarea
                           value={additionalInput}
                           onChange={(e) => setAdditionalInput(e.target.value)}
-                          placeholder="추가로 담고 싶은 순간이나 장면을 써봐요."
+                          placeholder="예: 친구와 저녁 먹는 장면, 아침 커피 한 잔... 꼭 담고 싶은 순간을 써봐"
                           className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-sm leading-relaxed resize-none focus:outline-none focus:border-[#C9C5BE] mb-2"
                           rows={2}
                         />
@@ -292,7 +311,7 @@ export default function MomentPage() {
                           {regenerating ? '다시 그리는 중...' : '다시 그려줘'}
                         </button>
                       </div>
-                    )}
+                    ) : null}
 
                     <button
                       onClick={handleGenerateImages}

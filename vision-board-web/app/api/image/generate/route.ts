@@ -61,8 +61,23 @@ Generate 3 DALL-E image prompts in English capturing different moments from this
     });
 
     const raw = completion.choices[0]?.message?.content?.trim() ?? '[]';
-    const jsonMatch = raw.match(/\[[\s\S]*\]/);
-    prompts = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    try {
+      const jsonMatch = raw.match(/\[[\s\S]*\]/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+      if (Array.isArray(parsed) && parsed.length >= 3) {
+        prompts = parsed.slice(0, 3).map(String);
+      } else {
+        throw new Error('Expected array of 3');
+      }
+    } catch {
+      // Fallback: extract quoted strings from the raw response
+      const quoted = raw.match(/"([^"]{10,})"/g);
+      if (quoted && quoted.length >= 3) {
+        prompts = quoted.slice(0, 3).map((s) => s.replace(/^"|"$/g, ''));
+      } else {
+        throw new Error('Could not parse prompts from response');
+      }
+    }
 
     if (!Array.isArray(prompts) || prompts.length < 3) {
       throw new Error('Invalid prompts format');
@@ -72,30 +87,34 @@ Generate 3 DALL-E image prompts in English capturing different moments from this
     return NextResponse.json({ error: 'Failed to generate prompts' }, { status: 500 });
   }
 
-  // Step 2: Generate 3 images with DALL-E 3 in parallel
-  try {
-    const openai = new OpenAI({ apiKey: openaiKey });
+  // Step 2: Generate 3 images with DALL-E 3 in parallel (allSettled = partial success ok)
+  const openai = new OpenAI({ apiKey: openaiKey });
 
-    const results = await Promise.all(
-      prompts.slice(0, 3).map(async (prompt, i) => {
-        const response = await openai.images.generate({
-          model: 'dall-e-3',
-          prompt,
-          size: '1024x1024',
-          quality: 'standard',
-          n: 1,
-        });
-        return {
-          url: response.data?.[0]?.url ?? '',
-          prompt,
-          index: i,
-        };
-      })
-    );
+  const settled = await Promise.allSettled(
+    prompts.slice(0, 3).map(async (prompt, i) => {
+      const response = await openai.images.generate({
+        model: 'dall-e-3',
+        prompt,
+        size: '1024x1024',
+        quality: 'standard',
+        n: 1,
+      });
+      return {
+        url: response.data?.[0]?.url ?? '',
+        prompt,
+        index: i,
+      };
+    })
+  );
 
-    return NextResponse.json({ images: results });
-  } catch (err) {
-    console.error('DALL-E generation error:', err);
+  const images = settled
+    .map((r) => (r.status === 'fulfilled' ? r.value : null))
+    .filter((img): img is { url: string; prompt: string; index: number } => img !== null && img.url !== '');
+
+  if (images.length === 0) {
+    console.error('All DALL-E generations failed');
     return NextResponse.json({ error: 'Failed to generate images' }, { status: 500 });
   }
+
+  return NextResponse.json({ images });
 }

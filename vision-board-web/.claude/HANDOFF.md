@@ -1,20 +1,26 @@
 # HANDOFF
-**agent:** claude | **project:** vision-board | **branch:** master | **commit:** 5bf00e0
-**created:** 2026-05-31 | **status:** active
+**agent:** claude | **project:** vision-board | **branch:** master | **commit:** 71cc5d8
+**created:** 2026-06-02 | **status:** active
 
 ## Context
-v2.4b까지 채팅 UX 개선 완료. v2.4c 버그 수정 플랜이 승인됐지만 구현되지 않음. 테스트 중 발견한 5가지 버그를 다음 세션에서 구현해야 함.
+v3.0 프로덕션 배포 완료. `/moment/[id]` — 상황 묘사 → Groq 미니 스토리 → DALL-E 3 이미지 3장.
+`OPENAI_API_KEY` Vercel 프로덕션에 등록 완료. v2.4c 플랜 파일 삭제 완료.
 
-## Immediate Next Steps
-- [ ] `route.ts` 시스템 프롬프트 재작성: 점수 범위별 반응 지침, 말풍선 역할 1개 원칙, nextSlot contextNote 주입, temperature 0.5
-- [ ] `page.tsx` "맞아, 딱 내 얘기야!" 버튼 → API 없이 직접 handleConfirm() 실행
-- [ ] 수정 후 로컬 테스트: 7점 반응 / 말풍선 분리 / 섹션 완성 이동 확인
-- [ ] Vercel 배포
+## Current State
+- **배포 URL:** https://vision-board-web.vercel.app
+- **최신 커밋:** 71cc5d8 feat: v3.0 /moment/[id]
+- **v3.0 신규 라우트:** `/moment/[id]`, `/api/story/section`, `/api/image/generate`
+- v2.7 이후 섹션·장면 페이지에서 AI 채팅 제거됨 (고정 질문 방식으로 교체)
 
-## Active Files
-- `vision-board-web/app/api/chat/section/route.ts` — 프롬프트 재작성 대상
-- `vision-board-web/app/section/[id]/page.tsx` — 미러링 버튼 처리 변경 대상
-- `C:\Users\helen\.claude\plans\delightful-spinning-snowflake.md` — 승인된 v2.4c 플랜
+## Known Pending Items (다음에 하면 좋을 것들)
+- AI 모델 업그레이드: `llama-3.1-8b-instant` → 더 나은 모델 (품질 개선)
+- Unsplash API 키 설정 (`.env.local`의 `UNSPLASH_ACCESS_KEY` 비어있음)
+- ANTHROPIC_API_KEY 설정 (요약 API용, `.env.local`에 비어있음)
+- v3.0 `/moment/[id]` 기능 실제 테스트 (DALL-E 3 이미지 생성 흐름 확인)
 
-## Current State / Blockers
-v2.4c 플랜은 승인됨. 구현만 남음. 로컬 dev 서버(`npm run dev`)는 실행 가능 상태. 외국어(라틴 문자 베트남어 등)는 temperature 낮춤 + 프롬프트 강화로 방지, 완전 차단은 어려움.
+## Active Files (v3.0 기준)
+- `app/moment/[id]/page.tsx` — 상황 묘사 → 미니 스토리 → DALL-E 3
+- `app/api/story/section/route.ts` — Groq 미니 스토리 생성
+- `app/api/image/generate/route.ts` — DALL-E 3 병렬 이미지 생성
+- `lib/questions.ts` — situationChips 필드 추가 (6섹션)
+- `lib/types.ts` — situationText, miniStory, generatedImages 필드 추가

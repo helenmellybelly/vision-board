@@ -180,16 +180,17 @@ export default function ScenePage() {
             <div className="mt-3 space-y-2.5 mb-2">
               <button
                 onClick={handleFindImages}
-                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm leading-relaxed active:opacity-70"
+                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm active:opacity-70 flex flex-col items-start gap-0.5"
               >
-                이 장면으로 이미지 만들러 가기 →
+                <span className="leading-relaxed font-medium">구체적인 순간 담고 하루 그리기 →</span>
+                <span className="text-xs text-[#9CA3AF] font-normal">AI가 이 삶의 하루를 글로 써줄 거야</span>
               </button>
               <button
                 onClick={handleImageLater}
                 className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm active:opacity-70 flex flex-col items-start gap-0.5"
               >
-                <span className="leading-relaxed">다른 영역 먼저 해보기</span>
-                <span className="text-xs text-[#9CA3AF] font-normal">이미지는 나중에 만들어도 돼</span>
+                <span className="leading-relaxed">다른 영역 먼저 하기</span>
+                <span className="text-xs text-[#9CA3AF] font-normal">구체적인 순간은 나중에 담아도 돼</span>
               </button>
             </div>
           </>
