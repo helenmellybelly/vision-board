@@ -2,25 +2,27 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v3.2 배포 완료 — UX 흐름 개선·수정 기능·스토리 품질 업그레이드 (프로덕션 라이브)
+- **상태:** v3.3 배포 — AI 전체 스택 Groq→OpenAI 전환, 스토리 서술체 수정 (프로덕션 라이브)
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
-  - **대시보드 스마트 라우팅 (v3.2):** status 기반 — completed→`/moment/[id]`, text_complete+sceneText→`/moment/[id]`
-  - **수정 기능 (v3.2):** moment 페이지에서 이미지/스토리/장면/답변 단계별 cascade 재작성 (인라인 confirm)
-  - **이미지 에러 핸들링 (v3.2):** missing_key/failed 구분, "글만 저장" fallback
-  - **흐름 단순화 (v3.2):** Scene 단일 CTA, Section review 이탈 버튼 텍스트 링크 격하
-  - **AI 스토리 (v3.2):** llama-3.3-70b-versatile, 사용자 표현 보존 프롬프트, 200-300자 선명 집중
-  - **`/moment/[id]` (v3.0+):** 3단계 — 상황 묘사(자유작성+예시칩) → Groq 미니 스토리 → DALL-E 3 이미지
+  - **AI 스토리 (v3.3):** OpenAI gpt-4o-mini, 서술체("나는 ~한다") 프롬프트, 200-300자
+  - **이미지 (v3.3):** gpt-4o-mini(프롬프트 변환) + gpt-image-1(이미지 생성) — OPENAI_API_KEY만 사용
+  - **수정 기능 (v3.2):** moment 페이지 4단계 cascade 재작성 (인라인 confirm)
+  - **`/moment/[id]` (v3.0+):** 3단계 — 상황 묘사 → AI 스토리 → 이미지 3장
   - **랜딩 (v2.9):** Hero + Contrast + How it works + CTA
-  - AI 백엔드: Groq (`llama-3.3-70b-versatile`) + OpenAI DALL-E 3 (이미지)
   - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
 - **알려진 이슈:**
+  - 이미지 생성 실패 중 — gpt-image-1 모델 접근 권한 문제 추정 (다음 세션 디버깅 필요)
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 검색 기능 비활성)
   - `ANTHROPIC_API_KEY` 미설정 (요약 API 비활성)
-  - v3.2 전체 흐름 실제 테스트 미완료 (이미지 생성, 수정 기능)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-02 (v3.3 AI 스택 전환 + 스토리 서술체)
+- 스토리 API: Groq(llama) → OpenAI gpt-4o-mini, 프롬프트 톤 "반말" → 서술체("나는 ~한다, ~느낀다")
+- 이미지 API: Groq 의존성 완전 제거, 프롬프트 변환 gpt-4o-mini, 이미지 생성 dall-e-3 → gpt-image-1
+- 이미지 생성 디버깅: 400 "dall-e-3 does not exist" 원인 파악, gpt-image-1 전환 후에도 실패 — 미해결
 
 ### 2026-06-02 (v3.2 UX 흐름 개선, 수정 기능, 스토리 품질)
 - **Plan 모드:** 6가지 이슈 분석 — marketing-psychology (Peak-End Rule·Hick's Law·Commitment·IKEA Effect) 프레임 적용

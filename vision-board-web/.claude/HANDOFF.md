@@ -1,19 +1,20 @@
 # HANDOFF
-**agent:** claude | **project:** vision-board | **branch:** master | **commit:** ce8a1c9
+**agent:** claude | **project:** vision-board | **branch:** master | **commit:** 029e14c
 **created:** 2026-06-02 | **status:** active
 
 ## Context
-v3.2 배포 완료. UX 흐름 개선·수정 기능·AI 스토리 품질 업그레이드. 남은 것은 실제 테스트 + 나머지 API 키 등록.
+이미지 생성이 계속 실패 중. AI 스택을 Groq→OpenAI 전환 완료했고 dall-e-3 → gpt-image-1로 바꿨지만 여전히 실패. OpenAI 계정/프로젝트 권한 문제 추정.
 
 ## Immediate Next Steps
-- [ ] https://vision-board-web.vercel.app 에서 v3.2 전체 흐름 실테스트 — 섹션→장면→순간 (이미지 3장 생성 확인)
-- [ ] 수정 기능 테스트 — 완성 섹션에서 "더 수정하기" 메뉴 작동 여부 확인
-- [ ] `UNSPLASH_ACCESS_KEY` Vercel 등록 (https://unsplash.com/developers) → 이미지 검색 활성화
-- [ ] `ANTHROPIC_API_KEY` Vercel 등록 → `/finish` 페이지 요약 API 활성화
+- [ ] OpenAI platform.openai.com → 해당 API 키의 Project 설정에서 `gpt-image-1` 모델 접근 허용 여부 확인
+- [ ] 또는 dall-e-2로 먼저 테스트 — `app/api/image/generate/route.ts` model을 `'dall-e-2'`로 바꿔 기본 접근 확인
+- [ ] 이미지 생성 성공 후 전체 흐름 실테스트 (섹션→장면→순간→이미지 3장)
+- [ ] 수정 기능 테스트 — "더 수정하기" 메뉴 작동 여부
 
 ## Active Files
-- `vision-board-web/app/moment/[id]/page.tsx` — 수정 메뉴 + 이미지 에러 UI
-- `vision-board-web/app/api/story/section/route.ts` — 새 프롬프트 + 70b 모델
+- `vision-board-web/app/api/image/generate/route.ts` — gpt-image-1 사용 중, model 교체 지점
 
 ## Current State / Blockers
-블로커 없음. `OPENAI_API_KEY`는 Production에 등록돼 있음 (vercel env ls 확인). 이미지 생성이 실제로 작동하는지 브라우저 테스트 필요.
+마지막 에러: gpt-image-1 생성 실패 (상세 에러 확인: `vercel logs https://vision-board-web.vercel.app --level error --json`)
+이전 에러: `400 "The model 'dall-e-3' does not exist."` — 새 OpenAI 계정이라 dall-e-3 없음
+스토리 생성(gpt-4o-mini)은 정상 작동 확인됨.

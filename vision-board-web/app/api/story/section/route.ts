@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
+import OpenAI from 'openai';
 
 interface SectionStoryRequest {
   sectionTitle: string;
@@ -15,7 +15,7 @@ interface SectionStoryRequest {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
@@ -45,16 +45,16 @@ export async function POST(req: NextRequest) {
 규칙:
 1. 위에 적힌 표현을 그대로 살려. 의역·격상 금지. "가벼운"이면 "가벼운"으로.
 2. 하루 전체를 억지로 채우지 마. 가장 선명한 장면 1~2개를 깊게 써.
-3. 1인칭 "나는"으로 자연스럽게 시작.
+3. 1인칭 "나는"으로 시작.
 4. 2단락, 200~300자. 짧고 선명한 게 긴 것보다 낫다.
 5. 핵심 감각이나 행동 1곳만 **볼드** 처리.
-6. 반말. 따뜻하지만 과장 없이.
+6. 서술체로 써. "나는 ~한다", "~느낀다", "~있다" — 소설이나 일기처럼 담담하게. 반말(야, 해, 했어)이나 존댓말(요, 습니다) 절대 금지.
 7. 금지: 인사말, 도입부, "활기찬" "생동감" 같은 진부한 표현, 아침→낮→저녁 3단 강제.`;
 
   try {
-    const groq = new Groq({ apiKey });
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const openai = new OpenAI({ apiKey });
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.85,
     });

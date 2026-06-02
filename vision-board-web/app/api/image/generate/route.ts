@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
 import OpenAI from 'openai';
 
 interface ImageGenerateRequest {
@@ -21,12 +20,8 @@ Rules:
 - Output ONLY the JSON array, nothing else`;
 
 export async function POST(req: NextRequest) {
-  const groqKey = process.env.GROQ_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
 
-  if (!groqKey) {
-    return NextResponse.json({ error: 'GROQ_API_KEY not configured' }, { status: 500 });
-  }
   if (!openaiKey) {
     return NextResponse.json({ error: 'OPENAI_API_KEY not configured', code: 'MISSING_KEY' }, { status: 500 });
   }
@@ -40,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const { sectionTitle, situationText, sceneText, story } = body;
 
-  // Step 1: Convert Korean situations to English DALL-E prompts via Groq
+  // Step 1: Convert Korean situations to English DALL-E prompts
   const conversionPrompt = `Section: ${sectionTitle}
 Situations the user wants to see: ${situationText}
 Scene description: ${sceneText}
@@ -48,11 +43,12 @@ Story: ${story}
 
 Generate 3 DALL-E image prompts in English capturing different moments from this vision.`;
 
+  const openai = new OpenAI({ apiKey: openaiKey });
+
   let prompts: string[];
   try {
-    const groq = new Groq({ apiKey: groqKey });
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: PROMPT_SYSTEM },
         { role: 'user', content: conversionPrompt },
@@ -88,19 +84,19 @@ Generate 3 DALL-E image prompts in English capturing different moments from this
   }
 
   // Step 2: Generate 3 images with DALL-E 3 in parallel (allSettled = partial success ok)
-  const openai = new OpenAI({ apiKey: openaiKey });
-
   const settled = await Promise.allSettled(
     prompts.slice(0, 3).map(async (prompt, i) => {
-      const response = await openai.images.generate({
-        model: 'dall-e-3',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (openai.images.generate as any)({
+        model: 'gpt-image-1',
         prompt,
         size: '1024x1024',
-        quality: 'standard',
         n: 1,
       });
+      const item = response.data?.[0] ?? {};
+      const imageUrl: string = item.url ?? (item.b64_json ? `data:image/png;base64,${item.b64_json}` : '');
       return {
-        url: response.data?.[0]?.url ?? '',
+        url: imageUrl,
         prompt,
         index: i,
       };
@@ -108,7 +104,18 @@ Generate 3 DALL-E image prompts in English capturing different moments from this
   );
 
   const images = settled
-    .map((r) => (r.status === 'fulfilled' ? r.value : null))
+    .map((r) => {
+      if (r.status === 'rejected') {
+        const err = r.reason;
+        console.error('DALL-E generation failed:', JSON.stringify({
+          status: err?.status,
+          message: err?.message,
+          code: err?.code,
+          error: err?.error,
+        }));
+      }
+      return r.status === 'fulfilled' ? r.value : null;
+    })
     .filter((img): img is { url: string; prompt: string; index: number } => img !== null && img.url !== '');
 
   if (images.length === 0) {
