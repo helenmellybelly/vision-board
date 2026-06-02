@@ -33,31 +33,28 @@ export async function POST(req: NextRequest) {
     ? `${situationText}\n추가로 담고 싶은 순간: ${additionalInput}`
     : situationText;
 
-  const prompt = `모든 텍스트는 반드시 한국어로만. 영어 단어·로마자 혼용 절대 금지.
+  const prompt = `모든 텍스트는 반드시 한국어로만. 영어 단어·로마자 절대 금지.
 
-다음은 '${sectionTitle}' 영역에서 이 사람이 원하는 삶의 모습이야:
+이 사람이 실제로 쓴 말들:
+방향 키워드: "${extractedSlots.keyword || ''}"
+원하는 것: "${extractedSlots.want || ''}"
+이뤄졌을 때 기분: "${extractedSlots.feeling || ''}"
+그려낸 장면: "${sceneText}"
+보고 싶은 순간들: "${situationPart}"
 
-방향 키워드: ${extractedSlots.keyword || '(없음)'}
-원하는 것: ${extractedSlots.want || '(없음)'}
-이뤄졌을 때 기분: ${extractedSlots.feeling || '(없음)'}
-장면: ${sceneText}
-원하는 구체적 순간들: ${situationPart}
-
-이 재료를 바탕으로, 이 삶이 이루어진 미래의 어느 하루를 생생하게 써줘.
-
-조건:
-- 재료에 나온 키워드·장면·순간들을 살리되, 감각적이고 구체적인 묘사로 확장해서 써
-- 1인칭 "나는"으로 시작
-- 아침 시작 → 낮/오후 → 저녁 마무리, 하루 전체 흐름이 느껴지도록
-- 2~3단락, 350~450자
-- 핵심 순간이나 감각 1~2곳을 **이렇게** 볼드 처리 (마크다운 ** 사용)
-- 반말, 따뜻하고 생생한 톤
-- 절대 금지: 인사말, 자기소개, "여기 써드릴게요" 같은 도입부`;
+규칙:
+1. 위에 적힌 표현을 그대로 살려. 의역·격상 금지. "가벼운"이면 "가벼운"으로.
+2. 하루 전체를 억지로 채우지 마. 가장 선명한 장면 1~2개를 깊게 써.
+3. 1인칭 "나는"으로 자연스럽게 시작.
+4. 2단락, 200~300자. 짧고 선명한 게 긴 것보다 낫다.
+5. 핵심 감각이나 행동 1곳만 **볼드** 처리.
+6. 반말. 따뜻하지만 과장 없이.
+7. 금지: 인사말, 도입부, "활기찬" "생동감" 같은 진부한 표현, 아침→낮→저녁 3단 강제.`;
 
   try {
     const groq = new Groq({ apiKey });
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
+      model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.85,
     });

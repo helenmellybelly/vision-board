@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'GROQ_API_KEY not configured' }, { status: 500 });
   }
   if (!openaiKey) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY not configured' }, { status: 500 });
+    return NextResponse.json({ error: 'OPENAI_API_KEY not configured', code: 'MISSING_KEY' }, { status: 500 });
   }
 
   let body: ImageGenerateRequest;
@@ -52,7 +52,7 @@ Generate 3 DALL-E image prompts in English capturing different moments from this
   try {
     const groq = new Groq({ apiKey: groqKey });
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: PROMPT_SYSTEM },
         { role: 'user', content: conversionPrompt },

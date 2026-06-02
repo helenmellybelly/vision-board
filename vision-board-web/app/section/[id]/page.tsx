@@ -198,9 +198,9 @@ export default function SectionChatPage() {
             </button>
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full mt-2 py-3 rounded-xl text-sm text-[#6B7280] border border-[#E5E3DF] active:opacity-70"
+              className="w-full mt-3 py-2 text-xs text-[#C9C5BE] text-center active:opacity-70"
             >
-              다른 섹션 먼저 하기
+              다른 섹션 먼저 할게
             </button>
           </div>
         )}

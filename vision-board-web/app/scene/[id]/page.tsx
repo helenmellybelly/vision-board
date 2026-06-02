@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
-import { loadBoard, saveSectionScene, markSectionComplete } from '@/lib/storage';
+import { loadBoard, saveSectionScene } from '@/lib/storage';
 import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
@@ -60,11 +60,6 @@ export default function ScenePage() {
   function handleFindImages() {
     saveSectionScene(sectionId, sceneText);
     router.push(`/moment/${sectionId}`);
-  }
-
-  function handleImageLater() {
-    saveSectionScene(sectionId, sceneText);
-    router.push('/dashboard');
   }
 
   if (!section || !board) return null;
@@ -175,22 +170,13 @@ export default function ScenePage() {
               <p className="text-sm leading-relaxed">{sceneText}</p>
             </div>
 
-            <ChatBubble role="assistant" content="좋아. 이제 어떻게 할까?" />
-
-            <div className="mt-3 space-y-2.5 mb-2">
+            <div className="mt-4 mb-2">
               <button
                 onClick={handleFindImages}
-                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm active:opacity-70 flex flex-col items-start gap-0.5"
+                className="w-full py-3.5 rounded-xl text-sm font-semibold text-white active:opacity-80"
+                style={{ backgroundColor: section?.color ?? '#1C1B19' }}
               >
-                <span className="leading-relaxed font-medium">구체적인 순간 담고 하루 그리기 →</span>
-                <span className="text-xs text-[#9CA3AF] font-normal">AI가 이 삶의 하루를 글로 써줄 거야</span>
-              </button>
-              <button
-                onClick={handleImageLater}
-                className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] bg-white text-sm active:opacity-70 flex flex-col items-start gap-0.5"
-              >
-                <span className="leading-relaxed">다른 영역 먼저 하기</span>
-                <span className="text-xs text-[#9CA3AF] font-normal">구체적인 순간은 나중에 담아도 돼</span>
+                이 삶의 순간들 담으러 가기 →
               </button>
             </div>
           </>

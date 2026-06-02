@@ -4,7 +4,19 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
-import { BoardData, SectionStatus } from '@/lib/types';
+import { BoardData, SectionData, SectionId, SectionStatus } from '@/lib/types';
+
+function getSectionRoute(sectionData: SectionData, sectionId: SectionId): string {
+  switch (sectionData.status) {
+    case 'not_started':
+    case 'in_progress':
+      return `/section/${sectionId}`;
+    case 'text_complete':
+      return sectionData.sceneText ? `/moment/${sectionId}` : `/scene/${sectionId}`;
+    case 'completed':
+      return `/moment/${sectionId}`;
+  }
+}
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
 
@@ -91,7 +103,7 @@ export default function DashboardPage() {
             return (
               <button
                 key={section.id}
-                onClick={() => router.push(`/section/${section.id}`)}
+                onClick={() => router.push(getSectionRoute(sectionData, section.id))}
                 className="w-full text-left rounded-2xl p-4 border transition-all active:scale-[0.98]"
                 style={{
                   backgroundColor: isCompleted ? section.lightColor : 'white',

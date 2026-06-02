@@ -7,6 +7,10 @@ import { getSection } from '@/lib/questions';
 import {
   loadBoard,
   markSectionComplete,
+  resetImages,
+  resetToAnswers,
+  resetToScene,
+  resetToSituation,
   saveGeneratedImages,
   saveMiniStory,
   saveSituationText,
@@ -64,7 +68,12 @@ export default function MomentPage() {
   // images step
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState<'missing_key' | 'failed' | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // edit menu
+  const [editMenu, setEditMenu] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<'situation' | 'scene' | 'answers' | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +95,7 @@ export default function MomentPage() {
     // resume at correct step
     if (sec.generatedImages && sec.generatedImages.length > 0) setStep('images');
     else if (sec.miniStory) setStep('story');
-    else if (sec.situationText) setStep('situation');
+    else if (sec.situationText) setStep('story');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionId]);
 
@@ -144,6 +153,7 @@ export default function MomentPage() {
 
   async function handleGenerateImages() {
     setImageLoading(true);
+    setImageError(null);
     setStep('images');
     try {
       const res = await fetch('/api/image/generate', {
@@ -157,11 +167,16 @@ export default function MomentPage() {
         }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setImageError(data.code === 'MISSING_KEY' ? 'missing_key' : 'failed');
+        setImageLoading(false);
+        return;
+      }
       const imgs: GeneratedImage[] = data.images ?? [];
       setGeneratedImages(imgs);
       saveGeneratedImages(sectionId, imgs.map((i) => i.url));
     } catch {
-      setGeneratedImages([]);
+      setImageError('failed');
     } finally {
       setImageLoading(false);
     }
@@ -170,6 +185,39 @@ export default function MomentPage() {
   function handleSaveAndContinue() {
     markSectionComplete(sectionId);
     router.push('/dashboard');
+  }
+
+  function handleEditImages() {
+    resetImages(sectionId);
+    setGeneratedImages([]);
+    setImageError(null);
+    setEditMenu(false);
+    handleGenerateImages();
+  }
+
+  async function handleEditStory() {
+    resetToSituation(sectionId);
+    setStory('');
+    setGeneratedImages([]);
+    setImageError(null);
+    setEditMenu(false);
+    setPendingConfirm(null);
+    setStoryLoading(true);
+    setStep('story');
+    const result = await generateStory(submittedSituation);
+    setStory(result);
+    saveMiniStory(sectionId, result);
+    setStoryLoading(false);
+  }
+
+  function handleEditScene() {
+    resetToScene(sectionId);
+    router.push(`/scene/${sectionId}`);
+  }
+
+  function handleEditAnswers() {
+    resetToAnswers(sectionId);
+    router.push(`/section/${sectionId}`);
   }
 
   if (!section) return null;
@@ -368,20 +416,106 @@ export default function MomentPage() {
                 </button>
                 <button
                   onClick={handleGenerateImages}
-                  className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white text-[#6B7280]"
+                  className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white text-[#6B7280] mb-3"
                 >
                   이미지 다시 만들기
                 </button>
+
+                {/* 수정 메뉴 */}
+                <button
+                  onClick={() => { setEditMenu(!editMenu); setPendingConfirm(null); }}
+                  className="w-full py-2 text-xs text-[#C9C5BE] text-center"
+                >
+                  {editMenu ? '닫기 ∧' : '더 수정하기 ∨'}
+                </button>
+
+                {editMenu && (
+                  <div className="mt-2 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
+                    {/* 스토리부터 */}
+                    <div className="px-4 py-3 border-b border-[#F5F5F3]">
+                      {pendingConfirm === 'situation' ? (
+                        <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
+                          <p className="text-xs text-[#92400E] mb-2">스토리와 이미지가 삭제돼요. 계속할까?</p>
+                          <div className="flex gap-3">
+                            <button onClick={handleEditStory} className="text-xs font-medium text-[#92400E]">계속</button>
+                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={() => setPendingConfirm('situation')} className="w-full text-left">
+                          <p className="text-sm text-[#374151]">스토리부터 다시 쓰기</p>
+                          <p className="text-xs text-[#9CA3AF]">이미지 삭제됨</p>
+                        </button>
+                      )}
+                    </div>
+                    {/* 장면부터 */}
+                    <div className="px-4 py-3 border-b border-[#F5F5F3]">
+                      {pendingConfirm === 'scene' ? (
+                        <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
+                          <p className="text-xs text-[#92400E] mb-2">장면·스토리·이미지가 삭제돼요. 계속할까?</p>
+                          <div className="flex gap-3">
+                            <button onClick={handleEditScene} className="text-xs font-medium text-[#92400E]">계속</button>
+                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={() => setPendingConfirm('scene')} className="w-full text-left">
+                          <p className="text-sm text-[#374151]">장면부터 다시</p>
+                          <p className="text-xs text-[#9CA3AF]">스토리·이미지 삭제됨</p>
+                        </button>
+                      )}
+                    </div>
+                    {/* 답변부터 */}
+                    <div className="px-4 py-3">
+                      {pendingConfirm === 'answers' ? (
+                        <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
+                          <p className="text-xs text-[#92400E] mb-2">모든 내용이 삭제돼요. 계속할까?</p>
+                          <div className="flex gap-3">
+                            <button onClick={handleEditAnswers} className="text-xs font-medium text-[#92400E]">계속</button>
+                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={() => setPendingConfirm('answers')} className="w-full text-left">
+                          <p className="text-sm text-[#374151]">답변부터 다시</p>
+                          <p className="text-xs text-[#9CA3AF]">모든 내용 삭제됨</p>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
-              <div className="mt-3 text-center py-6">
-                <p className="text-sm text-[#9CA3AF]">이미지 생성에 실패했어요.</p>
-                <button
-                  onClick={handleGenerateImages}
-                  className="mt-3 px-6 py-2.5 rounded-xl text-sm border border-[#E5E3DF] bg-white"
-                >
-                  다시 시도
-                </button>
+              <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-5 text-center">
+                {imageError === 'missing_key' ? (
+                  <>
+                    <p className="text-sm text-[#6B7280] mb-1">이미지 생성 기능을 준비 중이에요.</p>
+                    <p className="text-xs text-[#9CA3AF] mb-4">글로만 저장하고 계속할 수 있어요.</p>
+                    <button
+                      onClick={handleSaveAndContinue}
+                      className="w-full py-3 rounded-xl text-sm font-medium text-white"
+                      style={{ backgroundColor: section.color }}
+                    >
+                      글만 저장하고 계속하기 →
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-[#6B7280] mb-4">이미지 생성에 실패했어요.</p>
+                    <button
+                      onClick={handleGenerateImages}
+                      className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white mb-2"
+                    >
+                      다시 시도
+                    </button>
+                    <button
+                      onClick={handleSaveAndContinue}
+                      className="w-full py-2.5 rounded-xl text-xs text-[#9CA3AF]"
+                    >
+                      글만 저장하고 계속하기
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </>

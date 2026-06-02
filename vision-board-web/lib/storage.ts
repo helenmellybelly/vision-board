@@ -191,3 +191,52 @@ export function saveGeneratedImages(sectionId: SectionId, urls: string[]): void 
   board.sections[sectionId].generatedImages = urls;
   saveBoard(board);
 }
+
+// C1: 수정 캐스케이드 리셋 함수들
+
+export function resetImages(sectionId: SectionId): void {
+  const board = loadBoard();
+  const sec = board.sections[sectionId];
+  sec.generatedImages = undefined;
+  sec.completedAt = undefined;
+  sec.status = 'text_complete';
+  saveBoard(board);
+}
+
+export function resetToSituation(sectionId: SectionId): void {
+  const board = loadBoard();
+  const sec = board.sections[sectionId];
+  sec.miniStory = undefined;
+  sec.generatedImages = undefined;
+  sec.completedAt = undefined;
+  sec.status = 'text_complete';
+  saveBoard(board);
+}
+
+export function resetToScene(sectionId: SectionId): void {
+  const board = loadBoard();
+  const sec = board.sections[sectionId];
+  sec.status = 'text_complete';
+  sec.sceneText = undefined;
+  sec.sceneTexts = undefined;
+  sec.sceneMessages = undefined;
+  sec.situationText = undefined;
+  sec.miniStory = undefined;
+  sec.generatedImages = undefined;
+  sec.completedAt = undefined;
+  saveBoard(board);
+}
+
+export function resetToAnswers(sectionId: SectionId): void {
+  const board = loadBoard();
+  const sec = board.sections[sectionId];
+  sec.status = 'in_progress';
+  sec.sceneText = undefined;
+  sec.sceneTexts = undefined;
+  sec.sceneMessages = undefined;
+  sec.situationText = undefined;
+  sec.miniStory = undefined;
+  sec.generatedImages = undefined;
+  sec.completedAt = undefined;
+  saveBoard(board);
+}
