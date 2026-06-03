@@ -8,11 +8,11 @@ interface ImageGenerateRequest {
   story: string;
 }
 
-const PROMPT_SYSTEM = `You are a creative director converting Korean vision board descriptions into English DALL-E image prompts.
+const PROMPT_SYSTEM = `You are a creative director converting Korean vision board descriptions into English image prompts.
 
 Rules:
 - Output exactly 3 prompts as a JSON array: ["prompt1", "prompt2", "prompt3"]
-- Each prompt must be in English, 1-2 sentences, under 900 characters total
+- Each prompt must be in English, 1-2 sentences
 - Style: realistic, warm natural light, lifestyle photography, cinematic
 - Each prompt should highlight a different moment or angle from the input
 - No text overlay in images, no people's faces close-up
@@ -83,18 +83,18 @@ Generate 3 DALL-E image prompts in English capturing different moments from this
     return NextResponse.json({ error: 'Failed to generate prompts' }, { status: 500 });
   }
 
-  // Step 2: Generate 3 images with DALL-E 2 in parallel (allSettled = partial success ok)
+  // Step 2: Generate 3 images with gpt-image-1 in parallel (allSettled = partial success ok)
   const settled = await Promise.allSettled(
     prompts.slice(0, 3).map(async (prompt, i) => {
-      const response = await openai.images.generate({
-        model: 'dall-e-2',
-        prompt: prompt.slice(0, 900),
-        size: '512x512',
-        response_format: 'b64_json',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (openai.images.generate as any)({
+        model: 'gpt-image-1',
+        prompt,
+        size: '1024x1024',
         n: 1,
       });
       const item = response.data?.[0] ?? {};
-      const imageUrl: string = item.b64_json ? `data:image/png;base64,${item.b64_json}` : '';
+      const imageUrl: string = item.url ?? (item.b64_json ? `data:image/png;base64,${item.b64_json}` : '');
       return {
         url: imageUrl,
         prompt,

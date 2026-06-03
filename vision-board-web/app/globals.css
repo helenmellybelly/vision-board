@@ -61,3 +61,13 @@ textarea {
     animation: none;
   }
 }
+
+/* 스크롤바: 기본 숨김 */
+.scroll-hide { scrollbar-width: none; }
+.scroll-hide::-webkit-scrollbar { width: 0; }
+
+/* 스크롤바: hover 시 표시 (JS로 .scroll-show 클래스 토글) */
+.scroll-show { scrollbar-width: thin; scrollbar-color: #C9C5BE transparent; }
+.scroll-show::-webkit-scrollbar { width: 4px; }
+.scroll-show::-webkit-scrollbar-track { background: transparent; }
+.scroll-show::-webkit-scrollbar-thumb { background: #C9C5BE; border-radius: 2px; }
