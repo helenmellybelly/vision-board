@@ -42,7 +42,7 @@ export default function SectionChatPage() {
   const [savedIndicator, setSavedIndicator] = useState(false);
   const [chatHovered, setChatHovered] = useState(false);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const b = loadBoard();
@@ -63,7 +63,11 @@ export default function SectionChatPage() {
   }, [sectionId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = chatRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
   }, [qIdx, phase]);
 
   function showSaved() {
@@ -182,12 +186,11 @@ export default function SectionChatPage() {
 
       {/* 스크롤 가능한 채팅 영역 */}
       <div
-        ref={bottomRef as React.RefObject<HTMLDivElement>}
+        ref={chatRef}
         className={`flex-1 overflow-y-auto ${scrollClass} px-4 pt-4 pb-2`}
         onMouseEnter={() => setChatHovered(true)}
         onMouseLeave={() => setChatHovered(false)}
       >
-        {/* bottomRef를 이 div 안 끝에 따로 둬야 해서 내부 div로 분리 */}
         <div>
           {msgs.map((msg, i) => {
             if (msg.type === 'user') {
@@ -341,7 +344,7 @@ export default function SectionChatPage() {
             </div>
           )}
 
-          <div ref={bottomRef} />
+          <div />
         </div>
       </div>
 
