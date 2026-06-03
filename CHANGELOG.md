@@ -2,24 +2,29 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v3.4 배포 — 이미지 영구 저장, 인라인 답변 수정, 반응형 레이아웃 (프로덕션 라이브)
+- **상태:** v3.5 배포 — 섹션 UX 전면 개선 + 이미지 생성 복구 (프로덕션 라이브)
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
-  - **이미지 (v3.4):** dall-e-2 + b64_json → JPEG 압축 → localStorage 영구 저장 (URL 만료 없음)
-  - **인라인 수정 (v3.4):** 섹션 review 화면에서 개별 답변 수정 + 다운스트림 경고
-  - **반응형 (v3.4):** max-w-md md:max-w-xl, 대시보드 2열, 비전보드 2열 섹션 그룹
+  - **섹션 UX (v3.5):** 입력창 하단 고정 + 채팅 독립 스크롤 + JS hover 스크롤바 + 헤더 뒤로가기/저장 표시 + 질문 단계 인라인 수정
+  - **이미지 (v3.5):** gpt-image-1 원복 (1024×1024), URL → compressImage → localStorage 영구 저장
+  - **인라인 수정 (v3.4+):** 질문 단계 버블 수정 + 리뷰 단계 수정 + 다운스트림 경고
   - **AI 스토리 (v3.3):** OpenAI gpt-4o-mini, 서술체("나는 ~한다") 프롬프트, 200-300자
   - **수정 기능 (v3.2):** moment 페이지 4단계 cascade 재작성 (인라인 confirm)
   - **`/moment/[id]` (v3.0+):** 3단계 — 상황 묘사 → AI 스토리 → 이미지 3장
   - **랜딩 (v2.9):** Hero + Contrast + How it works + CTA
   - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
 - **알려진 이슈:**
-  - dall-e-2 이미지 품질이 dall-e-3보다 낮음 — OpenAI 계정에서 dall-e-3 접근 확인 후 업그레이드 권장
+  - 이미지 생성 로컬 테스트 미완 (gpt-image-1 복구 — Vercel에서 확인 필요)
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 검색 기능 비활성)
   - `ANTHROPIC_API_KEY` 미설정 (요약 API 비활성)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-03 (v3.5 섹션 UX 개선 + 이미지 복구)
+- **섹션 레이아웃 전면 개편:** `h-screen` 고정 뷰포트, 채팅 `flex-1 overflow-y-auto` 독립 스크롤, 입력창 sticky 하단 고정, JS `onMouseEnter/Leave`로 스크롤바 hover 토글 (CSS-only 방식은 Chrome에서 불안정)
+- **섹션 UX 추가:** 헤더 `←` 뒤로가기 + `✓ 저장됨` 2초 인디케이터, 질문 단계 사용자 버블에 인라인 수정(textarea) 기능
+- **이미지 생성 복구:** dall-e-3 → `gpt-image-1` 원복 (1024×1024 URL 방식); Vercel 프로덕션 배포 완료 (commit db541f0)
 
 ### 2026-06-03 (v3.4 이미지 저장·인라인 수정·반응형)
 - **이미지 저장:** `dall-e-2 + b64_json` 전환 → JPEG 압축(`imageUtils.ts`) → localStorage 영구 저장; board 페이지 레거시 `images` → `generatedImages` 버그 수정; "저장 중..." 로딩 상태 추가
