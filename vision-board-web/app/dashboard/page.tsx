@@ -51,7 +51,7 @@ export default function DashboardPage() {
   const userName = board.userName;
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md mx-auto w-full pb-10">
+    <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full pb-10">
       <ProcessBar board={board} />
 
       <div className="px-6 pt-4">
@@ -92,7 +92,7 @@ export default function DashboardPage() {
         )}
 
         {/* 섹션 카드들 */}
-        <div className="space-y-2.5 animate-slideUp">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 animate-slideUp">
           {SECTIONS.map((section) => {
             const sectionData = board.sections[section.id];
             const status = sectionData.status;

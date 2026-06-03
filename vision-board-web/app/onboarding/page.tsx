@@ -48,7 +48,7 @@ export default function OnboardingPage() {
   const totalSteps = 7;
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md mx-auto w-full px-6 py-10">
+    <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full px-6 py-10">
       {/* 진행 바 */}
       <div className="flex gap-1.5 mb-10">
         {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (

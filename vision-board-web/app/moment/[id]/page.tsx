@@ -15,6 +15,7 @@ import {
   saveMiniStory,
   saveSituationText,
 } from '@/lib/storage';
+import { compressImage } from '@/lib/imageUtils';
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
@@ -74,6 +75,7 @@ export default function MomentPage() {
   // edit menu
   const [editMenu, setEditMenu] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState<'situation' | 'scene' | 'answers' | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -174,7 +176,10 @@ export default function MomentPage() {
       }
       const imgs: GeneratedImage[] = data.images ?? [];
       setGeneratedImages(imgs);
-      saveGeneratedImages(sectionId, imgs.map((i) => i.url));
+      // 압축 후 영구 저장 (백그라운드, UI는 원본으로 즉시 표시)
+      Promise.all(imgs.map((img) => compressImage(img.url))).then((compressed) => {
+        saveGeneratedImages(sectionId, compressed);
+      });
     } catch {
       setImageError('failed');
     } finally {
@@ -182,7 +187,13 @@ export default function MomentPage() {
     }
   }
 
-  function handleSaveAndContinue() {
+  async function handleSaveAndContinue() {
+    setSaving(true);
+    // 아직 압축 저장이 완료 안 됐을 경우를 대비해 재시도
+    if (generatedImages.length > 0) {
+      const compressed = await Promise.all(generatedImages.map((img) => compressImage(img.url)));
+      saveGeneratedImages(sectionId, compressed);
+    }
     markSectionComplete(sectionId);
     router.push('/dashboard');
   }
@@ -225,7 +236,7 @@ export default function MomentPage() {
   const chips = section.situationChips ?? [];
 
   return (
-    <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
+    <div className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full">
       <ProcessBar board={board} />
 
       <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
@@ -409,10 +420,11 @@ export default function MomentPage() {
 
                 <button
                   onClick={handleSaveAndContinue}
-                  className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-2"
+                  disabled={saving}
+                  className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-2 disabled:opacity-60 transition-opacity"
                   style={{ backgroundColor: section.color }}
                 >
-                  저장하고 다음 영역으로 →
+                  {saving ? '저장 중...' : '저장하고 다음 영역으로 →'}
                 </button>
                 <button
                   onClick={handleGenerateImages}

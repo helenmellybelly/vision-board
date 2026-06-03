@@ -23,7 +23,7 @@ export default function LandingPage() {
   if (!ready) return null;
 
   return (
-    <main className="flex flex-col max-w-md mx-auto w-full">
+    <main className="flex flex-col max-w-md md:max-w-xl mx-auto w-full">
 
       {/* Hero */}
       <section className="flex flex-col justify-center px-6 pt-16 pb-12 min-h-screen">

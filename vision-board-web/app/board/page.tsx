@@ -22,7 +22,7 @@ export default function BoardPage() {
   ).length;
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md mx-auto w-full pb-10">
+    <main className="min-h-screen flex flex-col max-w-md md:max-w-2xl mx-auto w-full pb-10">
       <ProcessBar board={board} />
       {/* 헤더 */}
       <div className="px-6 pt-4 pb-6">
@@ -40,11 +40,12 @@ export default function BoardPage() {
       </div>
 
       {/* 섹션별 이미지 그룹 */}
-      <div className="px-4 space-y-6 animate-fadeIn">
+      <div className="px-4 md:px-6 space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 animate-fadeIn">
         {SECTIONS.map((section) => {
           const sectionData = board.sections[section.id];
-          const images = sectionData.images;
-          const keyword = sectionData.slots[2 as SlotId]?.text;
+          const rawImages = sectionData.generatedImages ?? [];
+          const images: (string | null)[] = [rawImages[0] ?? null, rawImages[1] ?? null, rawImages[2] ?? null];
+          const keyword = sectionData.extractedSlots?.keyword ?? sectionData.slots[2 as SlotId]?.text;
           const isComplete = sectionData.status === 'completed';
 
           return (
@@ -63,10 +64,17 @@ export default function BoardPage() {
                 )}
                 {!isComplete && (
                   <button
-                    onClick={() => router.push(`/scene/${section.id}`)}
+                    onClick={() => {
+                      const sd = board.sections[section.id];
+                      if (sd.status === 'text_complete' && sd.sceneText) {
+                        router.push(`/moment/${section.id}`);
+                      } else {
+                        router.push(`/scene/${section.id}`);
+                      }
+                    }}
                     className="ml-auto text-xs text-[#9CA3AF]"
                   >
-                    장면 그리러 가기 →
+                    {board.sections[section.id].status === 'text_complete' ? '이미지 만들기 →' : '장면 그리러 가기 →'}
                   </button>
                 )}
               </div>

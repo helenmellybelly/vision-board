@@ -2,22 +2,29 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v3.3 배포 — AI 전체 스택 Groq→OpenAI 전환, 스토리 서술체 수정 (프로덕션 라이브)
+- **상태:** v3.4 배포 — 이미지 영구 저장, 인라인 답변 수정, 반응형 레이아웃 (프로덕션 라이브)
 - **주요 기능:**
   - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
+  - **이미지 (v3.4):** dall-e-2 + b64_json → JPEG 압축 → localStorage 영구 저장 (URL 만료 없음)
+  - **인라인 수정 (v3.4):** 섹션 review 화면에서 개별 답변 수정 + 다운스트림 경고
+  - **반응형 (v3.4):** max-w-md md:max-w-xl, 대시보드 2열, 비전보드 2열 섹션 그룹
   - **AI 스토리 (v3.3):** OpenAI gpt-4o-mini, 서술체("나는 ~한다") 프롬프트, 200-300자
-  - **이미지 (v3.3):** gpt-4o-mini(프롬프트 변환) + gpt-image-1(이미지 생성) — OPENAI_API_KEY만 사용
   - **수정 기능 (v3.2):** moment 페이지 4단계 cascade 재작성 (인라인 confirm)
   - **`/moment/[id]` (v3.0+):** 3단계 — 상황 묘사 → AI 스토리 → 이미지 3장
   - **랜딩 (v2.9):** Hero + Contrast + How it works + CTA
   - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
 - **알려진 이슈:**
-  - 이미지 생성 실패 중 — gpt-image-1 모델 접근 권한 문제 추정 (다음 세션 디버깅 필요)
+  - dall-e-2 이미지 품질이 dall-e-3보다 낮음 — OpenAI 계정에서 dall-e-3 접근 확인 후 업그레이드 권장
   - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 검색 기능 비활성)
   - `ANTHROPIC_API_KEY` 미설정 (요약 API 비활성)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-03 (v3.4 이미지 저장·인라인 수정·반응형)
+- **이미지 저장:** `dall-e-2 + b64_json` 전환 → JPEG 압축(`imageUtils.ts`) → localStorage 영구 저장; board 페이지 레거시 `images` → `generatedImages` 버그 수정; "저장 중..." 로딩 상태 추가
+- **인라인 답변 수정:** 섹션 review 화면 개별 답변마다 "수정" 버튼 → textarea 전환 → 저장; 하위 데이터(장면/이미지) 있으면 "다시 만들기" 경고 표시 (marketing psychology: IKEA Effect + Commitment)
+- **반응형 레이아웃:** `maximumScale` 제거, 전 페이지 `max-w-md md:max-w-xl`, 대시보드 2열 그리드, 비전보드 2열 섹션 그룹; Vercel 프로덕션 배포 완료
 
 ### 2026-06-02 (v3.3 AI 스택 전환 + 스토리 서술체)
 - 스토리 API: Groq(llama) → OpenAI gpt-4o-mini, 프롬프트 톤 "반말" → 서술체("나는 ~한다, ~느낀다")

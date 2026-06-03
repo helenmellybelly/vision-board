@@ -28,6 +28,9 @@ export default function SectionChatPage() {
   const [answers, setAnswers] = useState<Partial<ExtractedSlots>>({});
   const [phase, setPhase] = useState<Phase>('questions');
   const [showHelp, setShowHelp] = useState(false);
+  const [editingKey, setEditingKey] = useState<keyof ExtractedSlots | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [showDownstreamWarning, setShowDownstreamWarning] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,6 +68,19 @@ export default function SectionChatPage() {
     }
     setQIdx(nextIdx);
     setBoard(loadBoard());
+  }
+
+  function handleSaveEdit(key: keyof ExtractedSlots) {
+    if (!editValue.trim()) return;
+    const updated = { ...answers, [key]: editValue.trim() };
+    setAnswers(updated);
+    saveExtractedSlots(sectionId, updated);
+    setBoard(loadBoard());
+    setEditingKey(null);
+    const sec = board?.sections[sectionId];
+    if (sec?.sceneText || (sec?.generatedImages && sec.generatedImages.length > 0)) {
+      setShowDownstreamWarning(true);
+    }
   }
 
   function handleComplete() {
@@ -107,7 +123,7 @@ export default function SectionChatPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
+    <div className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full">
       <ProcessBar board={board} />
 
       <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
@@ -180,16 +196,75 @@ export default function SectionChatPage() {
                   const val = answers[q.key];
                   if (!val) return null;
                   return (
-                    <div key={q.key} className="flex gap-3 px-4 py-2.5">
-                      <p className="text-[11px] text-[#9CA3AF] w-20 shrink-0 pt-0.5 font-medium">
-                        {q.label}
-                      </p>
-                      <p className="text-sm leading-relaxed flex-1 text-[#1C1B19]">{val}</p>
+                    <div key={q.key} className="px-4 py-2.5">
+                      <div className="flex gap-3">
+                        <p className="text-[11px] text-[#9CA3AF] w-20 shrink-0 pt-0.5 font-medium">
+                          {q.label}
+                        </p>
+                        {editingKey === q.key ? (
+                          <div className="flex-1">
+                            <textarea
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="w-full text-sm rounded-xl border border-[#E5E3DF] px-3 py-2 resize-none focus:outline-none focus:border-[#C9C5BE] leading-relaxed"
+                              rows={2}
+                              autoFocus
+                            />
+                            <div className="flex gap-3 mt-1.5">
+                              <button
+                                onClick={() => handleSaveEdit(q.key)}
+                                className="text-xs font-semibold text-[#1C1B19]"
+                              >
+                                저장
+                              </button>
+                              <button
+                                onClick={() => setEditingKey(null)}
+                                className="text-xs text-[#9CA3AF]"
+                              >
+                                취소
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex-1 flex items-start justify-between gap-2">
+                            <p className="text-sm leading-relaxed text-[#1C1B19]">{val}</p>
+                            <button
+                              onClick={() => { setEditingKey(q.key); setEditValue(val); setShowDownstreamWarning(false); }}
+                              className="text-[10px] text-[#C9C5BE] shrink-0 pt-0.5 active:text-[#9CA3AF]"
+                            >
+                              수정
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {showDownstreamWarning && (
+              <div className="rounded-xl bg-[#FEF9C3] px-4 py-3 mb-4">
+                <p className="text-xs text-[#92400E] mb-2">
+                  답변이 바뀌었으니, 이전에 만든 장면과 이미지도 다시 만들어보는 게 좋을 것 같아요.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => router.push(`/scene/${sectionId}`)}
+                    className="text-xs font-semibold text-[#92400E]"
+                  >
+                    지금 다시 만들기
+                  </button>
+                  <button
+                    onClick={() => setShowDownstreamWarning(false)}
+                    className="text-xs text-[#9CA3AF]"
+                  >
+                    나중에
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleComplete}
               className="w-full py-3.5 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white active:opacity-80"

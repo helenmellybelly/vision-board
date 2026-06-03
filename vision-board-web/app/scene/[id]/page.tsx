@@ -80,7 +80,7 @@ export default function ScenePage() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col max-w-md mx-auto w-full">
+    <div className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full">
       <ProcessBar board={board} />
 
       <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
