@@ -8,16 +8,17 @@ interface ImageGenerateRequest {
   story: string;
 }
 
-const PROMPT_SYSTEM = `You are a creative director converting Korean vision board descriptions into English image prompts.
+const PROMPT_SYSTEM = `You are a vision board lifestyle image prompt expert.
+Read the scene description below and generate 3 English image prompts — each capturing a different angle or moment of the same scene.
 
 Rules:
-- Output exactly 3 prompts as a JSON array: ["prompt1", "prompt2", "prompt3"]
-- Each prompt must be in English, 1-2 sentences
-- Style: realistic, warm natural light, lifestyle photography, cinematic
-- Each prompt should highlight a different moment or angle from the input
-- No text overlay in images, no people's faces close-up
-- Focus on atmosphere, setting, and lifestyle feel
-- Output ONLY the JSON array, nothing else`;
+- If people are present: lifestyle photography, candid moment, not posing, natural gesture
+- If space-focused: interior/exterior photography, lived-in feel, personal space
+- Common style for all: shot on 35mm film, warm natural light, soft shadows
+- Remove AI-generated look: grain texture, slightly imperfect, documentary style
+- Forbidden: illustration, painting, render, 3D, cartoon, stock photo look, overly perfect
+- Each prompt: 50-70 words
+- Output ONLY a JSON array of 3 strings: ["prompt1", "prompt2", "prompt3"]`;
 
 export async function POST(req: NextRequest) {
   const openaiKey = process.env.OPENAI_API_KEY;
@@ -35,13 +36,17 @@ export async function POST(req: NextRequest) {
 
   const { sectionTitle, situationText, sceneText, story } = body;
 
-  // Step 1: Convert Korean situations to English DALL-E prompts
-  const conversionPrompt = `Section: ${sectionTitle}
-Situations the user wants to see: ${situationText}
-Scene description: ${sceneText}
-Story: ${story}
+  // Extract bold text from mini-story (used as mood/atmosphere hint)
+  const storyBold = (story.match(/\*\*([^*]+)\*\*/g) ?? [])
+    .map((s) => s.replace(/\*\*/g, ''))
+    .join(' / ');
 
-Generate 3 DALL-E image prompts in English capturing different moments from this vision.`;
+  // Step 1: Generate 3 English lifestyle prompts from scene description
+  const conversionPrompt = `Priority 1 (reflect directly in image): ${sceneText}
+Priority 2 (mood/atmosphere hint): ${storyBold || situationText}
+Priority 3 (space/ambience context only): ${sectionTitle}
+
+Generate 3 prompts — each a different angle or moment of this scene.`;
 
   const openai = new OpenAI({ apiKey: openaiKey });
 
