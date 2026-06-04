@@ -10,7 +10,7 @@ function createEmptySection(id: SectionId): SectionData {
     currentSlotIndex: 0,
     slots: {} as Record<SlotId, SlotAnswer | undefined>,
     images: [null, null, null],
-    uploadedImages: [null, null],
+    uploadedImages: [null, null, null, null, null],
   };
 }
 

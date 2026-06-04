@@ -90,6 +90,8 @@ export default function MomentPage() {
   const [imageError, setImageError] = useState<'missing_key' | 'failed' | null>(null);
   const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null, null, null]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [regeneratingSlot, setRegeneratingSlot] = useState<number | null>(null);
+  const [activeDescIdx, setActiveDescIdx] = useState<number | null>(null);
 
   const uploadRefs = [
     useRef<HTMLInputElement>(null),
@@ -298,6 +300,37 @@ export default function MomentPage() {
     }
   }
 
+  async function handleRegenerateSlot(index: number) {
+    if (!descriptions[index]) return;
+    setRegeneratingSlot(index);
+    try {
+      const res = await fetch('/api/image/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descriptions: [descriptions[index]],
+          sectionTitle: section?.title.split(' — ')[0] ?? '',
+          sceneText: sectionData?.sceneText ?? '',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.images?.length > 0) {
+        const compressed = await compressImage(data.images[0].url);
+        const updated = [...generatedImages];
+        const existing = updated[index];
+        if (existing) {
+          updated[index] = { ...existing, url: compressed };
+        } else {
+          updated[index] = { url: compressed, prompt: data.images[0].prompt, index };
+        }
+        setGeneratedImages(updated);
+        saveGeneratedImages(sectionId, updated.map((img) => img.url));
+      }
+    } finally {
+      setRegeneratingSlot(null);
+    }
+  }
+
   async function handleSaveAndContinue() {
     setSaving(true);
     const validAiUrls = generatedImages.filter((img) => img.url).map((img) => img.url);
@@ -368,12 +401,17 @@ export default function MomentPage() {
   function renderSlot(i: number) {
     const url = getSlotUrl(i);
     const ai = isAiSlot(i);
+    const isRegenerating = regeneratingSlot === i;
     return (
       <div
         key={i}
         className="aspect-square rounded-xl overflow-hidden relative border border-[#E5E3DF] bg-[#FAFAFA]"
       >
-        {url ? (
+        {isRegenerating ? (
+          <div className="w-full h-full bg-[#F5F5F3] animate-pulse flex items-center justify-center">
+            <span className="text-[10px] text-[#B0ABA4]">생성 중...</span>
+          </div>
+        ) : url ? (
           <>
             <button
               onClick={() => setLightboxSrc(url)}
@@ -387,9 +425,9 @@ export default function MomentPage() {
                 unoptimized
               />
             </button>
-            {ai && (
+            {!ai && (
               <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] text-white/80 pointer-events-none">
-                AI
+                내 사진
               </div>
             )}
             <button
@@ -398,6 +436,25 @@ export default function MomentPage() {
             >
               ×
             </button>
+            {ai && (
+              <div
+                className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-1.5 px-1 pb-1.5 pt-5"
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.60) 0%, transparent 100%)' }}
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleRegenerateSlot(i); }}
+                  className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[9px] text-white border border-white/30 active:opacity-70"
+                >
+                  ↻ 다시 생성
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); uploadRefs[i].current?.click(); }}
+                  className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[9px] text-white border border-white/30 active:opacity-70"
+                >
+                  ↑ 직접 올리기
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <button
@@ -622,20 +679,31 @@ export default function MomentPage() {
                 </button>
               </div>
             ) : descriptions.some(Boolean) ? (
-              <div className="mt-2 space-y-2 mb-4">
+              <div className="mt-2 space-y-2">
                 {descriptions.map((desc, i) => (
                   <div
                     key={i}
-                    className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 hover:border-[#C9C5BE] focus-within:border-[#C9C5BE] transition-colors"
+                    className="rounded-2xl border px-4 py-3 transition-colors"
+                    style={{
+                      borderColor: activeDescIdx === i ? section.color + '60' : '#E5E3DF',
+                      backgroundColor: activeDescIdx === i ? section.color + '08' : '#ffffff',
+                    }}
+                    onFocus={() => setActiveDescIdx(i)}
+                    onBlur={() => setActiveDescIdx(null)}
                   >
-                    <div className="flex items-center gap-1 mb-1">
+                    <div className="flex items-center justify-between mb-1">
                       <span
                         className="text-[10px] font-semibold"
                         style={{ color: section.color }}
                       >
                         장면 {i + 1}
                       </span>
-                      <span className="text-[10px] text-[#C9C5BE]">✏</span>
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                        style={{ backgroundColor: section.color + '18', color: section.color }}
+                      >
+                        ✏ 수정 가능
+                      </span>
                     </div>
                     <textarea
                       value={desc}
@@ -650,6 +718,7 @@ export default function MomentPage() {
                     />
                   </div>
                 ))}
+                <p className="text-[11px] text-[#B0ABA4] text-center mb-4">AI가 제안한 묘사예요. 탭해서 직접 수정할 수 있어요.</p>
               </div>
             ) : null}
 
