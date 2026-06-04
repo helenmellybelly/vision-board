@@ -8,6 +8,16 @@
 
 ## React / UI
 
+### 그리드 셀 내 버튼 추가 시 absolute overlay 사용 #coding #react
+`aspect-square` 그리드 셀에 버튼 영역을 flex-col wrapper로 아래에 붙이면 행 내 높이 불일치가 생긴다.
+`absolute` 포지션 overlay로 셀 내부에 배치하면 `aspect-square` 치수가 유지되고 그리드 레이아웃이 깨지지 않는다.
+버튼 클릭이 부모 클릭 핸들러(예: lightbox)로 전파되지 않도록 `e.stopPropagation()` 필수.
+
+### Tailwind 동적 컬러 클래스 — inline style로 처리 #coding #react
+런타임에 결정되는 색상(섹션 컬러 등)은 `border-[${color}]` 형태의 Tailwind 동적 클래스가 purge로 제거된다.
+`focus-within` pseudo-class와 함께 쓰는 경우도 마찬가지다.
+`onFocus`/`onBlur`로 상태를 추적하고 `style={{ borderColor: color + '60' }}` 형태의 inline style을 적용할 것.
+
 ### React ref 이중 할당 금지 — 마지막 할당만 유효 #coding #react
 동일 ref를 JSX 트리에서 두 곳에 할당하면 마지막 노드만 가리킨다.
 스크롤 컨테이너 ref를 외부 div와 내부 마커에 동시 할당했을 때 외부 div가 무시됐다.
