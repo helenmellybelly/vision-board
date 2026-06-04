@@ -2,24 +2,24 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v3.5 배포 — 섹션 UX 전면 개선 + 이미지 생성 복구 (프로덕션 라이브)
+- **상태:** v3.8 프로덕션 라이브 — 이미지 섹션 5가지 개선 (버그 2개 + UI 3개)
 - **주요 기능:**
-  - Next.js 비전보드 웹앱 (`vision-board-web/`) — Vercel 배포 https://vision-board-web.vercel.app
-  - **섹션 UX (v3.5):** 입력창 하단 고정 + 채팅 독립 스크롤 + JS hover 스크롤바 + 헤더 뒤로가기/저장 표시 + 질문 단계 인라인 수정
-  - **이미지 (v3.5):** gpt-image-1 원복 (1024×1024), URL → compressImage → localStorage 영구 저장
-  - **인라인 수정 (v3.4+):** 질문 단계 버블 수정 + 리뷰 단계 수정 + 다운스트림 경고
-  - **AI 스토리 (v3.3):** OpenAI gpt-4o-mini, 서술체("나는 ~한다") 프롬프트, 200-300자
-  - **수정 기능 (v3.2):** moment 페이지 4단계 cascade 재작성 (인라인 confirm)
-  - **`/moment/[id]` (v3.0+):** 3단계 — 상황 묘사 → AI 스토리 → 이미지 3장
-  - **랜딩 (v2.9):** Hero + Contrast + How it works + CTA
-  - 온보딩 7단계, ProcessBar 4 STEP, localStorage 임시 저장
-- **알려진 이슈:**
-  - 이미지 생성 로컬 테스트 미완 (gpt-image-1 복구 — Vercel에서 확인 필요)
-  - Unsplash 검색: `UNSPLASH_ACCESS_KEY` 미설정 (이미지 검색 기능 비활성)
-  - `ANTHROPIC_API_KEY` 미설정 (요약 API 비활성)
+  - 섹션 채팅(lumi) → 장면 → 순간 → 스토리 → 묘사 확인 → 이미지
+  - **이미지 흐름 (v3.8):** AI 이미지 3장 구도 다양성 강제 (와이드/미디엄/클로즈업), 통합 5슬롯 갤러리 (AI+업로드 자유 혼합), images 단계 스크롤 최소화 (요약 칩으로 대체)
+  - **이미지 흐름 (v3.7):** 4단계 재설계 (순간→스토리→묘사확인→이미지), 한국어 묘사 3개 제안 + 확인
+  - 섹션당 이미지 최대 5장: AI 생성 최대 3개 (어느 슬롯이든 직접 교체 가능) + 사용자 업로드 최대 2개
+  - 묘사 수정 UI: ✏ 아이콘 + hover/focus 테두리 + placeholder
+  - 업로드 이미지 압축 저장 (quality 0.60, maxWidth 800)
+  - 각 단계 back 버튼 + 4단계 step indicator
+- **알려진 이슈:** 프로덕션 테스트 필요 (이미지 다양성 개선 확인, 5슬롯 업로드 동작 확인)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-04 (v3.8 이미지 섹션 전면 개선)
+- **버그 수정 2개:** AI 이미지 3장 동일 문제 → describe/generate API에 와이드샷/미디엄샷/클로즈업 구도 강제 + 컴퓨터 장면 최대 1개 제한; images 단계 묘사 카드 중복 표시(opacity-60) 완전 제거
+- **통합 5슬롯 갤러리:** AI/업로드 구분 없는 3+2 그리드, 어느 슬롯이나 사진 업로드 가능, AI 슬롯 개별 삭제 후 교체 가능, uploadedImages 5개로 확장 + resetAiImages 함수 추가
+- **UX 개선:** 묘사 카드에 ✏ 아이콘 + hover/focus border + placeholder 추가; images 단계 스크롤 ~2000px → ~720px (스토리/묘사 블록 숨기고 접기/펼치기 요약 칩으로 대체)
 
 ### 2026-06-03 (v3.5 섹션 UX 개선 + 이미지 복구)
 - **섹션 레이아웃 전면 개편:** `h-screen` 고정 뷰포트, 채팅 `flex-1 overflow-y-auto` 독립 스크롤, 입력창 sticky 하단 고정, JS `onMouseEnter/Leave`로 스크롤바 hover 토글 (CSS-only 방식은 Chrome에서 불안정)

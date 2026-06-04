@@ -1,23 +1,23 @@
 # HANDOFF
-**agent:** claude | **project:** vision-board | **branch:** master | **commit:** 16656ed (미커밋 변경사항 포함 배포됨)
+**agent:** claude | **project:** vision-board | **branch:** master | **commit:** eadd7fe (미커밋 v3.8 변경사항 포함)
 **created:** 2026-06-04 | **status:** active
 
 ## Context
-v3.7 배포 완료. 이미지 흐름을 4단계(순간→스토리→묘사확인→이미지)로 재설계하고 사진 업로드(2장) 기능을 추가했다. 코드는 Vercel에 반영됐지만 Git 커밋은 아직 미완.
+v3.8 이미지 섹션 개선 코드 완성 (버그 2개 + UI 3개). 빌드 통과, 아직 커밋/배포 미완.
 
 ## Immediate Next Steps
-- [ ] Git 커밋 + 푸시 (변경된 7개 파일 + 신규 `/api/image/describe`)
-- [ ] https://vision-board-web.vercel.app 에서 묘사 확인 단계 실테스트 (한국어 묘사 3개 제안 품질)
-- [ ] 사진 업로드 2장 → 저장 → 대시보드 이동 흐름 확인
-- [ ] AI 이미지 없이 업로드만으로 섹션 완료 가능한지 확인
-- [ ] PRD v2.3 다음: 섹션 슬롯 UI → 대화형 전환 설계 시작
+- [ ] Git 커밋 + 푸시 (변경된 5개 파일)
+- [ ] Vercel 프로덕션 배포 후 AI 이미지 3장 구도 다양성 확인
+- [ ] 슬롯 0-2 × 클릭 → 사진 업로드 → 해당 슬롯에 표시 확인
+- [ ] 슬롯 3, 4 사진 업로드 + 저장 → 대시보드 이동 확인
+- [ ] PRD v2.3 다음 작업: 섹션 슬롯 UI → 대화형 전환 설계 시작
 
 ## Active Files
-- `app/moment/[id]/page.tsx` — 4단계 재설계 핵심 파일
-- `app/api/image/describe/route.ts` — 신규 API (한국어 묘사 생성)
-- `app/api/image/generate/route.ts` — descriptions[] 기반으로 변경됨
-- `lib/storage.ts` — saveImageDescriptions, saveUploadedImage, resetToDescriptions 등 신규 함수
+- `vision-board-web/app/moment/[id]/page.tsx` — 5슬롯 갤러리 + 스크롤 최소화
+- `vision-board-web/app/api/image/describe/route.ts` — 묘사 다양성 강화
+- `vision-board-web/app/api/image/generate/route.ts` — 이미지 구도 강제
+- `vision-board-web/lib/storage.ts` — uploadedImages 5슬롯 확장, resetAiImages 추가
 
 ## Current State / Blockers
 로컬 headless 테스트 불가(localStorage). Vercel 프로덕션에서 직접 테스트 필요.
-PRD v2.3의 다음 큰 작업(섹션 슬롯→대화형 전환)은 별도 설계 세션 필요.
+"AI 이미지 다시 만들기"는 이제 업로드 사진을 유지 — 의도한 동작 확인 필요.

@@ -16,6 +16,14 @@ Rules:
 - Style for all: shot on 35mm film, warm natural light, soft shadows, grain texture, documentary style
 - Forbidden: illustration, painting, render, 3D, cartoon, stock photo look, overly perfect
 - Each prompt: 50-70 words
+
+CRITICAL DIVERSITY REQUIREMENT:
+The 3 scenes MUST use completely different visual compositions:
+- Scene 1: wide establishing shot — full room, exterior, or open environment visible
+- Scene 2: medium lifestyle shot — person in natural action, half-body or full-body framing
+- Scene 3: intimate close-up — hands on object, surface texture detail, or tight crop
+Even if the Korean descriptions seem similar in theme, force completely different distances, angles, and subject emphasis for each scene. NEVER show a desk/laptop in more than one scene.
+
 - Output ONLY a JSON array of 3 strings: ["prompt1", "prompt2", "prompt3"]`;
 
 export async function POST(req: NextRequest) {

@@ -202,7 +202,8 @@ export function saveImageDescriptions(sectionId: SectionId, descriptions: string
 export function saveUploadedImage(sectionId: SectionId, index: number, dataUrl: string | null): void {
   const board = loadBoard();
   const sec = board.sections[sectionId];
-  const current = sec.uploadedImages ?? [null, null];
+  const current = sec.uploadedImages ?? [null, null, null, null, null];
+  while (current.length < 5) current.push(null);
   current[index] = dataUrl;
   sec.uploadedImages = current;
   saveBoard(board);
@@ -214,6 +215,16 @@ export function saveUploadedImages(sectionId: SectionId, images: (string | null)
   saveBoard(board);
 }
 
+// AI 이미지만 초기화 (업로드 이미지 유지)
+export function resetAiImages(sectionId: SectionId): void {
+  const board = loadBoard();
+  const sec = board.sections[sectionId];
+  sec.generatedImages = undefined;
+  sec.completedAt = undefined;
+  sec.status = 'text_complete';
+  saveBoard(board);
+}
+
 // C1: 수정 캐스케이드 리셋 함수들
 
 export function resetImages(sectionId: SectionId): void {
@@ -221,7 +232,7 @@ export function resetImages(sectionId: SectionId): void {
   const sec = board.sections[sectionId];
   sec.generatedImages = undefined;
   sec.imageDescriptions = undefined;
-  sec.uploadedImages = [null, null];
+  sec.uploadedImages = [null, null, null, null, null];
   sec.completedAt = undefined;
   sec.status = 'text_complete';
   saveBoard(board);
@@ -232,7 +243,7 @@ export function resetToDescriptions(sectionId: SectionId): void {
   const sec = board.sections[sectionId];
   sec.imageDescriptions = undefined;
   sec.generatedImages = undefined;
-  sec.uploadedImages = [null, null];
+  sec.uploadedImages = [null, null, null, null, null];
   sec.completedAt = undefined;
   sec.status = 'text_complete';
   saveBoard(board);
@@ -244,7 +255,7 @@ export function resetToSituation(sectionId: SectionId): void {
   sec.miniStory = undefined;
   sec.imageDescriptions = undefined;
   sec.generatedImages = undefined;
-  sec.uploadedImages = [null, null];
+  sec.uploadedImages = [null, null, null, null, null];
   sec.completedAt = undefined;
   sec.status = 'text_complete';
   saveBoard(board);
@@ -261,7 +272,7 @@ export function resetToScene(sectionId: SectionId): void {
   sec.miniStory = undefined;
   sec.imageDescriptions = undefined;
   sec.generatedImages = undefined;
-  sec.uploadedImages = [null, null];
+  sec.uploadedImages = [null, null, null, null, null];
   sec.completedAt = undefined;
   saveBoard(board);
 }
@@ -277,7 +288,7 @@ export function resetToAnswers(sectionId: SectionId): void {
   sec.miniStory = undefined;
   sec.imageDescriptions = undefined;
   sec.generatedImages = undefined;
-  sec.uploadedImages = [null, null];
+  sec.uploadedImages = [null, null, null, null, null];
   sec.completedAt = undefined;
   saveBoard(board);
 }

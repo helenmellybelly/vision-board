@@ -7,6 +7,7 @@ import { getSection } from '@/lib/questions';
 import {
   loadBoard,
   markSectionComplete,
+  resetAiImages,
   resetImages,
   resetToAnswers,
   resetToDescriptions,
@@ -83,13 +84,20 @@ export default function MomentPage() {
   const [describeLoading, setDescribeLoading] = useState(false);
   const [describeError, setDescribeError] = useState(false);
 
-  // images step
+  // images step — 5 slots (0-2: AI+override, 3-4: upload only)
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<'missing_key' | 'failed' | null>(null);
-  const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null]);
+  const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null, null, null]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const uploadRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+
+  const uploadRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
 
   // edit menu
   const [editMenu, setEditMenu] = useState(false);
@@ -115,7 +123,14 @@ export default function MomentPage() {
       setGeneratedImages(imgs);
     }
     if (sec.uploadedImages) {
-      setUploadedImages(sec.uploadedImages);
+      const imgs = sec.uploadedImages;
+      setUploadedImages([
+        imgs[0] ?? null,
+        imgs[1] ?? null,
+        imgs[2] ?? null,
+        imgs[3] ?? null,
+        imgs[4] ?? null,
+      ]);
     }
     // resume at correct step
     if (sec.generatedImages && sec.generatedImages.length > 0) setStep('images');
@@ -133,6 +148,17 @@ export default function MomentPage() {
 
   const sectionData = board.sections[sectionId];
   const slots = sectionData?.extractedSlots ?? {};
+
+  // 슬롯 i의 표시 URL: 업로드 > AI 순서
+  function getSlotUrl(i: number): string | null {
+    if (uploadedImages[i]) return uploadedImages[i];
+    if (i < 3 && i < generatedImages.length && generatedImages[i]?.url) return generatedImages[i].url;
+    return null;
+  }
+
+  function isAiSlot(i: number): boolean {
+    return !uploadedImages[i] && i < 3 && i < generatedImages.length && !!generatedImages[i]?.url;
+  }
 
   async function generateStory(situation: string, additional?: string) {
     try {
@@ -257,17 +283,26 @@ export default function MomentPage() {
     reader.readAsDataURL(file);
   }
 
-  function handleRemoveUpload(index: number) {
-    const updated = [...uploadedImages];
-    updated[index] = null;
-    setUploadedImages(updated);
-    saveUploadedImage(sectionId, index, null);
+  function handleRemoveSlot(index: number) {
+    if (uploadedImages[index]) {
+      const updated = [...uploadedImages];
+      updated[index] = null;
+      setUploadedImages(updated);
+      saveUploadedImage(sectionId, index, null);
+    } else if (index < 3 && generatedImages[index]?.url) {
+      const updated = generatedImages.map((img, i) =>
+        i === index ? { ...img, url: '' } : img
+      );
+      setGeneratedImages(updated);
+      saveGeneratedImages(sectionId, updated.map((img) => img.url));
+    }
   }
 
   async function handleSaveAndContinue() {
     setSaving(true);
-    if (generatedImages.length > 0) {
-      const compressed = await Promise.all(generatedImages.map((img) => compressImage(img.url)));
+    const validAiUrls = generatedImages.filter((img) => img.url).map((img) => img.url);
+    if (validAiUrls.length > 0) {
+      const compressed = await Promise.all(validAiUrls.map((url) => compressImage(url)));
       saveGeneratedImages(sectionId, compressed);
     }
     saveUploadedImages(sectionId, uploadedImages);
@@ -275,8 +310,8 @@ export default function MomentPage() {
     router.push('/dashboard');
   }
 
-  function handleEditImages() {
-    resetImages(sectionId);
+  function handleEditAiImages() {
+    resetAiImages(sectionId);
     setGeneratedImages([]);
     setImageError(null);
     setEditMenu(false);
@@ -287,6 +322,7 @@ export default function MomentPage() {
     resetToDescriptions(sectionId);
     setDescriptions(['', '', '']);
     setGeneratedImages([]);
+    setUploadedImages([null, null, null, null, null]);
     setImageError(null);
     setEditMenu(false);
     setPendingConfirm(null);
@@ -299,6 +335,7 @@ export default function MomentPage() {
     setStory('');
     setDescriptions(['', '', '']);
     setGeneratedImages([]);
+    setUploadedImages([null, null, null, null, null]);
     setImageError(null);
     setEditMenu(false);
     setPendingConfirm(null);
@@ -320,12 +357,71 @@ export default function MomentPage() {
     router.push(`/section/${sectionId}`);
   }
 
-  const canSave = generatedImages.length > 0 || uploadedImages.some(Boolean);
+  const hasAnyImage = generatedImages.some((img) => img.url) || uploadedImages.some(Boolean);
+  const canSave = hasAnyImage;
 
   if (!section) return null;
 
   const chips = section.situationChips ?? [];
   const stepIndex = STEP_ORDER.indexOf(step);
+
+  function renderSlot(i: number) {
+    const url = getSlotUrl(i);
+    const ai = isAiSlot(i);
+    return (
+      <div
+        key={i}
+        className="aspect-square rounded-xl overflow-hidden relative border border-[#E5E3DF] bg-[#FAFAFA]"
+      >
+        {url ? (
+          <>
+            <button
+              onClick={() => setLightboxSrc(url)}
+              className="absolute inset-0 w-full h-full"
+            >
+              <Image
+                src={url}
+                alt={`image ${i + 1}`}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </button>
+            {ai && (
+              <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] text-white/80 pointer-events-none">
+                AI
+              </div>
+            )}
+            <button
+              onClick={() => handleRemoveSlot(i)}
+              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-xs flex items-center justify-center z-10"
+            >
+              ×
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => uploadRefs[i].current?.click()}
+            className="w-full h-full flex flex-col items-center justify-center text-[#C9C5BE] active:opacity-70"
+          >
+            <span className="text-2xl leading-none mb-1">+</span>
+            <span className="text-[10px]">사진 추가</span>
+          </button>
+        )}
+        <input
+          ref={uploadRefs[i]}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleUploadFile(i, file);
+            e.target.value = '';
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full">
@@ -424,8 +520,8 @@ export default function MomentPage() {
           <ChatBubble role="user" content={submittedSituation} />
         )}
 
-        {/* STEP 2: Story */}
-        {(step === 'story' || step === 'describe' || step === 'images') && (
+        {/* STEP 2: Story — images 단계에서는 숨김 */}
+        {(step === 'story' || step === 'describe') && (
           <>
             {storyLoading ? (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4">
@@ -487,21 +583,19 @@ export default function MomentPage() {
           </>
         )}
 
-        {/* STEP 3: Describe */}
-        {(step === 'describe' || step === 'images') && (
+        {/* STEP 3: Describe — describe 단계에서만 표시 */}
+        {step === 'describe' && (
           <>
-            {step === 'describe' && (
-              <button
-                onClick={() => {
-                  saveImageDescriptions(sectionId, []);
-                  setDescriptions(['', '', '']);
-                  setStep('story');
-                }}
-                className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-2 mb-1 active:opacity-60"
-              >
-                ← 스토리로 돌아가기
-              </button>
-            )}
+            <button
+              onClick={() => {
+                saveImageDescriptions(sectionId, []);
+                setDescriptions(['', '', '']);
+                setStep('story');
+              }}
+              className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-2 mb-1 active:opacity-60"
+            >
+              ← 스토리로 돌아가기
+            </button>
 
             <ChatBubble
               role="assistant"
@@ -532,14 +626,17 @@ export default function MomentPage() {
                 {descriptions.map((desc, i) => (
                   <div
                     key={i}
-                    className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3"
+                    className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 hover:border-[#C9C5BE] focus-within:border-[#C9C5BE] transition-colors"
                   >
-                    <span
-                      className="text-[10px] font-semibold block mb-1"
-                      style={{ color: section.color }}
-                    >
-                      장면 {i + 1}
-                    </span>
+                    <div className="flex items-center gap-1 mb-1">
+                      <span
+                        className="text-[10px] font-semibold"
+                        style={{ color: section.color }}
+                      >
+                        장면 {i + 1}
+                      </span>
+                      <span className="text-[10px] text-[#C9C5BE]">✏</span>
+                    </div>
                     <textarea
                       value={desc}
                       onChange={(e) => {
@@ -548,14 +645,15 @@ export default function MomentPage() {
                         setDescriptions(updated);
                       }}
                       rows={2}
-                      className="w-full text-sm leading-relaxed resize-none outline-none bg-transparent"
+                      placeholder="직접 수정할 수 있어요"
+                      className="w-full text-sm leading-relaxed resize-none outline-none bg-transparent placeholder:text-[#D1CEC9]"
                     />
                   </div>
                 ))}
               </div>
             ) : null}
 
-            {step === 'describe' && !describeLoading && (
+            {!describeLoading && (
               <>
                 {descriptions.some(Boolean) && (
                   <button
@@ -574,31 +672,37 @@ export default function MomentPage() {
                 </button>
               </>
             )}
-
-            {step === 'images' && descriptions.some(Boolean) && (
-              <div className="mt-1 space-y-2 mb-1">
-                {descriptions.map((desc, i) => (
-                  <div
-                    key={i}
-                    className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-2.5 opacity-60"
-                  >
-                    <span className="text-[10px] font-semibold block mb-0.5" style={{ color: section.color }}>
-                      장면 {i + 1}
-                    </span>
-                    <p className="text-sm leading-snug">{desc}</p>
-                  </div>
-                ))}
-              </div>
-            )}
           </>
         )}
 
         {/* STEP 4: Images */}
         {step === 'images' && (
           <>
+            {/* 이전 단계 맥락 요약 칩 */}
+            {story && (
+              <details className="mb-3 rounded-xl border border-[#E5E3DF] bg-white overflow-hidden">
+                <summary className="px-4 py-2.5 text-xs text-[#9CA3AF] cursor-pointer list-none flex justify-between items-center select-none">
+                  <span>스토리 · 묘사 확인 완료</span>
+                  <span className="text-[10px]">펼치기 ▾</span>
+                </summary>
+                <div className="px-4 pb-3 pt-2 border-t border-[#F5F5F3]">
+                  <p className="text-xs text-[#6B7280] leading-relaxed line-clamp-3 mb-2">{story}</p>
+                  {descriptions.some(Boolean) && (
+                    <div className="space-y-1">
+                      {descriptions.map((d, i) => d ? (
+                        <p key={i} className="text-[11px] text-[#9CA3AF]">
+                          <span style={{ color: section.color }} className="font-medium">장면 {i + 1}</span> {d}
+                        </p>
+                      ) : null)}
+                    </div>
+                  )}
+                </div>
+              </details>
+            )}
+
             <ChatBubble
               role="assistant"
-              content="이 장면들로 이미지를 만들고 있어요. 직접 찍은 사진도 함께 올릴 수 있어요."
+              content="이미지를 채워볼게요. AI 이미지나 직접 찍은 사진, 또는 자유롭게 섞어서 최대 5장."
             />
 
             {/* Back button (only before images load) */}
@@ -620,100 +724,99 @@ export default function MomentPage() {
             {imageLoading ? (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-6">
                 <p className="text-xs text-[#9CA3AF] text-center mb-3">이미지를 만들고 있어요...</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   {[0, 1, 2].map((i) => (
                     <div key={i} className="aspect-square rounded-xl bg-[#F5F5F3] animate-pulse" />
                   ))}
                 </div>
+                <div className="flex gap-2 justify-center">
+                  {[3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="aspect-square rounded-xl bg-[#F5F5F3] animate-pulse"
+                      style={{ width: 'calc((100% - 16px) / 3)' }}
+                    />
+                  ))}
+                </div>
               </div>
-            ) : generatedImages.length > 0 || uploadedImages.some(Boolean) ? (
-              <>
-                {/* AI 이미지 */}
-                {generatedImages.length > 0 && (
-                  <div className="mt-3 mb-2">
-                    <p className="text-xs text-[#9CA3AF] mb-1.5">AI 생성 이미지</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {generatedImages.map((img, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setLightboxSrc(img.url)}
-                          className="aspect-square rounded-xl overflow-hidden relative"
-                        >
-                          <Image
-                            src={img.url}
-                            alt={`generated ${i + 1}`}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+            ) : imageError !== null && !hasAnyImage ? (
+              <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-5 text-center">
+                {imageError === 'missing_key' ? (
+                  <>
+                    <p className="text-sm text-[#6B7280] mb-1">이미지 생성 기능을 준비 중이에요.</p>
+                    <p className="text-xs text-[#9CA3AF] mb-4">사진을 직접 올리거나 글만 저장하고 계속할 수 있어요.</p>
+                    <button
+                      onClick={handleSaveAndContinue}
+                      className="w-full py-3 rounded-xl text-sm font-medium text-white"
+                      style={{ backgroundColor: section.color }}
+                    >
+                      글만 저장하고 계속하기 →
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-[#6B7280] mb-4">이미지 생성에 실패했어요.</p>
+                    <button
+                      onClick={handleGenerateImages}
+                      className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white mb-2"
+                    >
+                      다시 시도
+                    </button>
+                    <button
+                      onClick={handleSaveAndContinue}
+                      className="w-full py-2.5 rounded-xl text-xs text-[#9CA3AF]"
+                    >
+                      글만 저장하고 계속하기
+                    </button>
+                  </>
                 )}
-
-                {/* 업로드 슬롯 */}
-                <div className="mb-4">
-                  <p className="text-xs text-[#9CA3AF] mb-1.5">직접 찍은 사진 (최대 2장)</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[0, 1].map((i) => (
-                      <div key={i} className="aspect-square rounded-xl overflow-hidden relative border border-[#E5E3DF] bg-[#FAFAFA]">
-                        {uploadedImages[i] ? (
-                          <>
-                            <Image
-                              src={uploadedImages[i]!}
-                              alt={`upload ${i + 1}`}
-                              fill
-                              className="object-cover"
-                              unoptimized
-                            />
-                            <button
-                              onClick={() => handleRemoveUpload(i)}
-                              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-xs flex items-center justify-center"
-                            >
-                              ×
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => uploadRefs[i].current?.click()}
-                            className="w-full h-full flex flex-col items-center justify-center text-[#C9C5BE] active:opacity-70"
-                          >
-                            <span className="text-2xl leading-none mb-1">+</span>
-                            <span className="text-[10px]">사진 추가</span>
-                          </button>
-                        )}
-                        <input
-                          ref={uploadRefs[i]}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleUploadFile(i, file);
-                            e.target.value = '';
-                          }}
-                        />
+              </div>
+            ) : (
+              <>
+                {/* 통합 5슬롯 갤러리 */}
+                <div className="mt-3 mb-3">
+                  <p className="text-xs text-[#9CA3AF] mb-2">
+                    AI 이미지와 직접 찍은 사진을 자유롭게 섞어 최대 5장
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {[0, 1, 2].map((i) => renderSlot(i))}
+                  </div>
+                  <div className="flex gap-2 justify-center">
+                    {[3, 4].map((i) => (
+                      <div key={i} style={{ width: 'calc((100% - 16px) / 3)' }}>
+                        {renderSlot(i)}
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <button
-                  onClick={handleSaveAndContinue}
-                  disabled={saving || !canSave}
-                  className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-2 disabled:opacity-60 transition-opacity"
-                  style={{ backgroundColor: section.color }}
-                >
-                  {saving ? '저장 중...' : '저장하고 다음 영역으로 →'}
-                </button>
+                {/* AI 생성 실패 인라인 알림 (업로드 이미지는 있을 때) */}
+                {imageError && hasAnyImage && (
+                  <div className="mb-3 rounded-xl bg-[#FFF7ED] border border-[#FED7AA] px-3 py-2.5 flex items-center justify-between">
+                    <p className="text-xs text-[#92400E]">AI 이미지 생성에 실패했어요.</p>
+                    <button onClick={handleGenerateImages} className="text-xs font-medium text-[#92400E] ml-3 flex-shrink-0">
+                      다시 시도
+                    </button>
+                  </div>
+                )}
 
-                {generatedImages.length > 0 && (
+                {canSave && (
                   <button
-                    onClick={handleEditImages}
+                    onClick={handleSaveAndContinue}
+                    disabled={saving || !canSave}
+                    className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-2 disabled:opacity-60 transition-opacity"
+                    style={{ backgroundColor: section.color }}
+                  >
+                    {saving ? '저장 중...' : '저장하고 다음 영역으로 →'}
+                  </button>
+                )}
+
+                {generatedImages.some((img) => img.url) && (
+                  <button
+                    onClick={handleEditAiImages}
                     className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white text-[#6B7280] mb-3"
                   >
-                    이미지 다시 만들기
+                    AI 이미지 다시 만들기
                   </button>
                 )}
 
@@ -798,38 +901,6 @@ export default function MomentPage() {
                   </div>
                 )}
               </>
-            ) : (
-              <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-5 text-center">
-                {imageError === 'missing_key' ? (
-                  <>
-                    <p className="text-sm text-[#6B7280] mb-1">이미지 생성 기능을 준비 중이에요.</p>
-                    <p className="text-xs text-[#9CA3AF] mb-4">사진을 직접 올리거나 글만 저장하고 계속할 수 있어요.</p>
-                    <button
-                      onClick={handleSaveAndContinue}
-                      className="w-full py-3 rounded-xl text-sm font-medium text-white"
-                      style={{ backgroundColor: section.color }}
-                    >
-                      글만 저장하고 계속하기 →
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-[#6B7280] mb-4">이미지 생성에 실패했어요.</p>
-                    <button
-                      onClick={handleGenerateImages}
-                      className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white mb-2"
-                    >
-                      다시 시도
-                    </button>
-                    <button
-                      onClick={handleSaveAndContinue}
-                      className="w-full py-2.5 rounded-xl text-xs text-[#9CA3AF]"
-                    >
-                      글만 저장하고 계속하기
-                    </button>
-                  </>
-                )}
-              </div>
             )}
           </>
         )}
