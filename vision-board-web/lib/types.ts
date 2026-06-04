@@ -81,6 +81,8 @@ export interface SectionData {
   situationText?: string;
   miniStory?: string;
   generatedImages?: string[];
+  imageDescriptions?: string[];          // AI 제안 한국어 묘사 3개 (사용자 편집 가능)
+  uploadedImages?: (string | null)[];   // 사용자 직접 업로드 이미지 (최대 2개)
 }
 
 export interface BoardData {

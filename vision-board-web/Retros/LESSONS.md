@@ -19,6 +19,22 @@
 
 ---
 
+## API 설계
+
+### 사용자 확인이 필요한 흐름은 생성 API를 제안용/실행용으로 분리 #coding #api-design
+단일 API가 프롬프트 생성+이미지 생성을 묶으면 중간에 사용자 개입(확인/수정)이 불가능하다.
+`/describe`(제안·확인용) + `/generate`(실제 생성용)로 분리하면 단계별 UX 제어가 유연해진다.
+
+---
+
+## Storage
+
+### localStorage 이미지 업로드는 maxWidth 제한 필수 #coding #storage
+사용자 업로드 이미지를 quality 압축만 하면 원본이 클 때 수 MB가 된다.
+`compressImage(raw, 0.60, 800)` 처럼 maxWidth 상한을 지정해야 섹션×이미지 누적이 localStorage 한도(5-10MB)를 초과하지 않는다.
+
+---
+
 ## AI 프롬프트
 
 ### 감정 금지는 금지어 + ❌/✅ 대체 예시를 함께 줘야 효과적 #coding #ai-prompt

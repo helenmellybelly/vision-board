@@ -85,6 +85,12 @@ export default function ScenePage() {
 
       <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push(`/section/${sectionId}`)}
+            className="text-[#9CA3AF] text-lg leading-none mr-1 active:opacity-60"
+          >
+            ‹
+          </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
           <span className="font-semibold text-sm">{section.title.split(' — ')[0]} · 장면</span>
         </div>
