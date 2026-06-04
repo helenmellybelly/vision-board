@@ -8,7 +8,6 @@ import {
   loadBoard,
   markSectionComplete,
   resetAiImages,
-  resetImages,
   resetToAnswers,
   resetToDescriptions,
   resetToScene,
@@ -25,14 +24,15 @@ import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 
-type Step = 'situation' | 'story' | 'describe' | 'images';
+type Step = 'situation' | 'story' | 'describe' | 'method' | 'images';
 
-const STEP_ORDER: Step[] = ['situation', 'story', 'describe', 'images'];
+const STEP_ORDER: Step[] = ['situation', 'story', 'describe', 'method', 'images'];
 const STEP_LABELS: Record<Step, string> = {
   situation: '① 순간',
   story: '② 스토리',
-  describe: '③ 묘사 확인',
-  images: '④ 이미지',
+  describe: '③ 원하는 모습',
+  method: '④ 방법 선택',
+  images: '⑤ 이미지',
 };
 
 function renderStory(text: string) {
@@ -50,6 +50,25 @@ function renderStory(text: string) {
       </span>
     );
   });
+}
+
+function StoryToggle({ story, color }: { story: string; color: string }) {
+  return (
+    <details className="mb-3 rounded-xl border border-[#E5E3DF] bg-white overflow-hidden">
+      <summary className="px-4 py-2.5 text-xs text-[#9CA3AF] cursor-pointer list-none flex justify-between items-center select-none">
+        <span>📖 스토리 다시 보기</span>
+        <span className="text-[10px]">▾</span>
+      </summary>
+      <div className="px-4 pb-3 pt-2 border-t border-[#F5F5F3]">
+        <p
+          className="text-xs leading-relaxed text-[#374151]"
+          style={{ borderLeft: `2px solid ${color}40`, paddingLeft: 8 }}
+        >
+          {renderStory(story)}
+        </p>
+      </div>
+    </details>
+  );
 }
 
 interface GeneratedImage {
@@ -83,15 +102,17 @@ export default function MomentPage() {
   const [descriptions, setDescriptions] = useState<string[]>(['', '', '']);
   const [describeLoading, setDescribeLoading] = useState(false);
   const [describeError, setDescribeError] = useState(false);
+  const [editingDescIdx, setEditingDescIdx] = useState<number | null>(null);
+  const [editingDescText, setEditingDescText] = useState('');
 
-  // images step — 5 slots (0-2: AI+override, 3-4: upload only)
+  // images step
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<'missing_key' | 'failed' | null>(null);
   const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null, null, null]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [regeneratingSlot, setRegeneratingSlot] = useState<number | null>(null);
-  const [activeDescIdx, setActiveDescIdx] = useState<number | null>(null);
+  const [visibleSlots, setVisibleSlots] = useState(3);
 
   const uploadRefs = [
     useRef<HTMLInputElement>(null),
@@ -133,6 +154,10 @@ export default function MomentPage() {
         imgs[3] ?? null,
         imgs[4] ?? null,
       ]);
+      let vs = 3;
+      if (imgs[3]) vs = 4;
+      if (imgs[4]) vs = 5;
+      setVisibleSlots(vs);
     }
     // resume at correct step
     if (sec.generatedImages && sec.generatedImages.length > 0) setStep('images');
@@ -151,7 +176,6 @@ export default function MomentPage() {
   const sectionData = board.sections[sectionId];
   const slots = sectionData?.extractedSlots ?? {};
 
-  // 슬롯 i의 표시 URL: 업로드 > AI 순서
   function getSlotUrl(i: number): string | null {
     if (uploadedImages[i]) return uploadedImages[i];
     if (i < 3 && i < generatedImages.length && generatedImages[i]?.url) return generatedImages[i].url;
@@ -397,6 +421,7 @@ export default function MomentPage() {
 
   const chips = section.situationChips ?? [];
   const stepIndex = STEP_ORDER.indexOf(step);
+  const sectionName = section.title.split(' — ')[0];
 
   function renderSlot(i: number) {
     const url = getSlotUrl(i);
@@ -487,7 +512,7 @@ export default function MomentPage() {
       <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-sm">{section.title.split(' — ')[0]} · 순간</span>
+          <span className="font-semibold text-sm">{sectionName} · 순간</span>
         </div>
         <button onClick={() => router.push('/dashboard')} className="text-xs text-[#9CA3AF] py-1">
           대시보드로
@@ -577,8 +602,8 @@ export default function MomentPage() {
           <ChatBubble role="user" content={submittedSituation} />
         )}
 
-        {/* STEP 2: Story — images 단계에서는 숨김 */}
-        {(step === 'story' || step === 'describe') && (
+        {/* STEP 2: Story */}
+        {step === 'story' && (
           <>
             {storyLoading ? (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4">
@@ -598,49 +623,45 @@ export default function MomentPage() {
                   <p className="text-sm leading-relaxed">{renderStory(story)}</p>
                 </div>
 
-                {step === 'story' && (
-                  <>
-                    {!usedAdditional && !showAdditional ? (
-                      <button
-                        onClick={() => setShowAdditional(true)}
-                        className="text-xs text-[#9CA3AF] underline mb-3"
-                      >
-                        더 담고 싶은 장면이 있어요
-                      </button>
-                    ) : showAdditional ? (
-                      <div className="mb-3">
-                        <textarea
-                          value={additionalInput}
-                          onChange={(e) => setAdditionalInput(e.target.value)}
-                          placeholder="예: 친구와 저녁 먹는 장면, 아침 커피 한 잔..."
-                          className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-sm leading-relaxed resize-none focus:outline-none focus:border-[#C9C5BE] mb-2"
-                          rows={2}
-                        />
-                        <button
-                          onClick={handleRegenerate}
-                          disabled={!additionalInput.trim() || regenerating}
-                          className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white text-[#374151] disabled:opacity-40"
-                        >
-                          {regenerating ? '다시 그리는 중...' : '다시 그려줘'}
-                        </button>
-                      </div>
-                    ) : null}
-
+                {!usedAdditional && !showAdditional ? (
+                  <button
+                    onClick={() => setShowAdditional(true)}
+                    className="text-xs text-[#9CA3AF] underline mb-3"
+                  >
+                    더 담고 싶은 장면이 있어요
+                  </button>
+                ) : showAdditional ? (
+                  <div className="mb-3">
+                    <textarea
+                      value={additionalInput}
+                      onChange={(e) => setAdditionalInput(e.target.value)}
+                      placeholder="예: 친구와 저녁 먹는 장면, 아침 커피 한 잔..."
+                      className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-sm leading-relaxed resize-none focus:outline-none focus:border-[#C9C5BE] mb-2"
+                      rows={2}
+                    />
                     <button
-                      onClick={handleGoToDescribe}
-                      className="w-full py-3.5 rounded-xl text-sm font-medium text-white"
-                      style={{ backgroundColor: section.color }}
+                      onClick={handleRegenerate}
+                      disabled={!additionalInput.trim() || regenerating}
+                      className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white text-[#374151] disabled:opacity-40"
                     >
-                      이미지 묘사 골라볼게 →
+                      {regenerating ? '다시 그리는 중...' : '다시 그려줘'}
                     </button>
-                  </>
-                )}
+                  </div>
+                ) : null}
+
+                <button
+                  onClick={handleGoToDescribe}
+                  className="w-full py-3.5 rounded-xl text-sm font-medium text-white"
+                  style={{ backgroundColor: section.color }}
+                >
+                  원하는 모습 고르러 가기 →
+                </button>
               </>
             ) : null}
           </>
         )}
 
-        {/* STEP 3: Describe — describe 단계에서만 표시 */}
+        {/* STEP 3: Describe */}
         {step === 'describe' && (
           <>
             <button
@@ -649,14 +670,22 @@ export default function MomentPage() {
                 setDescriptions(['', '', '']);
                 setStep('story');
               }}
-              className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-2 mb-1 active:opacity-60"
+              className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-2 mb-3 active:opacity-60"
             >
               ← 스토리로 돌아가기
             </button>
 
+            <div className="mb-3">
+              <p className="text-sm font-semibold text-[#1C1B19]">
+                '{sectionName}' 섹션에서 원하는 이미지를 만들어보자
+              </p>
+            </div>
+
+            {story && <StoryToggle story={story} color={section.color} />}
+
             <ChatBubble
               role="assistant"
-              content="어떤 장면으로 만들어볼까요? 아래 묘사를 직접 수정해도 돼요."
+              content="어떤 장면으로 만들어볼까요? 탭해서 직접 수정할 수 있어요."
             />
 
             {describeLoading ? (
@@ -671,10 +700,7 @@ export default function MomentPage() {
             ) : describeError ? (
               <div className="mt-2 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4 text-center mb-4">
                 <p className="text-sm text-[#6B7280] mb-3">묘사 생성에 실패했어요.</p>
-                <button
-                  onClick={fetchDescriptions}
-                  className="text-sm text-[#374151] underline"
-                >
+                <button onClick={fetchDescriptions} className="text-sm text-[#374151] underline">
                   다시 시도
                 </button>
               </div>
@@ -683,54 +709,64 @@ export default function MomentPage() {
                 {descriptions.map((desc, i) => (
                   <div
                     key={i}
-                    className="rounded-2xl border px-4 py-3 transition-colors"
+                    className="rounded-2xl border px-4 py-3 transition-colors cursor-pointer"
                     style={{
-                      borderColor: activeDescIdx === i ? section.color + '60' : '#E5E3DF',
-                      backgroundColor: activeDescIdx === i ? section.color + '08' : '#ffffff',
+                      borderColor: editingDescIdx === i ? section.color + '80' : '#E5E3DF',
+                      backgroundColor: editingDescIdx === i ? section.color + '08' : '#ffffff',
                     }}
-                    onFocus={() => setActiveDescIdx(i)}
-                    onBlur={() => setActiveDescIdx(null)}
+                    onClick={() => {
+                      if (editingDescIdx !== i) {
+                        setEditingDescIdx(i);
+                        setEditingDescText(desc);
+                      }
+                    }}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        className="text-[10px] font-semibold"
-                        style={{ color: section.color }}
-                      >
-                        장면 {i + 1}
-                      </span>
-                      <span
-                        className="text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                        style={{ backgroundColor: section.color + '18', color: section.color }}
-                      >
-                        ✏ 수정 가능
-                      </span>
-                    </div>
-                    <textarea
-                      value={desc}
-                      onChange={(e) => {
-                        const updated = [...descriptions];
-                        updated[i] = e.target.value;
-                        setDescriptions(updated);
-                      }}
-                      rows={2}
-                      placeholder="직접 수정할 수 있어요"
-                      className="w-full text-sm leading-relaxed resize-none outline-none bg-transparent placeholder:text-[#D1CEC9]"
-                    />
+                    <span className="text-[10px] font-semibold block mb-1.5" style={{ color: section.color }}>
+                      장면 {i + 1}
+                    </span>
+                    {editingDescIdx === i ? (
+                      <>
+                        <textarea
+                          value={editingDescText}
+                          onChange={(e) => setEditingDescText(e.target.value)}
+                          rows={2}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full text-sm leading-relaxed resize-none outline-none bg-transparent placeholder:text-[#D1CEC9]"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const updated = [...descriptions];
+                            updated[i] = editingDescText;
+                            setDescriptions(updated);
+                            saveImageDescriptions(sectionId, updated);
+                            setEditingDescIdx(null);
+                          }}
+                          className="mt-2 w-full py-1.5 rounded-lg text-xs font-semibold text-white"
+                          style={{ backgroundColor: section.color }}
+                        >
+                          저장
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-sm leading-relaxed text-[#374151]">{desc}</p>
+                    )}
                   </div>
                 ))}
-                <p className="text-[11px] text-[#B0ABA4] text-center mb-4">AI가 제안한 묘사예요. 탭해서 직접 수정할 수 있어요.</p>
+                <p className="text-[11px] text-[#B0ABA4] text-center mt-1 mb-3">탭해서 수정할 수 있어요</p>
               </div>
             ) : null}
 
             {!describeLoading && (
               <>
-                {descriptions.some(Boolean) && (
+                {descriptions.some(Boolean) && editingDescIdx === null && (
                   <button
-                    onClick={handleGenerateImages}
+                    onClick={() => setStep('method')}
                     className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-2"
                     style={{ backgroundColor: section.color }}
                   >
-                    이 모습들로 만들게요 →
+                    이 모습으로 이미지 만들기 →
                   </button>
                 )}
                 <button
@@ -744,66 +780,79 @@ export default function MomentPage() {
           </>
         )}
 
-        {/* STEP 4: Images */}
+        {/* STEP 4: Method */}
+        {step === 'method' && (
+          <>
+            <button
+              onClick={() => setStep('describe')}
+              className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-2 mb-3 active:opacity-60"
+            >
+              ← 묘사 수정하기
+            </button>
+
+            {story && <StoryToggle story={story} color={section.color} />}
+
+            <div className="space-y-1.5 mb-4">
+              {descriptions.map((d, i) => d ? (
+                <div key={i} className="rounded-xl border border-[#E5E3DF] bg-[#FAFAFA] px-3 py-2.5">
+                  <span className="text-[10px] font-semibold" style={{ color: section.color }}>장면 {i + 1}</span>
+                  <p className="text-sm text-[#374151] mt-0.5 leading-relaxed">{d}</p>
+                </div>
+              ) : null)}
+            </div>
+
+            <ChatBubble role="assistant" content="이미지를 어떻게 만들까요?" />
+
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={handleGenerateImages}
+                className="flex-1 rounded-2xl border-2 px-4 py-5 text-center active:opacity-70 transition-opacity"
+                style={{ borderColor: section.color, backgroundColor: section.color + '0d' }}
+              >
+                <div className="text-xl mb-1.5">✦</div>
+                <div className="text-sm font-semibold" style={{ color: section.color }}>AI로 만들기</div>
+                <div className="text-[11px] text-[#9CA3AF] mt-0.5">3장 생성해줄게요</div>
+              </button>
+              <button
+                onClick={() => setStep('images')}
+                className="flex-1 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-5 text-center active:opacity-70 transition-opacity"
+              >
+                <div className="text-xl mb-1.5">↑</div>
+                <div className="text-sm font-semibold text-[#374151]">직접 올리기</div>
+                <div className="text-[11px] text-[#9CA3AF] mt-0.5">내 사진 사용</div>
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* STEP 5: Images */}
         {step === 'images' && (
           <>
-            {/* 이전 단계 맥락 요약 칩 */}
-            {story && (
-              <details className="mb-3 rounded-xl border border-[#E5E3DF] bg-white overflow-hidden">
-                <summary className="px-4 py-2.5 text-xs text-[#9CA3AF] cursor-pointer list-none flex justify-between items-center select-none">
-                  <span>스토리 · 묘사 확인 완료</span>
-                  <span className="text-[10px]">펼치기 ▾</span>
-                </summary>
-                <div className="px-4 pb-3 pt-2 border-t border-[#F5F5F3]">
-                  <p className="text-xs text-[#6B7280] leading-relaxed line-clamp-3 mb-2">{story}</p>
-                  {descriptions.some(Boolean) && (
-                    <div className="space-y-1">
-                      {descriptions.map((d, i) => d ? (
-                        <p key={i} className="text-[11px] text-[#9CA3AF]">
-                          <span style={{ color: section.color }} className="font-medium">장면 {i + 1}</span> {d}
-                        </p>
-                      ) : null)}
-                    </div>
-                  )}
-                </div>
-              </details>
-            )}
+            {story && <StoryToggle story={story} color={section.color} />}
 
             <ChatBubble
               role="assistant"
               content="이미지를 채워볼게요. AI 이미지나 직접 찍은 사진, 또는 자유롭게 섞어서 최대 5장."
             />
 
-            {/* Back button (only before images load) */}
             {!imageLoading && generatedImages.length === 0 && !imageError && (
               <button
-                onClick={async () => {
-                  resetToDescriptions(sectionId);
-                  setGeneratedImages([]);
-                  setImageError(null);
-                  setStep('describe');
-                  await fetchDescriptions();
-                }}
+                onClick={() => setStep('method')}
                 className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-2 mb-1 active:opacity-60"
               >
-                ← 묘사 수정하기
+                ← 방법 다시 선택
               </button>
             )}
 
             {imageLoading ? (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-6">
                 <p className="text-xs text-[#9CA3AF] text-center mb-3">이미지를 만들고 있어요...</p>
-                <div className="grid grid-cols-3 gap-2 mb-2">
+                <div className="grid grid-cols-3 gap-2">
                   {[0, 1, 2].map((i) => (
-                    <div key={i} className="aspect-square rounded-xl bg-[#F5F5F3] animate-pulse" />
-                  ))}
-                </div>
-                <div className="flex gap-2 justify-center">
-                  {[3, 4].map((i) => (
                     <div
                       key={i}
                       className="aspect-square rounded-xl bg-[#F5F5F3] animate-pulse"
-                      style={{ width: 'calc((100% - 16px) / 3)' }}
+                      style={{ animationDelay: `${i * 0.15}s` }}
                     />
                   ))}
                 </div>
@@ -842,24 +891,32 @@ export default function MomentPage() {
               </div>
             ) : (
               <>
-                {/* 통합 5슬롯 갤러리 */}
                 <div className="mt-3 mb-3">
-                  <p className="text-xs text-[#9CA3AF] mb-2">
-                    AI 이미지와 직접 찍은 사진을 자유롭게 섞어 최대 5장
-                  </p>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {[0, 1, 2].map((i) => renderSlot(i))}
                   </div>
-                  <div className="flex gap-2 justify-center">
-                    {[3, 4].map((i) => (
-                      <div key={i} style={{ width: 'calc((100% - 16px) / 3)' }}>
-                        {renderSlot(i)}
+                  {visibleSlots >= 4 && (
+                    <div className="flex gap-2 mb-2">
+                      <div style={{ width: 'calc((100% - 16px) / 3)' }}>
+                        {renderSlot(3)}
                       </div>
-                    ))}
-                  </div>
+                      {visibleSlots >= 5 && (
+                        <div style={{ width: 'calc((100% - 16px) / 3)' }}>
+                          {renderSlot(4)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {visibleSlots < 5 && (
+                    <button
+                      onClick={() => setVisibleSlots((v) => Math.min(v + 1, 5))}
+                      className="text-xs text-[#9CA3AF] underline mt-1 active:opacity-60"
+                    >
+                      + 사진 추가
+                    </button>
+                  )}
                 </div>
 
-                {/* AI 생성 실패 인라인 알림 (업로드 이미지는 있을 때) */}
                 {imageError && hasAnyImage && (
                   <div className="mb-3 rounded-xl bg-[#FFF7ED] border border-[#FED7AA] px-3 py-2.5 flex items-center justify-between">
                     <p className="text-xs text-[#92400E]">AI 이미지 생성에 실패했어요.</p>
@@ -889,7 +946,6 @@ export default function MomentPage() {
                   </button>
                 )}
 
-                {/* 수정 메뉴 */}
                 <button
                   onClick={() => { setEditMenu(!editMenu); setPendingConfirm(null); }}
                   className="w-full py-2 text-xs text-[#C9C5BE] text-center"
@@ -899,7 +955,6 @@ export default function MomentPage() {
 
                 {editMenu && (
                   <div className="mt-2 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
-                    {/* 묘사부터 */}
                     <div className="px-4 py-3 border-b border-[#F5F5F3]">
                       {pendingConfirm === 'descriptions' ? (
                         <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
@@ -916,7 +971,6 @@ export default function MomentPage() {
                         </button>
                       )}
                     </div>
-                    {/* 스토리부터 */}
                     <div className="px-4 py-3 border-b border-[#F5F5F3]">
                       {pendingConfirm === 'situation' ? (
                         <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
@@ -933,7 +987,6 @@ export default function MomentPage() {
                         </button>
                       )}
                     </div>
-                    {/* 장면부터 */}
                     <div className="px-4 py-3 border-b border-[#F5F5F3]">
                       {pendingConfirm === 'scene' ? (
                         <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
@@ -950,7 +1003,6 @@ export default function MomentPage() {
                         </button>
                       )}
                     </div>
-                    {/* 답변부터 */}
                     <div className="px-4 py-3">
                       {pendingConfirm === 'answers' ? (
                         <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
@@ -977,7 +1029,6 @@ export default function MomentPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Lightbox */}
       {lightboxSrc && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
