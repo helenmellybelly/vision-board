@@ -76,8 +76,11 @@ export default function BoardPage() {
       <div className="px-4 md:px-6 space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 animate-fadeIn">
         {SECTIONS.map((section) => {
           const sectionData = board.sections[section.id];
-          const rawImages = sectionData.generatedImages ?? [];
-          const images: (string | null)[] = [rawImages[0] ?? null, rawImages[1] ?? null, rawImages[2] ?? null];
+          const uploaded = sectionData.uploadedImages ?? [];
+          const generated = sectionData.generatedImages ?? [];
+          const images: (string | null)[] = [0, 1, 2].map(
+            (i) => uploaded[i] || (generated[i] || null)
+          );
           const keyword = sectionData.extractedSlots?.keyword ?? sectionData.slots[2 as SlotId]?.text;
           const isComplete = sectionData.status === 'completed';
 

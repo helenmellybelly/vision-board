@@ -67,7 +67,7 @@ export default function DashboardPage() {
             <ProcessGuide />
           </div>
           <h1 className="text-2xl font-bold">
-            {userName ? `${userName}의 작업 현황` : '작업 현황'}
+            {userName ? `${userName}이 그려가는 삶` : '지금 그려가는 내 삶'}
           </h1>
         </div>
 
