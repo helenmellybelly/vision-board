@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { loadBoard } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionData, SectionId, SectionStatus } from '@/lib/types';
@@ -37,21 +36,9 @@ const STATUS_STYLE: Record<SectionStatus, { bg: string; text: string }> = {
   completed: { bg: '#D1FAE5', text: '#059669' },
 };
 
-function getImageStrip(sectionData: SectionData): string[] {
-  const results: string[] = [];
-  const uploaded = sectionData.uploadedImages ?? [];
-  const generated = sectionData.generatedImages ?? [];
-  for (let i = 0; i < 5 && results.length < 3; i++) {
-    if (uploaded[i]) { results.push(uploaded[i]!); continue; }
-    if (i < 3 && generated[i]) { results.push(generated[i]); }
-  }
-  return results;
-}
-
 export default function DashboardPage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
-  const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
     setBoard(loadBoard());
@@ -80,7 +67,7 @@ export default function DashboardPage() {
             <ProcessGuide />
           </div>
           <h1 className="text-2xl font-bold">
-            {userName ? `${userName}의 비전보드` : '내 비전보드'}
+            {userName ? `${userName}의 작업 현황` : '작업 현황'}
           </h1>
         </div>
 
@@ -114,10 +101,6 @@ export default function DashboardPage() {
             const statusStyle = STATUS_STYLE[status];
             const isCompleted = status === 'completed';
             const isTextDone = status === 'text_complete' || status === 'completed';
-            const imageStrip = isCompleted ? getImageStrip(sectionData) : [];
-            const storyPreview = isCompleted && sectionData.miniStory
-              ? sectionData.miniStory.replace(/\*\*/g, '').slice(0, 60)
-              : null;
 
             return (
               <button
@@ -129,27 +112,6 @@ export default function DashboardPage() {
                   borderColor: isCompleted ? section.color + '40' : '#E5E3DF',
                 }}
               >
-                {/* 이미지 스트립 (완성 섹션만) */}
-                {imageStrip.length > 0 && (
-                  <div className="flex gap-0.5 h-20 overflow-hidden">
-                    {imageStrip.map((url, idx) => (
-                      <button
-                        key={idx}
-                        onClick={(e) => { e.stopPropagation(); setLightbox(url); }}
-                        className="flex-1 relative overflow-hidden"
-                      >
-                        <Image
-                          src={url}
-                          alt={`${section.title} image ${idx + 1}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -188,12 +150,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* 스토리 프리뷰 */}
-                  {storyPreview && (
-                    <p className="mt-2 text-[11px] text-[#6B7280] leading-relaxed line-clamp-2">
-                      {storyPreview}...
-                    </p>
-                  )}
                 </div>
               </button>
             );
@@ -227,23 +183,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 이미지 라이트박스 */}
-      {lightbox && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden">
-            <Image
-              src={lightbox}
-              alt="full view"
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-        </div>
-      )}
     </main>
   );
 }
