@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { loadBoard } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionData, SectionId, SectionStatus } from '@/lib/types';
+import ProcessBar from '@/components/ProcessBar';
+import ProcessGuide from '@/components/ProcessGuide';
 
 function getSectionRoute(sectionData: SectionData, sectionId: SectionId): string {
   switch (sectionData.status) {
@@ -12,13 +15,13 @@ function getSectionRoute(sectionData: SectionData, sectionId: SectionId): string
     case 'in_progress':
       return `/section/${sectionId}`;
     case 'text_complete':
-      return sectionData.sceneText ? `/moment/${sectionId}` : `/scene/${sectionId}`;
+      if (!sectionData.sceneText) return `/scene/${sectionId}`;
+      if (!sectionData.miniStory) return `/moment/${sectionId}`;
+      return `/scenes/${sectionId}`;
     case 'completed':
-      return `/moment/${sectionId}`;
+      return `/scenes/${sectionId}`;
   }
 }
-import ProcessBar from '@/components/ProcessBar';
-import ProcessGuide from '@/components/ProcessGuide';
 
 const STATUS_LABEL: Record<SectionStatus, string> = {
   not_started: '시작 전',
@@ -34,9 +37,21 @@ const STATUS_STYLE: Record<SectionStatus, { bg: string; text: string }> = {
   completed: { bg: '#D1FAE5', text: '#059669' },
 };
 
+function getImageStrip(sectionData: SectionData): string[] {
+  const results: string[] = [];
+  const uploaded = sectionData.uploadedImages ?? [];
+  const generated = sectionData.generatedImages ?? [];
+  for (let i = 0; i < 5 && results.length < 3; i++) {
+    if (uploaded[i]) { results.push(uploaded[i]!); continue; }
+    if (i < 3 && generated[i]) { results.push(generated[i]); }
+  }
+  return results;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
     setBoard(loadBoard());
@@ -99,59 +114,86 @@ export default function DashboardPage() {
             const statusStyle = STATUS_STYLE[status];
             const isCompleted = status === 'completed';
             const isTextDone = status === 'text_complete' || status === 'completed';
+            const imageStrip = isCompleted ? getImageStrip(sectionData) : [];
+            const storyPreview = isCompleted && sectionData.miniStory
+              ? sectionData.miniStory.replace(/\*\*/g, '').slice(0, 60)
+              : null;
 
             return (
               <button
                 key={section.id}
                 onClick={() => router.push(getSectionRoute(sectionData, section.id))}
-                className="w-full text-left rounded-2xl p-4 border transition-all active:scale-[0.98]"
+                className="w-full text-left rounded-2xl border transition-all active:scale-[0.98] overflow-hidden"
                 style={{
                   backgroundColor: isCompleted ? section.lightColor : 'white',
                   borderColor: isCompleted ? section.color + '40' : '#E5E3DF',
                 }}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: isCompleted ? section.color + '20' : section.lightColor }}
-                    >
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: section.color }} />
+                {/* 이미지 스트립 (완성 섹션만) */}
+                {imageStrip.length > 0 && (
+                  <div className="flex gap-0.5 h-20 overflow-hidden">
+                    {imageStrip.map((url, idx) => (
+                      <button
+                        key={idx}
+                        onClick={(e) => { e.stopPropagation(); setLightbox(url); }}
+                        className="flex-1 relative overflow-hidden"
+                      >
+                        <Image
+                          src={url}
+                          alt={`${section.title} image ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: isCompleted ? section.color + '20' : section.lightColor }}
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: section.color }} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">{section.shortTitle ?? section.title.split(' — ')[0]}</p>
+                        {section.title.split(' — ')[1] && (
+                          <p className="text-xs text-[#9CA3AF] mt-0.5">{section.title.split(' — ')[1]}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm">{section.shortTitle ?? section.title.split(' — ')[0]}</p>
-                      {section.title.split(' — ')[1] && (
-                        <p className="text-xs text-[#9CA3AF] mt-0.5">{section.title.split(' — ')[1]}</p>
-                      )}
+
+                    {/* 상태 표시 */}
+                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <div className="flex items-center gap-1">
+                        <div
+                          className="w-2 h-2 rounded-full transition-colors"
+                          style={{ backgroundColor: isTextDone ? section.color : '#E5E3DF' }}
+                        />
+                        <div
+                          className="w-2 h-2 rounded-full transition-colors"
+                          style={{ backgroundColor: isCompleted ? section.color : '#E5E3DF' }}
+                        />
+                      </div>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
+                      >
+                        {isCompleted && '✓ '}{STATUS_LABEL[status]}
+                      </span>
                     </div>
                   </div>
 
-                  {/* 상태 표시 */}
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    {/* 2단계 진행 도트 */}
-                    <div className="flex items-center gap-1">
-                      <div
-                        className="w-2 h-2 rounded-full transition-colors"
-                        style={{ backgroundColor: isTextDone ? section.color : '#E5E3DF' }}
-                        title="글 완료"
-                      />
-                      <div
-                        className="w-2 h-2 rounded-full transition-colors"
-                        style={{ backgroundColor: isCompleted ? section.color : '#E5E3DF' }}
-                        title="장면 완료"
-                      />
-                    </div>
-                    {/* 상태 뱃지 */}
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={{
-                        backgroundColor: statusStyle.bg,
-                        color: statusStyle.text,
-                      }}
-                    >
-                      {isCompleted && '✓ '}{STATUS_LABEL[status]}
-                    </span>
-                  </div>
+                  {/* 스토리 프리뷰 */}
+                  {storyPreview && (
+                    <p className="mt-2 text-[11px] text-[#6B7280] leading-relaxed line-clamp-2">
+                      {storyPreview}...
+                    </p>
+                  )}
                 </div>
               </button>
             );
@@ -184,6 +226,24 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* 이미지 라이트박스 */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden">
+            <Image
+              src={lightbox}
+              alt="full view"
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
