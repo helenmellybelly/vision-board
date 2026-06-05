@@ -76,12 +76,10 @@ export default function ScenesPage() {
 
   // images
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  const [imageLoading, setImageLoading] = useState(false);
-  const [imageError, setImageError] = useState<'missing_key' | 'failed' | null>(null);
   const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null, null, null]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [regeneratingSlot, setRegeneratingSlot] = useState<number | null>(null);
   const [visibleSlots, setVisibleSlots] = useState(3);
+  const [urlInput, setUrlInput] = useState('');
 
   const uploadRefs = [
     useRef<HTMLInputElement>(null),
@@ -189,68 +187,6 @@ export default function ScenesPage() {
     }
   }
 
-  async function handleGenerateImages() {
-    if (!descriptions.some(Boolean)) return;
-    setImageLoading(true);
-    setImageError(null);
-    try {
-      const res = await fetch('/api/image/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          descriptions,
-          sectionTitle: section?.title.split(' — ')[0] ?? '',
-          sceneText: sectionData?.sceneText ?? '',
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setImageError(data.code === 'MISSING_KEY' ? 'missing_key' : 'failed');
-        return;
-      }
-      const imgs: GeneratedImage[] = data.images ?? [];
-      setGeneratedImages(imgs);
-      Promise.all(imgs.map((img) => compressImage(img.url))).then((compressed) => {
-        saveGeneratedImages(sectionId, compressed);
-      });
-    } catch {
-      setImageError('failed');
-    } finally {
-      setImageLoading(false);
-    }
-  }
-
-  async function handleRegenerateSlot(index: number) {
-    if (!descriptions[index]) return;
-    setRegeneratingSlot(index);
-    try {
-      const res = await fetch('/api/image/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          descriptions: [descriptions[index]],
-          sectionTitle: section?.title.split(' — ')[0] ?? '',
-          sceneText: sectionData?.sceneText ?? '',
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.images?.length > 0) {
-        const compressed = await compressImage(data.images[0].url);
-        const updated = [...generatedImages];
-        const existing = updated[index];
-        if (existing) {
-          updated[index] = { ...existing, url: compressed };
-        } else {
-          updated[index] = { url: compressed, prompt: data.images[0].prompt, index };
-        }
-        setGeneratedImages(updated);
-        saveGeneratedImages(sectionId, updated.map((img) => img.url));
-      }
-    } finally {
-      setRegeneratingSlot(null);
-    }
-  }
-
   async function handleUploadFile(index: number, file: File) {
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -262,6 +198,21 @@ export default function ScenesPage() {
       saveUploadedImage(sectionId, index, compressed);
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleAddUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+    const emptyIdx = [0, 1, 2, 3, 4].find((i) => i < visibleSlots && !getSlotUrl(i));
+    if (emptyIdx === undefined) return;
+    const updated = [...uploadedImages];
+    updated[emptyIdx] = url;
+    setUploadedImages(updated);
+    saveUploadedImage(sectionId, emptyIdx, url);
+    if (emptyIdx >= visibleSlots - 1 && visibleSlots < 5) {
+      setVisibleSlots((v) => Math.min(v + 1, 5));
+    }
+    setUrlInput('');
   }
 
   function handleRemoveSlot(index: number) {
@@ -296,7 +247,6 @@ export default function ScenesPage() {
     setDescriptions(['', '', '']);
     setGeneratedImages([]);
     setUploadedImages([null, null, null, null, null]);
-    setImageError(null);
     setEditMenu(false);
     setPendingConfirm(null);
     await fetchDescriptions();
@@ -313,10 +263,6 @@ export default function ScenesPage() {
     return null;
   }
 
-  function isAiSlot(i: number): boolean {
-    return !uploadedImages[i] && i < 3 && i < generatedImages.length && !!generatedImages[i]?.url;
-  }
-
   const hasAnyImage = generatedImages.some((img) => img.url) || uploadedImages.some(Boolean);
 
   if (!section) return null;
@@ -325,18 +271,12 @@ export default function ScenesPage() {
 
   function renderSlot(i: number) {
     const url = getSlotUrl(i);
-    const ai = isAiSlot(i);
-    const isRegenerating = regeneratingSlot === i;
     return (
       <div
         key={i}
         className="aspect-square rounded-xl overflow-hidden relative border border-[#E5E3DF] bg-[#FAFAFA]"
       >
-        {isRegenerating ? (
-          <div className="w-full h-full bg-[#F5F5F3] animate-pulse flex items-center justify-center">
-            <span className="text-[10px] text-[#B0ABA4]">생성 중...</span>
-          </div>
-        ) : url ? (
+        {url ? (
           <>
             <button
               onClick={() => setLightboxSrc(url)}
@@ -350,36 +290,12 @@ export default function ScenesPage() {
                 unoptimized
               />
             </button>
-            {!ai && (
-              <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] text-white/80 pointer-events-none">
-                내 사진
-              </div>
-            )}
             <button
               onClick={() => handleRemoveSlot(i)}
               className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-xs flex items-center justify-center z-10"
             >
               ×
             </button>
-            {ai && (
-              <div
-                className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-1.5 px-1 pb-1.5 pt-5"
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.60) 0%, transparent 100%)' }}
-              >
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleRegenerateSlot(i); }}
-                  className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[9px] text-white border border-white/30 active:opacity-70"
-                >
-                  ↻ 다시 생성
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); uploadRefs[i].current?.click(); }}
-                  className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[9px] text-white border border-white/30 active:opacity-70"
-                >
-                  ↑ 직접 올리기
-                </button>
-              </div>
-            )}
           </>
         ) : (
           <button
@@ -533,104 +449,55 @@ export default function ScenesPage() {
 
         {/* Images section */}
         <div className="mb-3">
-          <p className="text-sm font-semibold text-[#1C1B19] mb-0.5">이미지 추가하기</p>
-          <p className="text-xs text-[#9CA3AF]">AI로 만들거나 직접 사진을 올릴 수 있어요. 없어도 저장 가능해요.</p>
+          <p className="text-sm font-semibold text-[#1C1B19] mb-0.5">나의 비전보드 이미지 찾기</p>
+          <p className="text-xs text-[#9CA3AF]">직접 올리거나 URL 주소로 불러올 수 있어요.</p>
         </div>
 
-        {imageLoading ? (
-          <div className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-6 mb-3">
-            <p className="text-xs text-[#9CA3AF] text-center mb-3">이미지를 만들고 있어요...</p>
-            <div className="grid grid-cols-3 gap-2">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-square rounded-xl bg-[#F5F5F3] animate-pulse"
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
-            </div>
+        <div className="mb-3">
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            {[0, 1, 2].map((i) => renderSlot(i))}
           </div>
-        ) : (
-          <>
-            {!hasAnyImage && imageError === null && (
-              <button
-                onClick={handleGenerateImages}
-                disabled={!descriptions.some(Boolean)}
-                className="w-full rounded-2xl border-2 px-4 py-4 text-center active:opacity-70 transition-opacity mb-3 disabled:opacity-40"
-                style={{ borderColor: section.color, backgroundColor: section.color + '0d' }}
-              >
-                <div className="text-lg mb-1">✦</div>
-                <div className="text-sm font-semibold" style={{ color: section.color }}>AI로 3장 만들기</div>
-                <div className="text-[11px] text-[#9CA3AF] mt-0.5">묘사를 바탕으로 생성해줄게요</div>
-              </button>
-            )}
-
-            {imageError !== null && !hasAnyImage && (
-              <div className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4 text-center mb-3">
-                {imageError === 'missing_key' ? (
-                  <>
-                    <p className="text-sm text-[#6B7280] mb-1">이미지 생성 기능을 준비 중이에요.</p>
-                    <p className="text-xs text-[#9CA3AF]">사진을 직접 올리거나 이미지 없이 저장할 수 있어요.</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-[#6B7280] mb-3">이미지 생성에 실패했어요.</p>
-                    <button
-                      onClick={handleGenerateImages}
-                      className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white"
-                    >
-                      다시 시도
-                    </button>
-                  </>
-                )}
+          {visibleSlots >= 4 && (
+            <div className="flex gap-2 mb-2">
+              <div style={{ width: 'calc((100% - 16px) / 3)' }}>
+                {renderSlot(3)}
               </div>
-            )}
-
-            <div className="mb-3">
-              <div className="grid grid-cols-3 gap-2 mb-2">
-                {[0, 1, 2].map((i) => renderSlot(i))}
-              </div>
-              {visibleSlots >= 4 && (
-                <div className="flex gap-2 mb-2">
-                  <div style={{ width: 'calc((100% - 16px) / 3)' }}>
-                    {renderSlot(3)}
-                  </div>
-                  {visibleSlots >= 5 && (
-                    <div style={{ width: 'calc((100% - 16px) / 3)' }}>
-                      {renderSlot(4)}
-                    </div>
-                  )}
+              {visibleSlots >= 5 && (
+                <div style={{ width: 'calc((100% - 16px) / 3)' }}>
+                  {renderSlot(4)}
                 </div>
               )}
-              {visibleSlots < 5 && (
-                <button
-                  onClick={() => setVisibleSlots((v) => Math.min(v + 1, 5))}
-                  className="text-xs text-[#9CA3AF] underline mt-1 active:opacity-60"
-                >
-                  + 사진 추가
-                </button>
-              )}
             </div>
+          )}
+          {visibleSlots < 5 && (
+            <button
+              onClick={() => setVisibleSlots((v) => Math.min(v + 1, 5))}
+              className="text-xs text-[#9CA3AF] underline mt-1 active:opacity-60"
+            >
+              + 사진 추가
+            </button>
+          )}
+        </div>
 
-            {hasAnyImage && generatedImages.some((img) => img.url) && (
-              <button
-                onClick={handleGenerateImages}
-                className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white text-[#6B7280] mb-3"
-              >
-                AI 이미지 다시 만들기
-              </button>
-            )}
-
-            {imageError && hasAnyImage && (
-              <div className="mb-3 rounded-xl bg-[#FFF7ED] border border-[#FED7AA] px-3 py-2.5 flex items-center justify-between">
-                <p className="text-xs text-[#92400E]">AI 이미지 생성에 실패했어요.</p>
-                <button onClick={handleGenerateImages} className="text-xs font-medium text-[#92400E] ml-3 flex-shrink-0">
-                  다시 시도
-                </button>
-              </div>
-            )}
-          </>
-        )}
+        {/* URL 입력 */}
+        <div className="flex gap-2 mb-4">
+          <input
+            type="url"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl(); }}
+            placeholder="이미지 URL 주소 붙여넣기"
+            className="flex-1 text-xs px-3 py-2.5 rounded-xl border border-[#E5E3DF] bg-white outline-none focus:border-[#9CA3AF] placeholder:text-[#C9C5BE]"
+          />
+          <button
+            onClick={handleAddUrl}
+            disabled={!urlInput.trim()}
+            className="px-3 py-2.5 rounded-xl text-xs font-medium text-white disabled:opacity-40 transition-opacity"
+            style={{ backgroundColor: section.color }}
+          >
+            불러오기
+          </button>
+        </div>
 
         {/* Save button */}
         <button
@@ -639,7 +506,7 @@ export default function ScenesPage() {
           className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-3 disabled:opacity-60 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
-          {saving ? '저장 중...' : hasAnyImage ? '저장하고 다음 영역으로 →' : '이미지 없이 저장하고 계속 →'}
+          {saving ? '저장 중...' : '저장'}
         </button>
 
         {/* Edit menu */}

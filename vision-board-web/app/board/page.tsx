@@ -7,6 +7,39 @@ import { SECTIONS } from '@/lib/questions';
 import { BoardData, SlotId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 
+function StoryToggle({ story, color }: { story: string; color: string }) {
+  const lines = story.split('\n');
+  const rendered = lines.map((line, li) => {
+    const parts = line.split(/\*\*(.*?)\*\*/g);
+    return (
+      <span key={li}>
+        {parts.map((part, i) =>
+          i % 2 === 1
+            ? <strong key={i} className="font-semibold text-[#1C1B19]">{part}</strong>
+            : part
+        )}
+        {li < lines.length - 1 && <br />}
+      </span>
+    );
+  });
+  return (
+    <details className="mt-2 rounded-xl border border-[#E5E3DF] bg-white overflow-hidden">
+      <summary className="px-4 py-2.5 text-xs text-[#9CA3AF] cursor-pointer list-none flex justify-between items-center select-none">
+        <span>📖 스토리 보기</span>
+        <span className="text-[10px]">▾</span>
+      </summary>
+      <div className="px-4 pb-3 pt-2 border-t border-[#F5F5F3]">
+        <p
+          className="text-xs leading-relaxed text-[#374151]"
+          style={{ borderLeft: `2px solid ${color}40`, paddingLeft: 8 }}
+        >
+          {rendered}
+        </p>
+      </div>
+    </details>
+  );
+}
+
 export default function BoardPage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
@@ -105,6 +138,11 @@ export default function BoardPage() {
                   </div>
                 ))}
               </div>
+
+              {/* 스토리 */}
+              {isComplete && sectionData.miniStory && (
+                <StoryToggle story={sectionData.miniStory} color={section.color} />
+              )}
             </div>
           );
         })}

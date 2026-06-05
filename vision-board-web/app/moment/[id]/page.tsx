@@ -151,6 +151,12 @@ export default function MomentPage() {
 
       <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push(`/scene/${sectionId}`)}
+            className="text-[#9CA3AF] text-xs mr-1 active:opacity-60"
+          >
+            ←
+          </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
           <span className="font-semibold text-sm">{sectionName} · 순간</span>
         </div>
