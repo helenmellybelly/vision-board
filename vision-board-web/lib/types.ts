@@ -97,8 +97,8 @@ export interface BoardData {
   futureDayStory?: string;
 
   // 토리 정원사 — 온보딩
-  bucketListItem?: string;
-  bucketListFeeling?: string;
+  bucketListItems: string[];       // 버킷리스트 자유 입력 목록
+  bucketListFeeling?: string;      // 선택한 항목의 감정
   gardenState?: 'empty' | 'seeds' | 'sprouting';
 }
 

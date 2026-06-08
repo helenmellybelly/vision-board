@@ -2,16 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { markOnboardingDone, saveUserName, saveOnboardingStep, saveBucketListItem, saveBucketListFeeling, saveGardenState, loadBoard } from '@/lib/storage';
+import { markOnboardingDone, saveUserName, saveOnboardingStep, saveBucketListItems, saveBucketListFeeling, saveGardenState, loadBoard } from '@/lib/storage';
 
 type Step = 1 | 2 | 3 | 4;
-type BucketPhase = 'input' | 'imagine' | 'feeling' | 'connect';
+type BucketPhase = 'input' | 'select' | 'imagine' | 'feeling' | 'connect';
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [bucketPhase, setBucketPhase] = useState<BucketPhase>('input');
-  const [bucketInput, setBucketInput] = useState('');
+  const [bucketItems, setBucketItems] = useState<string[]>([]);
+  const [bucketRaw, setBucketRaw] = useState('');
+  const [selectedItem, setSelectedItem] = useState('');
   const [feelingInput, setFeelingInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [savedName, setSavedName] = useState('');
@@ -27,8 +29,9 @@ export default function OnboardingPage() {
       setSavedName(board.userName);
       setNameInput(board.userName);
     }
-    if (board.bucketListItem) {
-      setBucketInput(board.bucketListItem);
+    if (board.bucketListItems && board.bucketListItems.length > 0) {
+      setBucketItems(board.bucketListItems);
+      setBucketRaw(board.bucketListItems.join('\n'));
     }
   }, []);
 
@@ -40,9 +43,25 @@ export default function OnboardingPage() {
   }
 
   function handleBucketSubmit() {
-    const item = bucketInput.trim();
-    if (!item) return;
-    saveBucketListItem(item);
+    const items = bucketRaw.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (items.length === 0) return;
+    setBucketItems(items);
+    saveBucketListItems(items);
+    if (items.length === 1) {
+      setSelectedItem(items[0]);
+      setBucketPhase('imagine');
+      setTypingDots(true);
+      setTimeout(() => {
+        setTypingDots(false);
+        setBucketPhase('feeling');
+      }, 1800);
+    } else {
+      setBucketPhase('select');
+    }
+  }
+
+  function handleSelectItem(item: string) {
+    setSelectedItem(item);
     setBucketPhase('imagine');
     setTypingDots(true);
     setTimeout(() => {
@@ -88,7 +107,7 @@ export default function OnboardingPage() {
 
       <div className="flex-1 flex flex-col animate-fadeIn" key={step}>
 
-        {/* STEP 1: 토리 등장 + 정원사 비유 */}
+        {/* STEP 1: 토리 등장 + 비전보드 설명 */}
         {step === 1 && (
           <div className="flex-1 flex flex-col justify-center space-y-7">
             <div className="space-y-4">
@@ -96,23 +115,20 @@ export default function OnboardingPage() {
               <div className="space-y-2">
                 <p className="text-sm text-[#9CA3AF]">안녕? 나는 토리야.</p>
                 <h1 className="text-2xl font-bold leading-snug">
-                  네가 원하는 삶을 살 수 있도록<br />돕는 정원사야.
+                  비전보드는<br />네가 그리고 싶은 인생의 그림이야.
                 </h1>
               </div>
             </div>
             <div className="space-y-3">
-              <div className="bg-[#F5F5F3] rounded-2xl p-4 space-y-3">
+              <div className="bg-[#F5F5F3] rounded-2xl p-4">
                 <p className="text-sm leading-relaxed">
-                  너 그거 아니?<br /><br />
-                  도토리가 책상 위에 있으면 영원히 작은 도토리야.<br />
-                  그런데 땅에 심으면 커다란 참나무가 돼.
-                </p>
-                <p className="text-sm leading-relaxed">
-                  너도 그만큼 엄청난 잠재력을 가진 도토리와 같아.
+                  처음엔 막연해도 괜찮아.<br />
+                  질문을 따라가다 보면 어느새 완성되어 있을 거야.
                 </p>
               </div>
               <p className="text-[#6B7280] leading-relaxed text-sm">
-                네가 어떤 참나무로 자라날지, 나 정말 궁금해.
+                나는 네 옆에서 지켜볼게.<br />
+                네가 스스로 답을 찾아가는 걸 도와주는 정원사니까.
               </p>
             </div>
             <button
@@ -125,7 +141,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* STEP 2: 꿈꾸는 도토리 (버킷리스트 → 상상 → 감정 → 연결) */}
+        {/* STEP 2: 버킷리스트 자유입력 → 선택 → 상상 → 감정 → 연결 */}
         {step === 2 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
             {/* 토리 아이콘 */}
@@ -136,35 +152,61 @@ export default function OnboardingPage() {
               <span>🐿️</span>
             </div>
 
-            {/* Phase: 버킷리스트 입력 */}
+            {/* Phase: 버킷리스트 입력 (여러 개) */}
             {bucketPhase === 'input' && (
               <>
                 <div>
                   <h2 className="text-2xl font-bold leading-snug">
-                    그럼, 네가 가장 먼저<br />심고 싶은 도토리는 뭐야?
+                    인생 버킷리스트,<br />떠오르는 대로 써봐.
                   </h2>
                   <p className="text-sm text-[#6B7280] mt-2 leading-relaxed">
-                    언젠가 꼭 해보고 싶은 거. 크든 작든, 현실적이든 아니든.<br />
-                    지금 딱 떠오르는 게 있으면 그게 맞아.
+                    해보고 싶은 것, 가보고 싶은 곳, 경험해보고 싶은 것.<br />
+                    크든 작든, 현실적이든 아니든 다 괜찮아.
                   </p>
                 </div>
-                <input
-                  type="text"
-                  value={bucketInput}
-                  onChange={(e) => setBucketInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && bucketInput.trim() && handleBucketSubmit()}
-                  placeholder="예: 혼자 해외여행 가기"
-                  className="w-full text-lg border-b-2 border-[#E5E3DF] pb-2 outline-none bg-transparent focus:border-[#1C1B19] transition-colors"
+                <textarea
+                  value={bucketRaw}
+                  onChange={(e) => setBucketRaw(e.target.value)}
+                  placeholder="예: 혼자 해외여행 가기
+춤 배우기
+좋아하는 팀 우승 직관"
+                  className="w-full text-base border-b-2 border-[#E5E3DF] pb-2 outline-none bg-transparent focus:border-[#1C1B19] transition-colors resize-none"
+                  rows={3}
                   autoFocus
                 />
                 <button
                   onClick={handleBucketSubmit}
-                  disabled={!bucketInput.trim()}
+                  disabled={!bucketRaw.trim()}
                   className="w-full py-4 rounded-2xl text-base font-semibold text-white disabled:opacity-40"
                   style={{ backgroundColor: '#1C1B19' }}
                 >
-                  이 도토리를 심어볼게
+                  다 썼어
                 </button>
+              </>
+            )}
+
+            {/* Phase: 하나 고르기 */}
+            {bucketPhase === 'select' && (
+              <>
+                <div>
+                  <h2 className="text-2xl font-bold leading-snug">
+                    여러 개 중에 하나를<br />골라볼까?
+                  </h2>
+                  <p className="text-sm text-[#6B7280] mt-2">
+                    어떤 게 가장 이루고 싶어?
+                  </p>
+                </div>
+                <div className="space-y-2.5">
+                  {bucketItems.map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSelectItem(item)}
+                      className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] text-sm leading-relaxed active:opacity-70 transition-opacity hover:border-[#1C1B19]"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
               </>
             )}
 
@@ -174,7 +216,7 @@ export default function OnboardingPage() {
                 <div>
                   <p className="text-sm text-[#9CA3AF] mb-1">토리</p>
                   <h2 className="text-xl font-bold leading-snug">
-                    그걸 이루고 있는<br />너의 모습을 상상해봐.
+                    그게 이루어진<br />하루를 상상해봐.
                   </h2>
                 </div>
                 <p className="text-[#6B7280] text-sm leading-relaxed">
@@ -231,17 +273,19 @@ export default function OnboardingPage() {
                   </h2>
                 </div>
                 <p className="text-[#6B7280] text-sm leading-relaxed">
-                  지금 네가 느낀 그 생생한 감각.<br />
-                  비전보드는 그걸 6개의 삶의 장면으로 만드는 거야.
+                  이 기분을 기억해.<br />
+                  그 감각을 6가지 삶의 영역으로 펼쳐보는 것,<br />그게 비전보드야.
                 </p>
                 <div className="bg-[#F5F5F3] rounded-2xl p-4 space-y-1">
-                  <p className="text-xs text-[#9CA3AF]">네가 말한 도토리</p>
-                  <p className="text-sm font-semibold">"{bucketInput}"</p>
-                  <p className="text-xs text-[#9CA3AF] mt-2">그 순간의 기분</p>
+                  <p className="text-xs text-[#9CA3AF]">네 버킷리스트</p>
+                  {bucketItems.slice(0, 3).map((item, i) => (
+                    <p key={i} className="text-sm font-semibold">{i === bucketItems.indexOf(selectedItem) ? '→ ' : ''}{item}</p>
+                  ))}
+                  <p className="text-xs text-[#9CA3AF] mt-2">고른 항목의 느낌</p>
                   <p className="text-sm font-semibold">"{feelingInput}"</p>
                 </div>
                 <p className="text-[#6B7280] text-sm leading-relaxed">
-                  그 장면들이 모이면 네 참나무 모양이 보여.
+                  각 영역에서 어떤 기분으로 살고 싶은지,<br />질문을 따라가다 보면 네 인생의 그림이 완성돼.
                 </p>
                 <button
                   onClick={() => goToStep(3)}
@@ -370,11 +414,19 @@ export default function OnboardingPage() {
           ← 이전
         </button>
       )}
-      {step > 1 && bucketPhase !== 'input' && bucketPhase !== 'imagine' && (
+      {step > 1 && bucketPhase === 'select' && (
+        <button
+          onClick={() => setBucketPhase('input')}
+          className="w-full text-[#C4C2BE] py-2 text-xs mt-4 flex items-center justify-center gap-1"
+        >
+          ← 다시 쓰기
+        </button>
+      )}
+      {step > 1 && bucketPhase !== 'input' && bucketPhase !== 'select' && bucketPhase !== 'imagine' && (
         <button
           onClick={() => {
             if (step === 2) {
-              setBucketPhase('input');
+              setBucketPhase('select');
             } else {
               goToStep((step - 1) as Step);
             }

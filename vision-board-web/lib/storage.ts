@@ -26,6 +26,7 @@ function createEmptyBoard(): BoardData {
     },
     onboardingDone: false,
     userName: '',
+    bucketListItems: [],
     startedAt: Date.now(),
   };
 }
@@ -115,9 +116,9 @@ export function markOnboardingDone(): void {
   saveBoard(board);
 }
 
-export function saveBucketListItem(item: string): void {
+export function saveBucketListItems(items: string[]): void {
   const board = loadBoard();
-  board.bucketListItem = item;
+  board.bucketListItems = items;
   saveBoard(board);
 }
 

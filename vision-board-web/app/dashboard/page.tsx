@@ -51,6 +51,9 @@ export default function DashboardPage() {
   const textCompleteCount = statuses.filter((s) => s === 'text_complete' || s === 'completed').length;
   const allTextDone = textCompleteCount === 6;
   const userName = board.userName;
+  const bucketItems = board.bucketListItems ?? [];
+  const gardenState = board.gardenState;
+  const gardenEmoji: Record<string, string> = { empty: '🏜️', seeds: '🌱', sprouting: '🌿' };
 
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full pb-10">
@@ -69,6 +72,16 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold">
             {userName ? `${userName}의 비전보드` : '내 비전보드'}
           </h1>
+          {gardenState && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-sm">{gardenEmoji[gardenState]}</span>
+              <span className="text-[11px] text-[#9CA3AF]">
+                {gardenState === 'empty' ? '씨앗을 기다리는 중' :
+                 gardenState === 'seeds' ? '씨앗을 심은 중' :
+                 '싹이 트고 있어'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 섹션 소개 — 처음 시작하는 경우 */}

@@ -35,15 +35,21 @@ export default function LandingPage() {
             <span className="text-white text-2xl">🐿️</span>
           </div>
           <p className="text-sm text-[#9CA3AF] mb-3">정원사 토리</p>
-          <h1 className="text-3xl font-bold leading-tight mb-5">
-            비전보드,<br />
-            원하는 게 생각나야<br />
-            만들 수 있다고<br />
-            생각했나요?
+          <h1 className="text-3xl font-bold leading-tight mb-4">
+            비전보드는<br />
+            그리고 싶은 내 인생의<br />
+            그림이에요.
           </h1>
-          <p className="text-[#6B7280] leading-relaxed mb-10">
-            토리는 먼저 질문해요. 막연해도 괜찮아요.
+          <p className="text-[#6B7280] leading-relaxed mb-4 text-sm">
+            처음부터 이미지를 찾을 필요 없어요.<br />
+            질문을 따라가다 보면, 어느새 완성됩니다.
           </p>
+          <div className="mb-10 p-3 rounded-xl" style={{ backgroundColor: '#F5F5F3' }}>
+            <p className="text-xs text-[#9CA3AF] font-semibold mb-1">예를 들면 이런 질문부터</p>
+            <p className="text-sm leading-relaxed text-[#6B7280]">
+              &ldquo;인생 버킷리스트, 떠오르는 대로 써봐.&rdquo;
+            </p>
+          </div>
           <button
             onClick={() => router.push('/onboarding')}
             className="w-full py-4 rounded-2xl text-base font-semibold text-white"
