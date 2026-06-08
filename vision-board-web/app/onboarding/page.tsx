@@ -92,31 +92,27 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="flex-1 flex flex-col justify-center space-y-7">
             <div className="space-y-4">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-                style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)', boxShadow: '0 8px 24px rgba(28,27,25,0.18)' }}
-              >
-                <span>🐿️</span>
-              </div>
+              <img src="/tori-gardener.png" alt="토리" className="w-28 h-28 object-contain" />
               <div className="space-y-2">
-              <p className="text-sm text-[#9CA3AF]">안녕, 나는 토리야.</p>
-              <h1 className="text-2xl font-bold leading-snug">
-                너의 꿈의 정원사.
-              </h1>
+                <p className="text-sm text-[#9CA3AF]">안녕? 나는 토리야.</p>
+                <h1 className="text-2xl font-bold leading-snug">
+                  네가 원하는 삶을 살 수 있도록<br />돕는 정원사야.
+                </h1>
               </div>
             </div>
             <div className="space-y-3">
-              <p className="text-[#6B7280] leading-relaxed text-sm">
-                네가 꿈을 말하면, 난 그 꿈을 땅에 심을게. 네 정원사니까.
-              </p>
-              <div className="bg-[#F5F5F3] rounded-2xl p-4">
+              <div className="bg-[#F5F5F3] rounded-2xl p-4 space-y-3">
                 <p className="text-sm leading-relaxed">
-                  아직 씨앗도 없어도 괜찮아.<br />
-                  너의 꿈을 찾는 것부터 함께 할게.
+                  너 그거 아니?<br /><br />
+                  도토리가 책상 위에 있으면 영원히 작은 도토리야.<br />
+                  그런데 땅에 심으면 커다란 참나무가 돼.
+                </p>
+                <p className="text-sm leading-relaxed">
+                  너도 그만큼 엄청난 잠재력을 가진 도토리와 같아.
                 </p>
               </div>
               <p className="text-[#6B7280] leading-relaxed text-sm">
-                준비됐으면 시작해보자.
+                네가 어떤 참나무로 자라날지, 나 정말 궁금해.
               </p>
             </div>
             <button
@@ -145,12 +141,11 @@ export default function OnboardingPage() {
               <>
                 <div>
                   <h2 className="text-2xl font-bold leading-snug">
-                    심고 싶은 도토리<br />
-                    하나만 떠올려봐.
+                    그럼, 네가 가장 먼저<br />심고 싶은 도토리는 뭐야?
                   </h2>
                   <p className="text-sm text-[#6B7280] mt-2 leading-relaxed">
-                    언젠가 해보고 싶은 거. 크든 작든, 현실적이든 아니든.<br />
-                    지금 당장 떠오르는 거면 충분해.
+                    언젠가 꼭 해보고 싶은 거. 크든 작든, 현실적이든 아니든.<br />
+                    지금 딱 떠오르는 게 있으면 그게 맞아.
                   </p>
                 </div>
                 <input
@@ -236,8 +231,8 @@ export default function OnboardingPage() {
                   </h2>
                 </div>
                 <p className="text-[#6B7280] text-sm leading-relaxed">
-                  지금 네가 느낀 그 생생한 기분.<br />
-                  지금부터 만들 비전보드는 그걸 시각화하는 거야.
+                  지금 네가 느낀 그 생생한 감각.<br />
+                  비전보드는 그걸 6개의 삶의 장면으로 만드는 거야.
                 </p>
                 <div className="bg-[#F5F5F3] rounded-2xl p-4 space-y-1">
                   <p className="text-xs text-[#9CA3AF]">네가 말한 도토리</p>
@@ -246,8 +241,7 @@ export default function OnboardingPage() {
                   <p className="text-sm font-semibold">"{feelingInput}"</p>
                 </div>
                 <p className="text-[#6B7280] text-sm leading-relaxed">
-                  이 감정을 6개의 영역에서 구체적인 장면으로 만들어볼 거야.<br />
-                  그게 네 참나무야.
+                  그 장면들이 모이면 네 참나무 모양이 보여.
                 </p>
                 <button
                   onClick={() => goToStep(3)}
