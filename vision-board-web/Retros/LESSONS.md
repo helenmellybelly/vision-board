@@ -84,3 +84,11 @@ existingDescriptions 배열에서 해당 인덱스를 제외한 나머지를 프
 
 ### 다수 파일 변경 전 1개 파일로 스코프 검증 후 전체 적용 #strategy #workflow
 작은 프리뷰(1개 파일 수정 → 사용자 확인) 없이 다수 파일을 한 번에 변경하면 방향이 틀렸을 때 되돌리는 비용이 크다. 텍스트/메타포 변경처럼 해석 여지가 있는 작업은 먼저 1개 파일로 스코프를 검증받은 후 확산시킬 것.
+
+### 타입 변경은 모든 참조 파일을 동시에 검색/변경해야 한다 #coding #workflow
+`string` → `string[]` 같은 필드 타입 변경 시 types.ts만 바꾸면 storage.ts, page.tsx 등 사용처에서 참조 타입 불일치 에러가 발생한다.
+변경 전 `grep -r "legacyFieldName"`으로 모든 참조 파일을 찾은 후, 안전하게 일괄 수정할 것.
+
+### UI 플로우 검증은 Playwright로 실제 브라우저 동작까지 확인 #strategy #ux
+`build` 성공만으로 UI 플로우(phase 전환, 버튼 활성화 조건 등)가 올바른지 알 수 없다.
+온보딩 같은 multi-step UI는 Playwright로 실제 textarea 입력→버튼 클릭→다음 phase 전환까지 풀사이클을 테스트해야 한다.
