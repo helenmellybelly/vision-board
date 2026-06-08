@@ -2,17 +2,27 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.1 프로덕션 라이브 — 토리 리브랜드 + 온보딩 카피 개선 (feat/tori-rebrand 브랜치)
+- **상태:** v6.3 개발 완료 — 온보딩 Step 2 select phase 제거 + 버킷리스트 없음 fallback + 토리 애니메이션 + 랜딩 캐러셀 (feat/tori-rebrand 브랜치)
 - **주요 기능:**
-  - 🐿️ 토리 캐릭터 (꿈의 정원사) — lumi 완전 대체
-  - 온보딩 4단계: Step 1 토리 소개(도토리→참나무 비유) → Step 2 버킷리스트 심기 → Step 3 이름+상태 → Step 4 진입
-  - 토리 일러스트 이미지(tori-gardener.png) Step 1 상단 표시
+  - 🐿️ 토리 캐릭터 (꿈의 정원사) — float CSS 애니메이션 적용
+  - 온보딩 Step 2: select phase 제거, textarea 후 바로 imagine → feeling 직행
+  - 버킷리스트 없음 fallback: 빈 입력 시 "괜찮아, 지금부터 나랑 원하는 삶의 모습을 발견해가면 돼"
+  - 랜딩 페이지: 예시 비전보드 이미지 오토 롤링 캐러셀 (Unsplash 3장, 4초 간격)
   - 섹션 채팅(토리) → 장면 → 순간 → 스토리 → 묘사 확인 → 이미지
   - AI 이미지 3장 구도 다양성 강제 (와이드/미디엄/클로즈업), 통합 5슬롯 갤러리
 - **알려진 이슈:** feat/tori-rebrand → master PR 미생성
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-09 (v6.2-v6.3 온보딩 UX 개선 + 랜딩 캐러셀)
+- 온보딩 Step 2: select phase 제거 — textarea 입력 후 바로 imagine → feeling → connect 직행 (BucketPhase.SELECT → 제거)
+- "버킷리스트 없어요" fallback: 빈 textarea → 토리 위로 메시지 → noBucketPhase → Step 3 이동
+- `globals.css`: `@keyframes float` (4s, 8px) + `@keyframes breath` (3s, scale 1.05) 추가
+- Step 1 토리 이미지: `animate-float` 클래스 적용 (부드러운 상하 애니메이션)
+- 랜딩 페이지: 예시 비전보드 오토 롤링 캐러셀 (Unsplash 3장, 4초 자동 전환, 닷 네비게이션, hover 일시정지)
+- 캐러셀 verification.png: Playwright로 실제 렌더링 확인 완료
+- 배운 점: `.next` 캐시 purge가 필요한 상황 인지; Start-Process → npm은 `cmd.exe` 경유 필요 (Windows)
 
 ### 2026-06-08 (v6.1 온보딩 카피 + 토리 이미지)
 - 온보딩 Step 1: 이모지 박스 → 실제 토리 일러스트(`public/tori-gardener.png`) 교체

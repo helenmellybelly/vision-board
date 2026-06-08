@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { markOnboardingDone, saveUserName, saveOnboardingStep, saveBucketListItems, saveBucketListFeeling, saveGardenState, loadBoard } from '@/lib/storage';
 
 type Step = 1 | 2 | 3 | 4;
-type BucketPhase = 'input' | 'select' | 'imagine' | 'feeling' | 'connect';
+type BucketPhase = 'input' | 'imagine' | 'feeling' | 'connect' | 'no-bucket';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -13,7 +13,6 @@ export default function OnboardingPage() {
   const [bucketPhase, setBucketPhase] = useState<BucketPhase>('input');
   const [bucketItems, setBucketItems] = useState<string[]>([]);
   const [bucketRaw, setBucketRaw] = useState('');
-  const [selectedItem, setSelectedItem] = useState('');
   const [feelingInput, setFeelingInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [savedName, setSavedName] = useState('');
@@ -44,24 +43,12 @@ export default function OnboardingPage() {
 
   function handleBucketSubmit() {
     const items = bucketRaw.split('\n').map((s) => s.trim()).filter(Boolean);
-    if (items.length === 0) return;
+    if (items.length === 0) {
+      setBucketPhase('no-bucket');
+      return;
+    }
     setBucketItems(items);
     saveBucketListItems(items);
-    if (items.length === 1) {
-      setSelectedItem(items[0]);
-      setBucketPhase('imagine');
-      setTypingDots(true);
-      setTimeout(() => {
-        setTypingDots(false);
-        setBucketPhase('feeling');
-      }, 1800);
-    } else {
-      setBucketPhase('select');
-    }
-  }
-
-  function handleSelectItem(item: string) {
-    setSelectedItem(item);
     setBucketPhase('imagine');
     setTypingDots(true);
     setTimeout(() => {
@@ -111,7 +98,7 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="flex-1 flex flex-col justify-center space-y-7">
             <div className="space-y-4">
-              <img src="/tori-gardener.png" alt="토리" className="w-28 h-28 object-contain" />
+              <img src="/tori-gardener.png" alt="토리" className="w-28 h-28 object-contain animate-float" />
               <div className="space-y-2">
                 <p className="text-sm text-[#9CA3AF]">안녕? 나는 토리야.</p>
                 <h1 className="text-2xl font-bold leading-snug">
@@ -185,31 +172,6 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {/* Phase: 하나 고르기 */}
-            {bucketPhase === 'select' && (
-              <>
-                <div>
-                  <h2 className="text-2xl font-bold leading-snug">
-                    여러 개 중에 하나를<br />골라볼까?
-                  </h2>
-                  <p className="text-sm text-[#6B7280] mt-2">
-                    어떤 게 가장 이루고 싶어?
-                  </p>
-                </div>
-                <div className="space-y-2.5">
-                  {bucketItems.map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSelectItem(item)}
-                      className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] text-sm leading-relaxed active:opacity-70 transition-opacity hover:border-[#1C1B19]"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
             {/* Phase: 상상 중 (타이핑 애니메이션) */}
             {bucketPhase === 'imagine' && (
               <div className="flex-1 flex flex-col justify-center space-y-4">
@@ -263,6 +225,33 @@ export default function OnboardingPage() {
               </>
             )}
 
+            {/* Phase: 버킷리스트 없음 fallback */}
+            {bucketPhase === 'no-bucket' && (
+              <>
+                <div>
+                  <h2 className="text-2xl font-bold leading-snug">
+                    괜찮아.
+                  </h2>
+                  <p className="text-sm text-[#6B7280] mt-2 leading-relaxed">
+                    지금부터 나랑<br />원하는 삶의 모습을 발견해가면 돼.
+                  </p>
+                </div>
+                <div className="bg-[#F5F5F3] rounded-2xl p-4">
+                  <p className="text-sm leading-relaxed">
+                    질문 하나하나 따라서 가다 보면<br />
+                    네가 진짜로 바라는 게 보이기 시작할 거야.
+                  </p>
+                </div>
+                <button
+                  onClick={() => goToStep(3)}
+                  className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+                  style={{ backgroundColor: '#1C1B19' }}
+                >
+                  그래, 시작해볼게
+                </button>
+              </>
+            )}
+
             {/* Phase: 비전보드 연결 */}
             {bucketPhase === 'connect' && (
               <div className="flex-1 flex flex-col justify-center space-y-6">
@@ -279,7 +268,7 @@ export default function OnboardingPage() {
                 <div className="bg-[#F5F5F3] rounded-2xl p-4 space-y-1">
                   <p className="text-xs text-[#9CA3AF]">네 버킷리스트</p>
                   {bucketItems.slice(0, 3).map((item, i) => (
-                    <p key={i} className="text-sm font-semibold">{i === bucketItems.indexOf(selectedItem) ? '→ ' : ''}{item}</p>
+                    <p key={i} className="text-sm font-semibold">{item}</p>
                   ))}
                   <p className="text-xs text-[#9CA3AF] mt-2">고른 항목의 느낌</p>
                   <p className="text-sm font-semibold">"{feelingInput}"</p>
@@ -414,19 +403,11 @@ export default function OnboardingPage() {
           ← 이전
         </button>
       )}
-      {step > 1 && bucketPhase === 'select' && (
-        <button
-          onClick={() => setBucketPhase('input')}
-          className="w-full text-[#C4C2BE] py-2 text-xs mt-4 flex items-center justify-center gap-1"
-        >
-          ← 다시 쓰기
-        </button>
-      )}
-      {step > 1 && bucketPhase !== 'input' && bucketPhase !== 'select' && bucketPhase !== 'imagine' && (
+      {step > 1 && bucketPhase !== 'input' && bucketPhase !== 'imagine' && (
         <button
           onClick={() => {
             if (step === 2) {
-              setBucketPhase('select');
+              setBucketPhase('input');
             } else {
               goToStep((step - 1) as Step);
             }

@@ -153,5 +153,11 @@ STEP 0 예시에 "이번엔 건강 이야기야"를 넣었더니 llama-3.1-8b-in
 ### AI 이미지 3장 다양성은 구도 유형을 명시적으로 지정해야 보장된다 #coding #ai-prompt
 공통 컨텍스트(섹션 타이틀, 장면 설명)가 3장 모두에 적용되면 번역 모델이 비슷한 영어 프롬프트를 생성하여 이미지가 수렴됨. 해결: 번역 시스템 프롬프트에 "Scene 1: wide shot, Scene 2: medium shot, Scene 3: close-up"처럼 각 장면에 구도 유형을 명시적으로 강제하고 "같은 소재(책상/노트북)는 3개 중 최대 1개"처럼 중복 금지 규칙을 추가해야 한다.
 
+### Windows에서 npm start는 Start-Process 직접 호출 불가 — cmd.exe 경유 필요 #coding #workflow
+npm.exe는 실제로 cmd 스크립트이므로 `Start-Process npm`이 실패한다. `Start-Process cmd -ArgumentList "/c npm run dev"`로 경유해야 dev 서버가 정상 실행된다.
+
+### .next 캐시가 오래된 컴포넌트를 제공하면 purge가 필요하다 #coding #workflow
+개발 서버를 재시작해도 `.next` 디렉토리 내 이전 컴파일 캐시가 남아 있어 변경사항이 반영되지 않을 수 있다. `Remove-Item -Recurse -Force .next`로 캐시를 완전히 삭제한 후 재시작해야 최신 코드가 반영된다. 빌드(Vite/Turbopack)가 "통과"했어도 브라우저에 과거 코드가 표시되는 현상의 원인이다.
+
 ### 누적 렌더 조건에서 완료 단계 범위를 명시적으로 좁혀야 한다 #coding #react
 chat-accumulation 패턴(`step === 'describe' || step === 'images'`)에서 이전 단계 내용을 다음 단계에서도 표시하면 중복 렌더가 생긴다. 특히 각 단계가 별도의 "확인 완료" 역할을 가질 때는 조건을 해당 단계에만 한정(`step === 'describe'`)하고, 다음 단계에서는 접기/펼치기 요약으로 대체하는 것이 안전하다.

@@ -1,15 +1,40 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard } from '@/lib/storage';
 
 const SECTION_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#3B82F6', '#F97316', '#06B6D4'];
 const SECTION_NAMES = ['나', '건강', '관계', '일', '돈', '공간'];
 
+const CAROUSEL_IMAGES = [
+  {
+    src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80',
+    label: '자연 속에서',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=600&q=80',
+    label: '자유로운 하루',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1470071459604-7b8ec44ffd5b?w=600&q=80',
+    label: '나만의 길',
+  },
+];
+
 export default function LandingPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+
+  const nextSlide = useCallback(() => {
+    setCarouselIdx((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(nextSlide, 4000);
+    return () => clearInterval(timer);
+  }, [nextSlide]);
 
   useEffect(() => {
     const board = loadBoard();
@@ -58,6 +83,49 @@ export default function LandingPage() {
             나 발견하러 가기 →
           </button>
           <p className="text-center text-xs text-[#C4C2BE] mt-3">무료 · 가입 없이 바로 시작</p>
+        </div>
+      </section>
+
+      {/* 예시 비전보드 이미지 오토 롤링 캐러셀 */}
+      <section className="px-6 py-14 overflow-hidden">
+        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-2">이런 비전보드</p>
+        <h2 className="text-xl font-bold leading-snug mb-10">
+          누군가는<br />이렇게 그리고 있어요
+        </h2>
+        <div className="relative">
+          <div
+            className="flex transition-transform duration-700 ease-in-out"
+            style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
+          >
+            {CAROUSEL_IMAGES.map((img, i) => (
+              <div key={i} className="min-w-full flex flex-col items-center gap-3">
+                <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
+                  <img
+                    src={img.src}
+                    alt={img.label}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <p className="text-sm font-semibold text-[#6B7280]">{img.label}</p>
+              </div>
+            ))}
+          </div>
+          {/* dots */}
+          <div className="flex justify-center gap-2 mt-5">
+            {CAROUSEL_IMAGES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCarouselIdx(i)}
+                className="w-2 h-2 rounded-full transition-all duration-300"
+                style={{
+                  backgroundColor: i === carouselIdx ? '#1C1B19' : '#E5E3DF',
+                  width: i === carouselIdx ? 24 : 8,
+                }}
+                aria-label={`${i + 1}번째 이미지`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
