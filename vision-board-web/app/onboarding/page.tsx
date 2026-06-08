@@ -2,27 +2,33 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { markOnboardingDone, saveUserName, saveOnboardingStep, loadBoard } from '@/lib/storage';
+import { markOnboardingDone, saveUserName, saveOnboardingStep, saveBucketListItem, saveBucketListFeeling, saveGardenState, loadBoard } from '@/lib/storage';
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
-
-const SECTION_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#3B82F6', '#F97316', '#06B6D4'];
-const SECTION_NAMES = ['나', '건강', '관계', '일', '돈', '공간'];
+type Step = 1 | 2 | 3 | 4;
+type BucketPhase = 'input' | 'imagine' | 'feeling' | 'connect';
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
+  const [bucketPhase, setBucketPhase] = useState<BucketPhase>('input');
+  const [bucketInput, setBucketInput] = useState('');
+  const [feelingInput, setFeelingInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [savedName, setSavedName] = useState('');
+  const [gardenValue, setGardenValue] = useState<string | null>(null);
+  const [typingDots, setTypingDots] = useState(false);
 
   useEffect(() => {
     const board = loadBoard();
     if (board.onboardingStep && board.onboardingStep > 1) {
-      setStep(board.onboardingStep as Step);
+      setStep(Math.min(board.onboardingStep, 4) as Step);
     }
     if (board.userName) {
       setSavedName(board.userName);
       setNameInput(board.userName);
+    }
+    if (board.bucketListItem) {
+      setBucketInput(board.bucketListItem);
     }
   }, []);
 
@@ -33,11 +39,33 @@ export default function OnboardingPage() {
     saveOnboardingStep(s);
   }
 
+  function handleBucketSubmit() {
+    const item = bucketInput.trim();
+    if (!item) return;
+    saveBucketListItem(item);
+    setBucketPhase('imagine');
+    setTypingDots(true);
+    setTimeout(() => {
+      setTypingDots(false);
+      setBucketPhase('feeling');
+    }, 1800);
+  }
+
+  function handleFeelingSubmit() {
+    const f = feelingInput.trim();
+    if (!f) return;
+    saveBucketListFeeling(f);
+    setBucketPhase('connect');
+  }
+
   function handleNameSubmit() {
     const n = nameInput.trim();
     setSavedName(n);
     saveUserName(n);
-    goToStep(3);
+    if (gardenValue) {
+      saveGardenState(gardenValue as 'empty' | 'seeds' | 'sprouting');
+    }
+    goToStep(4);
   }
 
   function handleFinish() {
@@ -45,13 +73,11 @@ export default function OnboardingPage() {
     router.replace('/welcome');
   }
 
-  const totalSteps = 7;
-
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full px-6 py-10">
-      {/* 진행 바 */}
+      {/* 진행 바 — 4단계 */}
       <div className="flex gap-1.5 mb-10">
-        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <div
             key={s}
             className="h-1 flex-1 rounded-full transition-all duration-500"
@@ -62,26 +88,37 @@ export default function OnboardingPage() {
 
       <div className="flex-1 flex flex-col animate-fadeIn" key={step}>
 
-        {/* STEP 1: 인사 + lumi 소개 */}
+        {/* STEP 1: 토리 등장 + 정원사 비유 */}
         {step === 1 && (
           <div className="flex-1 flex flex-col justify-center space-y-7">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
                 style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)', boxShadow: '0 8px 24px rgba(28,27,25,0.18)' }}
               >
-                <span className="text-white text-2xl">✦</span>
+                <span>🐿️</span>
               </div>
-              <div>
-                <p className="text-sm text-[#9CA3AF] mb-1">나는 lumi야.</p>
-                <h1 className="text-2xl font-bold leading-snug">
-                  원하는 삶을<br />같이 그려보자.
-                </h1>
+              <div className="space-y-2">
+              <p className="text-sm text-[#9CA3AF]">안녕, 나는 토리야.</p>
+              <h1 className="text-2xl font-bold leading-snug">
+                너의 꿈의 정원사.
+              </h1>
               </div>
             </div>
-            <p className="text-[#6B7280] leading-relaxed text-sm">
-              막연하게 느끼는 것들도 이야기하다 보면 선명해져. 오늘 그 시작을 해보자.
-            </p>
+            <div className="space-y-3">
+              <p className="text-[#6B7280] leading-relaxed text-sm">
+                네가 꿈을 말하면, 난 그 꿈을 땅에 심을게. 네 정원사니까.
+              </p>
+              <div className="bg-[#F5F5F3] rounded-2xl p-4">
+                <p className="text-sm leading-relaxed">
+                  아직 씨앗도 없어도 괜찮아.<br />
+                  너의 꿈을 찾는 것부터 함께 할게.
+                </p>
+              </div>
+              <p className="text-[#6B7280] leading-relaxed text-sm">
+                준비됐으면 시작해보자.
+              </p>
+            </div>
             <button
               onClick={() => goToStep(2)}
               className="w-full py-4 rounded-2xl text-base font-semibold text-white"
@@ -92,179 +129,262 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* STEP 2: 이름 */}
+        {/* STEP 2: 꿈꾸는 도토리 (버킷리스트 → 상상 → 감정 → 연결) */}
         {step === 2 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">먼저,</p>
-              <h2 className="text-2xl font-bold">뭐라고 불러줄까?</h2>
-            </div>
-            <input
-              type="text"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && nameInput.trim() && handleNameSubmit()}
-              placeholder="이름 또는 닉네임"
-              className="w-full text-lg border-b-2 border-[#E5E3DF] pb-2 outline-none bg-transparent focus:border-[#1C1B19] transition-colors"
-              autoFocus
-            />
-            <button
-              onClick={handleNameSubmit}
-              disabled={!nameInput.trim()}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white disabled:opacity-40"
-              style={{ backgroundColor: '#1C1B19' }}
+            {/* 토리 아이콘 */}
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+              style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)' }}
             >
-              이걸로 할게
-            </button>
+              <span>🐿️</span>
+            </div>
+
+            {/* Phase: 버킷리스트 입력 */}
+            {bucketPhase === 'input' && (
+              <>
+                <div>
+                  <h2 className="text-2xl font-bold leading-snug">
+                    심고 싶은 도토리<br />
+                    하나만 떠올려봐.
+                  </h2>
+                  <p className="text-sm text-[#6B7280] mt-2 leading-relaxed">
+                    언젠가 해보고 싶은 거. 크든 작든, 현실적이든 아니든.<br />
+                    지금 당장 떠오르는 거면 충분해.
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={bucketInput}
+                  onChange={(e) => setBucketInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && bucketInput.trim() && handleBucketSubmit()}
+                  placeholder="예: 혼자 해외여행 가기"
+                  className="w-full text-lg border-b-2 border-[#E5E3DF] pb-2 outline-none bg-transparent focus:border-[#1C1B19] transition-colors"
+                  autoFocus
+                />
+                <button
+                  onClick={handleBucketSubmit}
+                  disabled={!bucketInput.trim()}
+                  className="w-full py-4 rounded-2xl text-base font-semibold text-white disabled:opacity-40"
+                  style={{ backgroundColor: '#1C1B19' }}
+                >
+                  이 도토리를 심어볼게
+                </button>
+              </>
+            )}
+
+            {/* Phase: 상상 중 (타이핑 애니메이션) */}
+            {bucketPhase === 'imagine' && (
+              <div className="flex-1 flex flex-col justify-center space-y-4">
+                <div>
+                  <p className="text-sm text-[#9CA3AF] mb-1">토리</p>
+                  <h2 className="text-xl font-bold leading-snug">
+                    그걸 이루고 있는<br />너의 모습을 상상해봐.
+                  </h2>
+                </div>
+                <p className="text-[#6B7280] text-sm leading-relaxed">
+                  구체적으로. 어디서? 누구랑? 어떤 표정?
+                </p>
+                {typingDots && (
+                  <div className="flex gap-1 items-center py-2">
+                    <span className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Phase: 감정 입력 */}
+            {bucketPhase === 'feeling' && (
+              <>
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    어때, 기분이?
+                  </h2>
+                  <p className="text-sm text-[#6B7280] mt-2">
+                    상상한 그 순간, 어떤 기분이 들었어?
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={feelingInput}
+                  onChange={(e) => setFeelingInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && feelingInput.trim() && handleFeelingSubmit()}
+                  placeholder="설레는? 뿌듯한? 자유로운?"
+                  className="w-full text-lg border-b-2 border-[#E5E3DF] pb-2 outline-none bg-transparent focus:border-[#1C1B19] transition-colors"
+                  autoFocus
+                />
+                <button
+                  onClick={handleFeelingSubmit}
+                  disabled={!feelingInput.trim()}
+                  className="w-full py-4 rounded-2xl text-base font-semibold text-white disabled:opacity-40"
+                  style={{ backgroundColor: '#1C1B19' }}
+                >
+                  이 기분, 기억할게
+                </button>
+              </>
+            )}
+
+            {/* Phase: 비전보드 연결 */}
+            {bucketPhase === 'connect' && (
+              <div className="flex-1 flex flex-col justify-center space-y-6">
+                <div>
+                  <p className="text-sm text-[#9CA3AF] mb-1">토리</p>
+                  <h2 className="text-xl font-bold leading-snug">
+                    바로 그 기분이야.
+                  </h2>
+                </div>
+                <p className="text-[#6B7280] text-sm leading-relaxed">
+                  지금 네가 느낀 그 생생한 기분.<br />
+                  지금부터 만들 비전보드는 그걸 시각화하는 거야.
+                </p>
+                <div className="bg-[#F5F5F3] rounded-2xl p-4 space-y-1">
+                  <p className="text-xs text-[#9CA3AF]">네가 말한 도토리</p>
+                  <p className="text-sm font-semibold">"{bucketInput}"</p>
+                  <p className="text-xs text-[#9CA3AF] mt-2">그 순간의 기분</p>
+                  <p className="text-sm font-semibold">"{feelingInput}"</p>
+                </div>
+                <p className="text-[#6B7280] text-sm leading-relaxed">
+                  이 감정을 6개의 영역에서 구체적인 장면으로 만들어볼 거야.<br />
+                  그게 네 참나무야.
+                </p>
+                <button
+                  onClick={() => goToStep(3)}
+                  className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+                  style={{ backgroundColor: '#1C1B19' }}
+                >
+                  좋아, 그려보자
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* STEP 3: 비전보드 소개 */}
+        {/* STEP 3: 이름 + 상태 진단 */}
         {step === 3 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">{name}아,</p>
-              <h2 className="text-2xl font-bold leading-snug">
-                비전보드가 뭔지<br />알아?
-              </h2>
-            </div>
-            <p className="text-[#6B7280] leading-relaxed text-sm">
-              원하는 삶을 이미지와 글로 구체적으로 그려놓은 것. 막연하게 "잘 살고 싶다"는 마음이 또렷한 방향이 되는 거야.
-            </p>
-            <p className="text-[#6B7280] leading-relaxed text-sm">
-              나, 건강, 관계, 일, 돈, 공간 — 6가지 영역을 lumi랑 같이 채우다 보면 네가 진짜 원하는 게 뭔지 보이기 시작해.
-            </p>
-            <button
-              onClick={() => goToStep(4)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
-              style={{ backgroundColor: '#1C1B19' }}
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+              style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)' }}
             >
-              계속
-            </button>
-          </div>
-        )}
+              <span>🐿️</span>
+            </div>
 
-        {/* STEP 4: 효과성 체감 — 막연 vs 생생 */}
-        {step === 4 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">이게 왜 다른지 보여줄게.</p>
-              <h2 className="text-2xl font-bold leading-snug">막연함과 선명함의 차이</h2>
-            </div>
-            <div className="space-y-3">
-              <div className="bg-[#F5F5F3] rounded-2xl p-4">
-                <p className="text-xs text-[#9CA3AF] mb-1.5">막연한 바람</p>
-                <p className="text-sm text-[#6B7280]">"언젠가 건강하게 살고 싶다."</p>
-              </div>
-              <div className="bg-white border border-[#1C1B19]/10 rounded-2xl p-4">
-                <p className="text-xs text-[#1C1B19] font-semibold mb-1.5">생생한 장면</p>
-                <p className="text-sm leading-relaxed">
-                  "새벽 6시에 러닝 끝내고 샤워 후 커피 한 잔. 몸이 가볍고 하루가 내 것인 느낌."
-                </p>
-              </div>
-            </div>
-            <p className="text-xs text-[#9CA3AF] leading-relaxed">
-              두 번째처럼 또렷해지면, 뇌는 그쪽으로 자연히 움직이기 시작해. 그게 비전보드의 힘이야.
-            </p>
-            <button
-              onClick={() => goToStep(5)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
-              style={{ backgroundColor: '#1C1B19' }}
-            >
-              오, 그렇구나
-            </button>
-          </div>
-        )}
-
-        {/* STEP 5: 완성 비전보드 미리보기 */}
-        {step === 5 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">다 하면 이게 {name}의 것이 돼.</p>
-              <h2 className="text-2xl font-bold leading-snug">완성된 비전보드</h2>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {SECTION_COLORS.map((color, i) => (
-                <div
-                  key={i}
-                  className="aspect-square rounded-xl flex flex-col items-center justify-center gap-1"
-                  style={{ backgroundColor: color + '20', border: `1px solid ${color}30` }}
-                >
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-xs font-semibold" style={{ color }}>{SECTION_NAMES[i]}</span>
+            {!savedName ? (
+              <>
+                <div>
+                  <p className="text-sm text-[#9CA3AF] mb-1">아직 이름을 안 물어봤네.</p>
+                  <h2 className="text-2xl font-bold">
+                    뭐라고 불러줄까?
+                  </h2>
                 </div>
-              ))}
-            </div>
-            <div className="bg-[#F5F5F3] rounded-xl p-3 text-center">
-              <p className="text-xs text-[#6B7280]">섹션별 이미지 보드 + 통합 1장 + <span className="font-semibold">미래의 하루 이야기(글)</span></p>
-            </div>
-            <button
-              onClick={() => goToStep(6)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
-              style={{ backgroundColor: '#1C1B19' }}
-            >
-              나도 만들고 싶어
-            </button>
-          </div>
-        )}
-
-        {/* STEP 6: 상태 공감 */}
-        {step === 6 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold leading-snug">
-                {name}아, 요즘<br />어때?
-              </h2>
-            </div>
-            <div className="space-y-2.5">
-              {[
-                { label: '솔직히 막연해. 뭘 원하는지 모르겠어.', value: 'foggy' },
-                { label: '원하는 건 있는데 어떻게 해야 할지 모르겠어.', value: 'know' },
-                { label: '방향은 있어. 좀 더 선명하게 만들고 싶어.', value: 'vivid' },
-              ].map((opt) => (
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && nameInput.trim() && setNameInput(nameInput.trim())}
+                  placeholder="이름 또는 닉네임"
+                  className="w-full text-lg border-b-2 border-[#E5E3DF] pb-2 outline-none bg-transparent focus:border-[#1C1B19] transition-colors"
+                  autoFocus
+                />
                 <button
-                  key={opt.value}
-                  onClick={() => goToStep(7)}
-                  className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] text-sm leading-relaxed active:opacity-70 transition-opacity"
+                  onClick={() => {
+                    if (nameInput.trim()) {
+                      setSavedName(nameInput.trim());
+                      saveUserName(nameInput.trim());
+                    }
+                  }}
+                  disabled={!nameInput.trim()}
+                  className="w-full py-4 rounded-2xl text-base font-semibold text-white disabled:opacity-40"
+                  style={{ backgroundColor: '#1C1B19' }}
                 >
-                  {opt.label}
+                  이 이름으로 불러줘
                 </button>
-              ))}
-            </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="text-sm text-[#9CA3AF] mb-1">{name}아,</p>
+                  <h2 className="text-2xl font-bold leading-snug">
+                    지금 네 삶은<br />어떤 상태야?
+                  </h2>
+                </div>
+                <div className="space-y-2.5">
+                  {[
+                    { label: '아직 씨앗도 없는 텅 빈 땅이야', value: 'empty' },
+                    { label: '씨앗은 있는데 어디에 심을지 모르겠어', value: 'seeds' },
+                    { label: '이미 싹이 나고 있어. 더 잘 가꾸고 싶어', value: 'sprouting' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        setGardenValue(opt.value);
+                        saveGardenState(opt.value as 'empty' | 'seeds' | 'sprouting');
+                        goToStep(4);
+                      }}
+                      className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] text-sm leading-relaxed active:opacity-70 transition-opacity"
+                      style={{
+                        borderColor: gardenValue === opt.value ? '#1C1B19' : '#E5E3DF',
+                        backgroundColor: gardenValue === opt.value ? '#F5F5F3' : 'transparent',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {/* STEP 7: 가벼운 첫 질문 + 초대 */}
-        {step === 7 && (
+        {/* STEP 4: 진입 */}
+        {step === 4 && (
           <div className="flex-1 flex flex-col justify-center space-y-7">
             <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">좋아.</p>
+              <p className="text-sm text-[#9CA3AF] mb-1">토리</p>
               <h2 className="text-2xl font-bold leading-snug">
-                그럼 같이<br />그려보자.
+                좋아, {name}아.<br />
+                같이 그려보자.
               </h2>
             </div>
             <p className="text-[#6B7280] leading-relaxed text-sm">
-              6가지 영역을 lumi랑 대화하면서 채워. 칸 채우기가 아니라 진짜 대화야. 어디서부터 해도 괜찮고, 언제든 이어서 해도 돼.
+              나, 건강, 관계, 일, 돈, 공간 — 6가지 영역을 하나씩 채워가면<br />
+              네가 진짜 원하는 게 뭔지 보이기 시작해.
             </p>
             <div className="bg-[#F5F5F3] rounded-2xl p-4">
-              <p className="text-xs text-[#9CA3AF] mb-1">lumi가 이런 식으로 물어볼 거야</p>
-              <p className="text-sm leading-relaxed">"{name}아, 지금 '나' 영역에서 어떤 상태야? 요즘 어떻게 지내고 있어?"</p>
+              <p className="text-xs text-[#9CA3AF] mb-1">토리가 이렇게 물어볼 거야</p>
+              <p className="text-sm leading-relaxed">"{name}아, 지금 '나'는 어떤 상태야? 어떤 사람으로 살고 있어?"</p>
             </div>
             <button
               onClick={handleFinish}
               className="w-full py-4 rounded-2xl text-base font-semibold text-white"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              시작할게 →
+              시작해보자 →
             </button>
           </div>
         )}
 
       </div>
 
-      {step > 1 && (
+      {step > 1 && bucketPhase === 'input' && (
         <button
           onClick={() => goToStep((step - 1) as Step)}
+          className="w-full text-[#C4C2BE] py-2 text-xs mt-4 flex items-center justify-center gap-1"
+        >
+          ← 이전
+        </button>
+      )}
+      {step > 1 && bucketPhase !== 'input' && bucketPhase !== 'imagine' && (
+        <button
+          onClick={() => {
+            if (step === 2) {
+              setBucketPhase('input');
+            } else {
+              goToStep((step - 1) as Step);
+            }
+          }}
           className="w-full text-[#C4C2BE] py-2 text-xs mt-4 flex items-center justify-center gap-1"
         >
           ← 이전

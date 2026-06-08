@@ -61,13 +61,13 @@ export default function DashboardPage() {
         <div className="mb-6 animate-fadeIn">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <span className="text-lg">✦</span>
-              <span className="text-sm text-[#6B7280]">lumi와 함께</span>
+              <span>🐿️</span>
+              <span className="text-sm text-[#6B7280]">정원사 토리와 함께</span>
             </div>
             <ProcessGuide />
           </div>
           <h1 className="text-2xl font-bold">
-            {userName ? `${userName}이 그려가는 삶` : '지금 그려가는 내 삶'}
+            {userName ? `${userName}의 비전보드` : '내 비전보드'}
           </h1>
         </div>
 
@@ -75,7 +75,7 @@ export default function DashboardPage() {
         {textCompleteCount === 0 && (
           <div className="mb-5 bg-white rounded-2xl p-4 border border-[#E5E3DF] animate-slideUp">
             <p className="text-sm text-[#6B7280] leading-relaxed">
-              어떤 주제부터 시작해도 괜찮아. 순서는 상관없어.
+              어디부터 시작해도 괜찮아. 네가 가장 궁금한 영역부터 시작해.
             </p>
           </div>
         )}
@@ -169,7 +169,7 @@ export default function DashboardPage() {
               className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              다 됐다, 이제 장면 그리러 가자 →
+              다 됐다, 이제 장면을 그리러 가자 →
             </button>
           )}
           {completedCount > 0 && (

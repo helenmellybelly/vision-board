@@ -136,7 +136,7 @@ export default function SectionChatPage() {
   const msgs: MsgItem[] = [
     { type: 'lumi', text: section.introText },
     { type: 'lumi', text: section.whyText },
-    { type: 'lumi', text: '천천히, 떠오르는 대로 답해줘. 틀린 답은 없어.' },
+    { type: 'lumi', text: '천천히, 떠오르는 대로 답해줘. 네 정원사가 함께 할게.' },
   ];
 
   const displayCount = Math.min(qIdx, 4);

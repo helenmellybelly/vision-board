@@ -32,9 +32,9 @@ export default function LandingPage() {
             className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8"
             style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)', boxShadow: '0 8px 24px rgba(28,27,25,0.18)' }}
           >
-            <span className="text-white text-2xl">✦</span>
+            <span className="text-white text-2xl">🐿️</span>
           </div>
-          <p className="text-sm text-[#9CA3AF] mb-3">lumi</p>
+          <p className="text-sm text-[#9CA3AF] mb-3">정원사 토리</p>
           <h1 className="text-3xl font-bold leading-tight mb-5">
             비전보드,<br />
             원하는 게 생각나야<br />
@@ -42,7 +42,7 @@ export default function LandingPage() {
             생각했나요?
           </h1>
           <p className="text-[#6B7280] leading-relaxed mb-10">
-            lumi는 먼저 질문해요. 막연해도 괜찮아요.
+            토리는 먼저 질문해요. 막연해도 괜찮아요.
           </p>
           <button
             onClick={() => router.push('/onboarding')}
@@ -55,9 +55,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Contrast: 기존 vs lumi */}
+      {/* Contrast: 기존 vs 토리 */}
       <section className="px-6 py-14" style={{ backgroundColor: '#F5F5F3' }}>
-        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-5">lumi가 다른 이유</p>
+        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-5">토리가 다른 이유</p>
         <div className="space-y-3">
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#ECEAE6' }}>
             <p className="text-[11px] font-semibold text-[#9CA3AF] mb-3 uppercase tracking-wide">기존 비전보드 / Pinterest</p>
@@ -75,7 +75,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="rounded-2xl p-4 bg-white border border-[#E5E3DF]">
-            <p className="text-[11px] font-semibold text-[#1C1B19] mb-3 uppercase tracking-wide">lumi</p>
+            <p className="text-[11px] font-semibold text-[#1C1B19] mb-3 uppercase tracking-wide">토리</p>
             <div className="space-y-2">
               {[
                 '먼저 질문으로 나를 발견한다',
@@ -92,11 +92,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How lumi works */}
+      {/* How it works */}
       <section className="px-6 py-14">
         <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-2">이렇게 만들어요</p>
         <h2 className="text-xl font-bold leading-snug mb-10">
-          lumi가 묻고,<br />당신이 답하면 보여요
+          토리가 묻고,<br />당신이 답하면 보여요
         </h2>
         <div className="space-y-8">
           {[
@@ -164,10 +164,10 @@ export default function LandingPage() {
           className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-6"
           style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)', boxShadow: '0 8px 24px rgba(28,27,25,0.12)' }}
         >
-          <span className="text-white text-xl">✦</span>
+          <span className="text-white text-xl">🐿️</span>
         </div>
         <h2 className="text-2xl font-bold mb-2">지금, 첫 질문 하나부터.</h2>
-        <p className="text-sm text-[#6B7280] mb-8">막연해도 괜찮아. lumi가 물어볼게.</p>
+        <p className="text-sm text-[#6B7280] mb-8">막연해도 괜찮아. 토리가 물어볼게.</p>
         <button
           onClick={() => router.push('/onboarding')}
           className="w-full py-4 rounded-2xl text-base font-semibold text-white"

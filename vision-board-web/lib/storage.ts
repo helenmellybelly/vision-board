@@ -115,6 +115,24 @@ export function markOnboardingDone(): void {
   saveBoard(board);
 }
 
+export function saveBucketListItem(item: string): void {
+  const board = loadBoard();
+  board.bucketListItem = item;
+  saveBoard(board);
+}
+
+export function saveBucketListFeeling(feeling: string): void {
+  const board = loadBoard();
+  board.bucketListFeeling = feeling;
+  saveBoard(board);
+}
+
+export function saveGardenState(state: 'empty' | 'seeds' | 'sprouting'): void {
+  const board = loadBoard();
+  board.gardenState = state;
+  saveBoard(board);
+}
+
 export function markWelcomeSeen(): void {
   const board = loadBoard();
   board.welcomeSeen = true;

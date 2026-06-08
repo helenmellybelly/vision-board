@@ -5,25 +5,25 @@ interface Props {
 }
 
 export default function ChatBubble({ role, content, isLoading }: Props) {
-  const isLumi = role === 'assistant';
+  const isTori = role === 'assistant';
 
   return (
-    <div className={`flex ${isLumi ? 'justify-start' : 'justify-end'} mb-3`}>
-      {isLumi && (
+    <div className={`flex ${isTori ? 'justify-start' : 'justify-end'} mb-3`}>
+      {isTori && (
         <div
           className="w-7 h-7 rounded-xl flex items-center justify-center mr-2 flex-shrink-0 mt-0.5"
           style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)' }}
         >
-          <span className="text-white text-xs">✦</span>
+          <span className="text-white text-xs">🐿️</span>
         </div>
       )}
       <div
         className="max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
         style={{
-          backgroundColor: isLumi ? '#F5F5F3' : '#1C1B19',
-          color: isLumi ? '#1C1B19' : '#FFFFFF',
-          borderBottomLeftRadius: isLumi ? 4 : undefined,
-          borderBottomRightRadius: !isLumi ? 4 : undefined,
+          backgroundColor: isTori ? '#F5F5F3' : '#1C1B19',
+          color: isTori ? '#1C1B19' : '#FFFFFF',
+          borderBottomLeftRadius: isTori ? 4 : undefined,
+          borderBottomRightRadius: !isTori ? 4 : undefined,
         }}
       >
         {isLoading ? (

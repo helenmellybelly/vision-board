@@ -95,6 +95,11 @@ export interface BoardData {
   welcomeSeen?: boolean;
   oneSentence?: string;
   futureDayStory?: string;
+
+  // 토리 정원사 — 온보딩
+  bucketListItem?: string;
+  bucketListFeeling?: string;
+  gardenState?: 'empty' | 'seeds' | 'sprouting';
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];

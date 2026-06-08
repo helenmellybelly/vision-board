@@ -67,7 +67,7 @@ export default function BoardPage() {
             ‹
           </button>
           <h1 className="text-xl font-bold">내 비전보드</h1>
-          <span className="text-sm text-[#9CA3AF] ml-auto">{completedCount}/6 채워짐</span>
+          <span className="text-sm text-[#9CA3AF] ml-auto">{completedCount}/6</span>
         </div>
         <p className="text-xs text-[#9CA3AF] pl-8">막연했던 바람이, 생생한 장면이 되는 곳.</p>
       </div>
@@ -157,7 +157,7 @@ export default function BoardPage() {
             onClick={() => router.push('/finish')}
             className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
           >
-            내 비전보드 완성하기 ✦
+            내 비전보드 완성하기 🐿️
           </button>
         </div>
       )}
