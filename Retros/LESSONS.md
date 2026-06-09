@@ -26,6 +26,14 @@
 ### 중간 분기 선택지는 이탈 버튼이다 #strategy #ux
 사용자가 장면을 다 쓴 시점(commitment peak)에 "계속하기" vs "다른 섹션 먼저"를 나란히 두면, 이미 투자한 사람도 이탈한다. Hick's Law + Commitment & Consistency — 분기는 모멘텀을 끊는다. 탈출구는 헤더 소형 링크 하나로 충분하다. 중간 선택지는 제거하거나 극단적으로 격하하라.
 
+## Tooling / 미디어 처리
+
+### MP4는 브라우저에서 투명 배경 불가 — ffmpeg colorkey로 WebM 변환이 표준 해결책 #coding #video
+ffmpeg `colorkey=white:similarity:blend` + `-pix_fmt yuva420p` + WebM VP9 조합이 웹 투명 영상의 실용적 경로. similarity 낮춤(0.15)으로 캐릭터 하이라이트 보존, blend 높임(0.25)으로 경계 부드럽게. `<source src=".webm">` 우선, MP4 fallback 구조로 크로스브라우저 대응.
+
+### ffmpeg alphamerge 필터는 Windows PowerShell에서 filter_complex 세미콜론 파싱 실패 #coding #ffmpeg
+split+alphaextract+gblur+alphamerge 체인은 `-filter_complex_script` 파일 방식에서도 실패. 단순 `-vf colorkey` 파라미터 조정이 Windows 환경에서 더 안정적. alphamerge가 필요하면 Linux/Mac 환경을 사용할 것.
+
 ### AI 스토리가 인공적으로 느껴지면 사용자 표현을 격상했기 때문이다 #coding #ai-prompt
 "가벼운"을 "활기찬"으로 바꾸거나 아침→점심→저녁 구조를 강제하면 AI가 쓴 티가 난다. IKEA Effect — 자신의 말이 그대로 들어가야 "내 이야기"로 느껴진다. 프롬프트에 "위에 적힌 표현을 그대로 살려. 의역·격상 금지"를 명시하고, 구조보다 선명한 장면 1~2개에 집중하도록 유도하면 자연스러워진다.
 

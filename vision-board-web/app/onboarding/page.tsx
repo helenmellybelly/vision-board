@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   markOnboardingDone,
@@ -81,7 +81,6 @@ export default function OnboardingPage() {
   const [savedName, setSavedName] = useState('');
   const [showNameResponse, setShowNameResponse] = useState(false);
   const [acornStep, setAcornStep] = useState(-1);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const board = loadBoard();
@@ -164,17 +163,17 @@ export default function OnboardingPage() {
         {/* ══════════ ACT 0: 토리 소개 ══════════ */}
         {act === 0 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-[#F5F5F3]">
+            <div className="flex justify-center">
               <video
-                ref={videoRef}
-                src="/인사.mp4"
                 autoPlay
                 loop
                 muted
                 playsInline
-                preload="auto"
-                className="w-full h-full object-cover"
-              />
+                style={{ width: "280px", height: "280px", objectFit: "contain" }}
+              >
+                <source src="/인사-투명.webm" type="video/webm" />
+                <source src="/인사- 배경없음.mp4" type="video/mp4" />
+              </video>
             </div>
 
             <div className="space-y-1 text-center px-2">
