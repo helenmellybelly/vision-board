@@ -79,8 +79,6 @@ export default function FinishPage() {
     return { section: s, kw: kw && !sec.slots[2]?.isDeferred ? kw : null };
   }).filter((x) => x.kw);
 
-  const bucketItems = board.bucketListItems ?? [];
-
   return (
     <main className="min-h-screen flex flex-col max-w-md mx-auto w-full px-6 py-10 animate-fadeIn">
 
@@ -106,24 +104,6 @@ export default function FinishPage() {
                   {kw}
                 </span>
               ))}
-            </div>
-          )}
-
-          {bucketItems.length > 0 && (
-            <div className="bg-[#F5F5F3] rounded-2xl px-4 py-3">
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">
-                버킷리스트
-              </p>
-              <div className="space-y-1">
-                {bucketItems.slice(0, 4).map((item, i) => (
-                  <p key={i} className="text-sm text-[#6B7280] before:content-['✓'] before:mr-1.5 before:text-[#9CA3AF]">
-                    {item}
-                  </p>
-                ))}
-                {bucketItems.length > 4 && (
-                  <p className="text-xs text-[#C4C2BE] mt-1">외 {bucketItems.length - 4}개</p>
-                )}
-              </div>
             </div>
           )}
 
