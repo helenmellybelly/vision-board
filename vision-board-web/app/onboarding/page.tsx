@@ -48,8 +48,6 @@ export default function OnboardingPage() {
   const [bucketPhase, setBucketPhase] = useState<BucketPhase>('input');
   const [feelingInput, setFeelingInput] = useState('');
   const [gardenValue, setGardenValue] = useState<string | null>(null);
-  const [videoEnded, setVideoEnded] = useState(false);
-  const [videoPlaying, setVideoPlaying] = useState(false);
   const [showNameResponse, setShowNameResponse] = useState(false);
   const [acornStep, setAcornStep] = useState(-1); // -1=unseen, 0..5=story message, 6=done
   const [typingDots, setTypingDots] = useState(false);
@@ -85,13 +83,19 @@ export default function OnboardingPage() {
     }
   }, [act, acornStep]);
 
-  // 도토리 이야기 자동 전환
+  // 도토리 이야기: 탭 투 컨티뉴 + 4초 자동 진행 fallback
   useEffect(() => {
     if (acornStep >= 0 && acornStep < ACORN_MESSAGES.length - 1) {
-      const timer = setTimeout(() => setAcornStep((s) => s + 1), 2200);
+      const timer = setTimeout(() => setAcornStep((s) => s + 1), 4000);
       return () => clearTimeout(timer);
     }
   }, [acornStep]);
+
+  function handleAcornTap() {
+    if (acornStep >= 0 && acornStep < ACORN_MESSAGES.length - 1) {
+      setAcornStep((s) => s + 1);
+    }
+  }
 
   const name = savedName || '너';
 
@@ -152,17 +156,6 @@ export default function OnboardingPage() {
     router.replace('/welcome');
   }
 
-  // ── Act 0: 비디오 ──
-  function handleVideoPlay() {
-    videoRef.current?.play();
-    setVideoPlaying(true);
-  }
-
-  function handleVideoEnded() {
-    setVideoEnded(true);
-    setVideoPlaying(false);
-  }
-
   // ── 뒤로가기 ──
   function handleBack() {
     if (act === 1) { goToAct(0); return; }
@@ -199,31 +192,23 @@ export default function OnboardingPage() {
             <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-[#F5F5F3]">
               <video
                 ref={videoRef}
-                src="/tori-hello.mp4"
+                src="/인사.mp4"
+                autoPlay
+                loop
+                muted
                 playsInline
                 preload="auto"
-                onEnded={handleVideoEnded}
                 className="w-full h-full object-cover"
               />
-              {!videoPlaying && (
-                <div
-                  onClick={handleVideoPlay}
-                  className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm cursor-pointer transition-opacity hover:bg-black/10"
-                >
-                  <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#1C1B19">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="space-y-2 text-center">
-              <h1 className="text-2xl font-bold">토리가 인사했어!</h1>
               <p className="text-sm text-[#6B7280] leading-relaxed">
-                함께 꿈을 가꾸는 정원사 토리야.<br />
-                이제부터 너의 이야기를 들려줘.
+                안녕, 나는 토리야.<br />
+                네가 원하는 삶을 발견할 수 있도록<br />
+                도와주는 정원사지.<br />
+                나는 네가 원하는 삶의 이야기가 너무 궁금해.<br />
+                내 얘기 들려줄래?
               </p>
             </div>
 
@@ -232,7 +217,7 @@ export default function OnboardingPage() {
               className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              {videoEnded ? '시작할게 →' : '건너뛰기 →'}
+              다음 →
             </button>
           </div>
         )}
@@ -243,9 +228,9 @@ export default function OnboardingPage() {
             {/* 토리 프로필 + 첫인사 (정원사 정체성 + 이름 질문 통합) */}
             <div className="flex items-start gap-4">
               <img
-                src="/tori-profile.png"
+                src="/프로필상반신.png"
                 alt="토리"
-                className="w-14 h-14 rounded-2xl object-cover animate-float flex-shrink-0"
+                className="w-14 h-14 rounded-2xl object-contain flex-shrink-0"
               />
               <div className="space-y-2 flex-1">
                 <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
@@ -288,9 +273,9 @@ export default function OnboardingPage() {
             {showNameResponse && (
               <div className="flex items-start gap-4 animate-fadeIn">
                 <img
-                  src="/tori-profile.png"
+                  src="/프로필상반신.png"
                   alt="토리"
-                  className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                  className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
                 />
                 <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3">
                   <p className="text-sm leading-relaxed">
@@ -317,9 +302,9 @@ export default function OnboardingPage() {
                     <div key={i} className="flex items-start gap-4" style={{ animationDelay: `${i * 100}ms` }}>
                       {i === shown && (
                         <img
-                          src="/tori-profile.png"
+                          src="/프로필상반신.png"
                           alt="토리"
-                          className="w-12 h-12 rounded-xl object-cover flex-shrink-0 animate-fadeIn"
+                          className="w-12 h-12 rounded-xl object-contain flex-shrink-0 animate-fadeIn"
                         />
                       )}
                       <div className={i === shown ? 'flex-1 space-y-2 animate-fadeIn' : 'flex-1 space-y-2'}>
@@ -346,6 +331,18 @@ export default function OnboardingPage() {
                   ));
                 })()}
 
+                {/* 탭 투 컨티뉴 인디케이터 (마지막 메시지 제외) */}
+                {acornStep < 5 && (
+                  <div
+                    className="text-center pt-2 pb-1 cursor-pointer select-none"
+                    onClick={handleAcornTap}
+                  >
+                    <span className="text-xs text-[#9CA3AF] animate-pulse">
+                      ▼ 계속하려면 탭
+                    </span>
+                  </div>
+                )}
+
                 {/* 마지막 메시지까지 보여준 후 계속 버튼 */}
                 {acornStep === 5 && (
                   <div className="animate-fadeIn pt-2">
@@ -367,9 +364,9 @@ export default function OnboardingPage() {
                 {/* 토리 메시지 */}
                 <div className="flex items-start gap-4">
                   <img
-                    src="/tori-profile.png"
+                    src="/프로필상반신.png"
                     alt="토리"
-                    className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                    className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
                   />
                   <div className="space-y-3 flex-1">
                     <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
@@ -478,9 +475,9 @@ export default function OnboardingPage() {
             {/* 토리 메시지 */}
             <div className="flex items-start gap-4">
               <img
-                src="/tori-profile.png"
+                src="/프로필상반신.png"
                 alt="토리"
-                className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
               />
               <div className="space-y-3 flex-1">
                 <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
@@ -554,9 +551,9 @@ export default function OnboardingPage() {
           <div className="flex-1 flex flex-col justify-center space-y-6">
             <div className="flex items-start gap-4">
               <img
-                src="/tori-profile.png"
+                src="/프로필상반신.png"
                 alt="토리"
-                className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
               />
               <div className="space-y-3 flex-1">
                 <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
@@ -609,9 +606,9 @@ export default function OnboardingPage() {
           <div className="flex-1 flex flex-col justify-center space-y-6">
             <div className="flex items-start gap-4">
               <img
-                src="/tori-profile.png"
+                src="/프로필상반신.png"
                 alt="토리"
-                className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
               />
               <div className="space-y-3 flex-1">
                 <p className="text-xs text-[#9CA3AF] font-medium">토리</p>

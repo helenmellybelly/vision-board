@@ -92,3 +92,15 @@ existingDescriptions 배열에서 해당 인덱스를 제외한 나머지를 프
 ### UI 플로우 검증은 Playwright로 실제 브라우저 동작까지 확인 #strategy #ux
 `build` 성공만으로 UI 플로우(phase 전환, 버튼 활성화 조건 등)가 올바른지 알 수 없다.
 온보딩 같은 multi-step UI는 Playwright로 실제 textarea 입력→버튼 클릭→다음 phase 전환까지 풀사이클을 테스트해야 한다.
+
+---
+
+## Testing / QA
+
+### Playwright getByText()는 특수문자 포함 버튼에서 CSS selector 실패 #coding #playwright
+버튼 텍스트에 `→` 같은 특수문자가 포함되면 Playwright 접근성 스냅샷의 `target` 파라미터가 CSS selector 파싱 에러를 발생시킨다.
+`browser_run_code_unsafe`로 `page.getByText('다음').click()` 형태의 raw Playwright 코드를 실행하면 우회 가능하다.
+
+### 온보딩 자동전환 타이머 QA 시 의도치 않은 플로우 진행 주의 #coding #testing
+`setTimeout` 기반 자동전환(4초 fallback)과 탭 투 컨티뉴가 공존하는 온보딩에서, QA 중 탭 액션이 실패하면 fallback이 전체 스토리를 끝까지 진행시킨다.
+QA 스크립트에 `waitForTimeout(1000)`만으로는 불충분 — fallback 시간보다 충분히 짧은 간격으로 연속 탭하거나, 타이머를 제어할 수 있는 테스트 전용 플래그 도입을 고려할 것.
