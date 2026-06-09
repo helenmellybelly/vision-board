@@ -26,7 +26,6 @@ function createEmptyBoard(): BoardData {
     },
     onboardingDone: false,
     userName: '',
-    bucketListItems: [],
     startedAt: Date.now(),
   };
 }
@@ -113,24 +112,6 @@ export function markOnboardingDone(): void {
   const board = loadBoard();
   board.onboardingDone = true;
   board.onboardingStep = undefined;
-  saveBoard(board);
-}
-
-export function saveBucketListItems(items: string[]): void {
-  const board = loadBoard();
-  board.bucketListItems = items;
-  saveBoard(board);
-}
-
-export function saveBucketListFeeling(feeling: string): void {
-  const board = loadBoard();
-  board.bucketListFeeling = feeling;
-  saveBoard(board);
-}
-
-export function saveGardenState(state: 'empty' | 'seeds' | 'sprouting'): void {
-  const board = loadBoard();
-  board.gardenState = state;
   saveBoard(board);
 }
 

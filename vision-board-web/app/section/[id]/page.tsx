@@ -30,10 +30,6 @@ export default function SectionChatPage() {
   const [phase, setPhase] = useState<Phase>('questions');
   const [showHelp, setShowHelp] = useState(false);
 
-  // 인라인 수정 (질문 단계 중 기존 답변 수정)
-  const [inlineEditIdx, setInlineEditIdx] = useState<number | null>(null);
-  const [inlineEditValue, setInlineEditValue] = useState('');
-
   // 리뷰 단계 수정
   const [editingKey, setEditingKey] = useState<keyof ExtractedSlots | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -89,20 +85,6 @@ export default function SectionChatPage() {
     setBoard(loadBoard());
   }
 
-  function handleInlineEditSave() {
-    if (inlineEditIdx === null || !section) return;
-    const trimmed = inlineEditValue.trim();
-    if (!trimmed) return;
-    const key = section.phaseOneQuestions[inlineEditIdx].key;
-    const newAnswers = { ...answers, [key]: trimmed };
-    setAnswers(newAnswers);
-    saveExtractedSlots(sectionId, newAnswers);
-    showSaved();
-    setBoard(loadBoard());
-    setInlineEditIdx(null);
-    setInlineEditValue('');
-  }
-
   function handleSaveEdit(key: keyof ExtractedSlots) {
     if (!editValue.trim()) return;
     const updated = { ...answers, [key]: editValue.trim() };
@@ -136,22 +118,19 @@ export default function SectionChatPage() {
   const msgs: MsgItem[] = [
     { type: 'lumi', text: section.introText },
     { type: 'lumi', text: section.whyText },
-    { type: 'lumi', text: '천천히, 떠오르는 대로 답해줘. 네 정원사가 함께 할게.' },
   ];
 
   const displayCount = Math.min(qIdx, 4);
   for (let i = 0; i < displayCount; i++) {
     const q = section.phaseOneQuestions[i];
-    msgs.push({ type: 'lumi', text: q.cushionText });
-    msgs.push({ type: 'lumi', text: q.questionText });
+    msgs.push({ type: 'lumi', text: `${q.cushionText}\n${q.questionText}` });
     const ans = answers[q.key];
     if (ans) msgs.push({ type: 'user', text: ans, qIndex: i });
   }
 
   if (phase === 'questions' && qIdx < 4) {
     const q = section.phaseOneQuestions[qIdx];
-    msgs.push({ type: 'lumi', text: q.cushionText });
-    msgs.push({ type: 'lumi', text: q.questionText });
+    msgs.push({ type: 'lumi', text: `${q.cushionText}\n${q.questionText}` });
   }
 
   const scrollClass = chatHovered ? 'scroll-show' : 'scroll-hide';
@@ -194,44 +173,9 @@ export default function SectionChatPage() {
         <div>
           {msgs.map((msg, i) => {
             if (msg.type === 'user') {
-              const isEditing = inlineEditIdx === msg.qIndex;
               return (
                 <div key={i} className="flex flex-col items-end mb-1">
-                  {isEditing ? (
-                    <div className="w-full mb-2">
-                      <textarea
-                        value={inlineEditValue}
-                        onChange={(e) => setInlineEditValue(e.target.value)}
-                        className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-sm leading-relaxed focus:outline-none focus:border-[#C9C5BE]"
-                        rows={3}
-                        autoFocus
-                      />
-                      <div className="flex gap-3 mt-1.5 justify-end">
-                        <button
-                          onClick={handleInlineEditSave}
-                          className="text-xs font-semibold text-[#1C1B19] px-3 py-1 rounded-lg bg-[#1C1B19] text-white"
-                        >
-                          저장
-                        </button>
-                        <button
-                          onClick={() => { setInlineEditIdx(null); setInlineEditValue(''); }}
-                          className="text-xs text-[#9CA3AF]"
-                        >
-                          취소
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-end gap-2 max-w-[85%]">
-                      <button
-                        onClick={() => { setInlineEditIdx(msg.qIndex); setInlineEditValue(msg.text); }}
-                        className="text-[10px] text-[#C9C5BE] mb-1 shrink-0 active:text-[#9CA3AF]"
-                      >
-                        수정
-                      </button>
-                      <ChatBubble role="user" content={msg.text} />
-                    </div>
-                  )}
+                  <ChatBubble role="user" content={msg.text} />
                 </div>
               );
             }

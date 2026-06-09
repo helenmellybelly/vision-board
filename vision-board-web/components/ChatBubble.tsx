@@ -18,7 +18,7 @@ export default function ChatBubble({ role, content, isLoading }: Props) {
         </div>
       )}
       <div
-        className="max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
+        className="max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-line"
         style={{
           backgroundColor: isTori ? '#F5F5F3' : '#1C1B19',
           color: isTori ? '#1C1B19' : '#FFFFFF',

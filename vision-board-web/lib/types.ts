@@ -96,10 +96,6 @@ export interface BoardData {
   oneSentence?: string;
   futureDayStory?: string;
 
-  // 토리 정원사 — 온보딩
-  bucketListItems: string[];       // 버킷리스트 자유 입력 목록
-  bucketListFeeling?: string;      // 선택한 항목의 감정
-  gardenState?: 'empty' | 'seeds' | 'sprouting';
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];
