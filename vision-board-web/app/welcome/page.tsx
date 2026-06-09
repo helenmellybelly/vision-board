@@ -9,24 +9,24 @@ const SECTION_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#3B82F6', '#F97316', '
 const PHASES = [
   {
     num: '01',
-    title: '나를 발견하기',
-    desc: '6개 영역에서 각각 질문에 답해. 어떤 순서로 해도 괜찮아.',
+    title: '나 발견하기',
+    desc: '6가지 영역에서 각각 네가 진짜 원하는 게 무엇인지 질문으로 알아가.',
     extra: 'dots' as const,
   },
   {
     num: '02',
-    title: '원하는 장면 그리기',
-    desc: '발견한 나를 바탕으로, 각 영역의 3년 뒤 하루를 그려.',
+    title: '장면 그리기',
+    desc: '발견한 나를 바탕으로 3년 뒤의 구체적인 하루를 그려봐.',
   },
   {
     num: '03',
-    title: '이미지 찾기',
-    desc: '장면에 어울리는 사진을 찾아 붙여.',
+    title: '비전보드 꾸미기',
+    desc: '상상한 장면에 어울리는 이미지로 채워.',
   },
   {
     num: '04',
-    title: '비전보드 완성',
-    desc: '6개 영역이 모두 채워지면 미래의 하루 이야기도 함께 완성돼.',
+    title: '완성',
+    desc: '6개 영역이 모두 채워지면 비전보드가 완성돼. 미래의 하루 이야기도 함께.',
   },
 ];
 
@@ -59,11 +59,11 @@ export default function WelcomePage() {
           className="w-10 h-10 rounded-xl flex items-center justify-center mb-6"
           style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)' }}
         >
-          <span className="text-white text-lg">✦</span>
+          <span className="text-white text-lg">🐿️</span>
         </div>
-        <p className="text-sm text-[#9CA3AF] mb-1">lumi</p>
+        <p className="text-sm text-[#9CA3AF] mb-1">토리</p>
         <h1 className="text-2xl font-bold leading-snug">
-          {userName ? `${userName}아,` : ''} 앞으로<br />이렇게 진행될 거야.
+          {userName ? `${userName}아,` : ''} 함께 만들어갈<br />비전보드를 보여줄게.
         </h1>
       </div>
 

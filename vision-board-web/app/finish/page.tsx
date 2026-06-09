@@ -86,11 +86,11 @@ export default function FinishPage() {
       {phase === 'pattern' && (
         <div className="flex-1 flex flex-col justify-center space-y-8">
           <div className="text-center space-y-2">
-            <p className="text-4xl">✦</p>
+            <p className="text-4xl">🐿️</p>
             <h1 className="text-2xl font-bold">
               {board.userName ? `${board.userName}, ` : ''}다 됐어.
             </h1>
-            <p className="text-[#6B7280]">6가지 영역에서 네가 원하는 실을 봐.</p>
+            <p className="text-[#6B7280]">6가지 영역에서 네가 원하는 삶을 봐.</p>
           </div>
 
           {keywords.length > 0 && (
@@ -108,7 +108,7 @@ export default function FinishPage() {
           )}
 
           <p className="text-sm text-[#6B7280] text-center leading-relaxed">
-            이 단어들 사이에 공통된 실이 있어.<br />그걸 하나의 문장으로 담아볼게.
+            이 키워드들 사이에 공통된 실이 있어.<br />네 이야기를 한 문장으로 담아볼게.
           </p>
 
           <button
@@ -160,7 +160,7 @@ export default function FinishPage() {
             className="w-16 h-16 rounded-2xl flex items-center justify-center animate-pulse"
             style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)' }}
           >
-            <span className="text-white text-2xl">✦</span>
+            <span className="text-white text-2xl">🐿️</span>
           </div>
           <p className="text-[#6B7280] text-sm">네 하루를 쓰고 있어...</p>
         </div>
@@ -199,7 +199,7 @@ export default function FinishPage() {
       {phase === 'complete' && (
         <div className="flex-1 flex flex-col items-center justify-center space-y-8 text-center">
           <div className="space-y-3">
-            <p className="text-5xl">✦</p>
+            <p className="text-5xl">🐿️</p>
             <h1 className="text-2xl font-bold">완성됐어.</h1>
             <p className="text-[#6B7280] leading-relaxed text-sm">
               이미지보드 + 미래의 하루 이야기.<br />원하는 삶을 이미지로도 보고 글로도 읽는 거야.

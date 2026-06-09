@@ -74,3 +74,33 @@ existingDescriptions 배열에서 해당 인덱스를 제외한 나머지를 프
 ### 감정 금지는 금지어 + ❌/✅ 대체 예시를 함께 줘야 효과적 #coding #ai-prompt
 "감정 단어 금지"만 명시하면 동의어나 유사 표현으로 우회한다.
 `❌ "행복했다" → ✅ "커피잔을 두 손으로 감싸 쥐었다"` 형식으로 금지와 대안을 쌍으로 주면 모델이 더 확실히 따른다.
+
+---
+
+## 리브랜드 / UX
+
+### 리브랜드 메타포는 캐릭터 정체성에만 한정하고 콘텐츠에 확장 금지 #strategy #ux
+메타포(정원)를 캐릭터 설명("꿈의 정원사")에는 사용해도 질문 내용(cushionText/introText/whyText)에 확장하면 질문 의도가 변질된다. 적용 범위를 "정체성"과 "콘텐츠"로 명확히 구분하고 변경 전에 사용자와 범위를 합의할 것.
+
+### 다수 파일 변경 전 1개 파일로 스코프 검증 후 전체 적용 #strategy #workflow
+작은 프리뷰(1개 파일 수정 → 사용자 확인) 없이 다수 파일을 한 번에 변경하면 방향이 틀렸을 때 되돌리는 비용이 크다. 텍스트/메타포 변경처럼 해석 여지가 있는 작업은 먼저 1개 파일로 스코프를 검증받은 후 확산시킬 것.
+
+### 타입 변경은 모든 참조 파일을 동시에 검색/변경해야 한다 #coding #workflow
+`string` → `string[]` 같은 필드 타입 변경 시 types.ts만 바꾸면 storage.ts, page.tsx 등 사용처에서 참조 타입 불일치 에러가 발생한다.
+변경 전 `grep -r "legacyFieldName"`으로 모든 참조 파일을 찾은 후, 안전하게 일괄 수정할 것.
+
+### UI 플로우 검증은 Playwright로 실제 브라우저 동작까지 확인 #strategy #ux
+`build` 성공만으로 UI 플로우(phase 전환, 버튼 활성화 조건 등)가 올바른지 알 수 없다.
+온보딩 같은 multi-step UI는 Playwright로 실제 textarea 입력→버튼 클릭→다음 phase 전환까지 풀사이클을 테스트해야 한다.
+
+---
+
+## Testing / QA
+
+### Playwright getByText()는 특수문자 포함 버튼에서 CSS selector 실패 #coding #playwright
+버튼 텍스트에 `→` 같은 특수문자가 포함되면 Playwright 접근성 스냅샷의 `target` 파라미터가 CSS selector 파싱 에러를 발생시킨다.
+`browser_run_code_unsafe`로 `page.getByText('다음').click()` 형태의 raw Playwright 코드를 실행하면 우회 가능하다.
+
+### 온보딩 자동전환 타이머 QA 시 의도치 않은 플로우 진행 주의 #coding #testing
+`setTimeout` 기반 자동전환(4초 fallback)과 탭 투 컨티뉴가 공존하는 온보딩에서, QA 중 탭 액션이 실패하면 fallback이 전체 스토리를 끝까지 진행시킨다.
+QA 스크립트에 `waitForTimeout(1000)`만으로는 불충분 — fallback 시간보다 충분히 짧은 간격으로 연속 탭하거나, 타이머를 제어할 수 있는 테스트 전용 플래그 도입을 고려할 것.

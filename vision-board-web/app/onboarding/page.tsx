@@ -1,24 +1,93 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { markOnboardingDone, saveUserName, saveOnboardingStep, loadBoard } from '@/lib/storage';
+import {
+  markOnboardingDone,
+  saveUserName,
+  saveOnboardingStep,
+  loadBoard,
+} from '@/lib/storage';
+import ChapterProgress from '@/components/ChapterProgress';
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Act = 0 | 1 | 2 | 3 | 4;
 
-const SECTION_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#3B82F6', '#F97316', '#06B6D4'];
-const SECTION_NAMES = ['나', '건강', '관계', '일', '돈', '공간'];
+// Act 0 CTA — swap to A/B/D to try other options
+// A: "나의 꿈을 위한 정원사구나!"
+// B: "나도 궁금해, 같이 찾아볼게 →"
+// C: "내 이야기 들려줄게 →"  ← current
+// D: "꿈 찾는 걸 도와줘 →"
+const ACT0_CTA = '내 이야기 들려줄게 →';
+
+const ACORN_MESSAGES = [
+  (name: string) =>
+    `${name ? `${name}아, ` : ''}잠깐 이 작은 씨앗을 상상해봐.\n손바닥에 올라오는 2.5cm짜리 도토리야.\n작고 평범해 보이지?`,
+  () =>
+    `근데 이 도토리 하나가 땅에 심기면\n15년 후에 2,400배로 자라서\n20m 높이 참나무가 돼.`,
+  () =>
+    `그 거대한 나무가 될 모든 정보가\n이미 이 작은 씨앗 안에 있었어.\n처음부터 답은 씨앗 속에 있었던 거야.`,
+  (name: string) =>
+    `${name ? `${name}도` : '너도'} 마찬가지야.\n지금 네 안에는 아직 발견하지 못한\n참나무만큼의 가능성이 담겨 있어.`,
+];
+
+const VISION_INTRO = `그 가능성을 꺼내주는 도구가 있어. 바로 '비전보드'야.`;
+
+const VISION_CARDS = [
+  {
+    emoji: '🧠',
+    title: '뇌가 믿게 해줘',
+    desc: '매일 보면 뇌가 "이게 내 현실이구나" 하고 인식하기 시작해.',
+    color: '#8B5CF6',
+  },
+  {
+    emoji: '🎯',
+    title: '방향을 잡아줘',
+    desc: '흔들릴 때마다 내가 원하는 방향으로 다시 돌아오게 해줘.',
+    color: '#10B981',
+  },
+  {
+    emoji: '🌱',
+    title: '꿈을 구체화해',
+    desc: '막연했던 꿈이 선명한 목표가 돼.',
+    color: '#F59E0B',
+  },
+];
+
+const SIX_AREAS = [
+  { label: '나', desc: '감정·성장·정체성', color: '#8B5CF6' },
+  { label: '건강', desc: '몸·마음·루틴', color: '#10B981' },
+  { label: '관계', desc: '사랑·우정·연결', color: '#F59E0B' },
+  { label: '일', desc: '일·배움·성취', color: '#3B82F6' },
+  { label: '돈', desc: '소비·저축·가치', color: '#F97316' },
+  { label: '공간', desc: '환경·물건·분위기', color: '#06B6D4' },
+];
+
+const CHAPTERS = [
+  { id: 1, label: '인사' },
+  { id: 2, label: '가능성' },
+  { id: 3, label: '비전' },
+  { id: 4, label: '시작' },
+];
+
+function actToChapterId(act: Act): number {
+  if (act === 0) return 0;
+  return act;
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>(1);
+  const [act, setAct] = useState<Act>(0);
   const [nameInput, setNameInput] = useState('');
   const [savedName, setSavedName] = useState('');
+  const [showNameResponse, setShowNameResponse] = useState(false);
+  const [acornStep, setAcornStep] = useState(-1);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const board = loadBoard();
     if (board.onboardingStep && board.onboardingStep > 1) {
-      setStep(board.onboardingStep as Step);
+      const savedAct = Math.min(board.onboardingStep, 4) as Act;
+      setAct(savedAct);
     }
     if (board.userName) {
       setSavedName(board.userName);
@@ -26,18 +95,40 @@ export default function OnboardingPage() {
     }
   }, []);
 
-  const name = savedName || '너';
+  // Act 2 진입 시 도토리 스토리 시작
+  useEffect(() => {
+    if (act === 2 && acornStep === -1) {
+      setAcornStep(0);
+    }
+  }, [act, acornStep]);
 
-  function goToStep(s: Step) {
-    setStep(s);
-    saveOnboardingStep(s);
+  // Act 2: 자동 전환 (2.5초)
+  useEffect(() => {
+    if (acornStep >= 0 && acornStep < ACORN_MESSAGES.length - 1) {
+      const timer = setTimeout(() => setAcornStep((s) => s + 1), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [acornStep]);
+
+  function handleAcornTap() {
+    if (acornStep >= 0 && acornStep < ACORN_MESSAGES.length - 1) {
+      setAcornStep((s) => s + 1);
+    }
+  }
+
+  function goToAct(a: Act) {
+    setAct(a);
+    saveOnboardingStep(a);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleNameSubmit() {
     const n = nameInput.trim();
+    if (!n) return;
     setSavedName(n);
     saveUserName(n);
-    goToStep(3);
+    setShowNameResponse(true);
+    setTimeout(() => goToAct(2), 2200);
   }
 
   function handleFinish() {
@@ -45,227 +136,311 @@ export default function OnboardingPage() {
     router.replace('/welcome');
   }
 
-  const totalSteps = 7;
+  function handleBack() {
+    if (act === 1) { goToAct(0); return; }
+    if (act === 2) { setAcornStep(-1); goToAct(1); return; }
+    if (act === 3) { goToAct(2); return; }
+    if (act === 4) { goToAct(3); return; }
+  }
+
+  function canGoBack(): boolean {
+    if (act === 0) return false;
+    if (act === 2 && acornStep >= 0 && acornStep < ACORN_MESSAGES.length - 1) return false;
+    return true;
+  }
+
+  const name = savedName || '';
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full px-6 py-10">
-      {/* 진행 바 */}
-      <div className="flex gap-1.5 mb-10">
-        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
-          <div
-            key={s}
-            className="h-1 flex-1 rounded-full transition-all duration-500"
-            style={{ backgroundColor: s <= step ? '#1C1B19' : '#E5E3DF' }}
-          />
-        ))}
-      </div>
+    <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full px-6 py-8">
+      {act > 0 && (
+        <div className="mb-8 mt-1">
+          <ChapterProgress chapters={CHAPTERS} currentId={actToChapterId(act)} />
+        </div>
+      )}
 
-      <div className="flex-1 flex flex-col animate-fadeIn" key={step}>
+      <div className="flex-1 flex flex-col animate-fadeIn" key={act}>
 
-        {/* STEP 1: 인사 + lumi 소개 */}
-        {step === 1 && (
-          <div className="flex-1 flex flex-col justify-center space-y-7">
-            <div className="space-y-3">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)', boxShadow: '0 8px 24px rgba(28,27,25,0.18)' }}
-              >
-                <span className="text-white text-2xl">✦</span>
-              </div>
-              <div>
-                <p className="text-sm text-[#9CA3AF] mb-1">나는 lumi야.</p>
-                <h1 className="text-2xl font-bold leading-snug">
-                  원하는 삶을<br />같이 그려보자.
-                </h1>
-              </div>
+        {/* ══════════ ACT 0: 토리 소개 ══════════ */}
+        {act === 0 && (
+          <div className="flex-1 flex flex-col justify-center space-y-6">
+            <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-[#F5F5F3]">
+              <video
+                ref={videoRef}
+                src="/인사.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <p className="text-[#6B7280] leading-relaxed text-sm">
-              막연하게 느끼는 것들도 이야기하다 보면 선명해져. 오늘 그 시작을 해보자.
-            </p>
+
+            <div className="space-y-1 text-center px-2">
+              <p className="text-sm text-[#1C1B19] leading-relaxed font-medium">
+                안녕, 나는 토리(Tory)야.
+              </p>
+              <p className="text-sm text-[#6B7280] leading-relaxed">
+                네가 원하는 삶을 발견할 수 있도록<br />
+                도와주는 꿈의 정원사지.<br />
+                나는 네가 원하는 삶의 이야기가 너무 궁금해.
+              </p>
+            </div>
+
             <button
-              onClick={() => goToStep(2)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+              onClick={() => goToAct(1)}
+              className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              좋아, 시작해보자
+              {ACT0_CTA}
             </button>
           </div>
         )}
 
-        {/* STEP 2: 이름 */}
-        {step === 2 && (
+        {/* ══════════ ACT 1: 이름 ══════════ */}
+        {act === 1 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">먼저,</p>
-              <h2 className="text-2xl font-bold">뭐라고 불러줄까?</h2>
-            </div>
-            <input
-              type="text"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && nameInput.trim() && handleNameSubmit()}
-              placeholder="이름 또는 닉네임"
-              className="w-full text-lg border-b-2 border-[#E5E3DF] pb-2 outline-none bg-transparent focus:border-[#1C1B19] transition-colors"
-              autoFocus
-            />
-            <button
-              onClick={handleNameSubmit}
-              disabled={!nameInput.trim()}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white disabled:opacity-40"
-              style={{ backgroundColor: '#1C1B19' }}
-            >
-              이걸로 할게
-            </button>
-          </div>
-        )}
-
-        {/* STEP 3: 비전보드 소개 */}
-        {step === 3 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">{name}아,</p>
-              <h2 className="text-2xl font-bold leading-snug">
-                비전보드가 뭔지<br />알아?
-              </h2>
-            </div>
-            <p className="text-[#6B7280] leading-relaxed text-sm">
-              원하는 삶을 이미지와 글로 구체적으로 그려놓은 것. 막연하게 "잘 살고 싶다"는 마음이 또렷한 방향이 되는 거야.
-            </p>
-            <p className="text-[#6B7280] leading-relaxed text-sm">
-              나, 건강, 관계, 일, 돈, 공간 — 6가지 영역을 lumi랑 같이 채우다 보면 네가 진짜 원하는 게 뭔지 보이기 시작해.
-            </p>
-            <button
-              onClick={() => goToStep(4)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
-              style={{ backgroundColor: '#1C1B19' }}
-            >
-              계속
-            </button>
-          </div>
-        )}
-
-        {/* STEP 4: 효과성 체감 — 막연 vs 생생 */}
-        {step === 4 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">이게 왜 다른지 보여줄게.</p>
-              <h2 className="text-2xl font-bold leading-snug">막연함과 선명함의 차이</h2>
-            </div>
-            <div className="space-y-3">
-              <div className="bg-[#F5F5F3] rounded-2xl p-4">
-                <p className="text-xs text-[#9CA3AF] mb-1.5">막연한 바람</p>
-                <p className="text-sm text-[#6B7280]">"언젠가 건강하게 살고 싶다."</p>
-              </div>
-              <div className="bg-white border border-[#1C1B19]/10 rounded-2xl p-4">
-                <p className="text-xs text-[#1C1B19] font-semibold mb-1.5">생생한 장면</p>
-                <p className="text-sm leading-relaxed">
-                  "새벽 6시에 러닝 끝내고 샤워 후 커피 한 잔. 몸이 가볍고 하루가 내 것인 느낌."
-                </p>
+            <div className="flex items-start gap-4">
+              <img
+                src="/프로필상반신.png"
+                alt="토리"
+                className="w-14 h-14 rounded-2xl object-contain flex-shrink-0"
+              />
+              <div className="space-y-2 flex-1">
+                <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
+                <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
+                  <p className="text-sm leading-relaxed">
+                    만나서 반가워 😊<br />
+                    앞으로 너의 비전보드를 함께 만들어갈 거야.<br />
+                    <br />
+                    내 목표는 네가 원하는 삶을 발견하고,<br />
+                    그 삶을 생생하게 그려볼 수 있도록 돕는 거야.<br />
+                    언제나 너의 삶을 지켜보고 응원해주는 정원사가 될게.<br />
+                    <br />
+                    <strong>앞으로 나는 너를 뭐라고 불러줄까? 🌱</strong>
+                  </p>
+                </div>
               </div>
             </div>
-            <p className="text-xs text-[#9CA3AF] leading-relaxed">
-              두 번째처럼 또렷해지면, 뇌는 그쪽으로 자연히 움직이기 시작해. 그게 비전보드의 힘이야.
-            </p>
-            <button
-              onClick={() => goToStep(5)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
-              style={{ backgroundColor: '#1C1B19' }}
-            >
-              오, 그렇구나
-            </button>
-          </div>
-        )}
 
-        {/* STEP 5: 완성 비전보드 미리보기 */}
-        {step === 5 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">다 하면 이게 {name}의 것이 돼.</p>
-              <h2 className="text-2xl font-bold leading-snug">완성된 비전보드</h2>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {SECTION_COLORS.map((color, i) => (
-                <div
-                  key={i}
-                  className="aspect-square rounded-xl flex flex-col items-center justify-center gap-1"
-                  style={{ backgroundColor: color + '20', border: `1px solid ${color}30` }}
+            {!showNameResponse && (
+              <div className="flex gap-2 ml-16">
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && nameInput.trim() && handleNameSubmit()}
+                  placeholder="이름 또는 닉네임"
+                  className="flex-1 px-4 py-3 rounded-xl border border-[#E5E3DF] text-sm outline-none focus:border-[#1C1B19] transition-colors bg-white"
+                  autoFocus
+                />
+                <button
+                  onClick={handleNameSubmit}
+                  disabled={!nameInput.trim()}
+                  className="px-5 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity"
+                  style={{ backgroundColor: '#1C1B19' }}
                 >
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-xs font-semibold" style={{ color }}>{SECTION_NAMES[i]}</span>
+                  저장
+                </button>
+              </div>
+            )}
+
+            {showNameResponse && (
+              <div className="flex items-start gap-4 animate-fadeIn">
+                <img
+                  src="/프로필상반신.png"
+                  alt="토리"
+                  className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
+                />
+                <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3">
+                  <p className="text-sm leading-relaxed">
+                    아, {savedName}! 좋은 이름이다 😊<br />
+                    이제 같이 시작해보자.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════ ACT 2: 도토리 이야기 ══════════ */}
+        {act === 2 && (
+          <div className="flex-1 flex flex-col justify-center">
+            {acornStep >= 0 && (
+              <div className="space-y-3 cursor-pointer" onClick={handleAcornTap}>
+                {Array.from({ length: acornStep + 1 }, (_, i) => (
+                  <div key={i} className="flex items-start gap-4">
+                    {i === acornStep ? (
+                      <>
+                        <img
+                          src="/프로필상반신.png"
+                          alt="토리"
+                          className="w-12 h-12 rounded-xl object-contain flex-shrink-0 animate-fadeIn"
+                        />
+                        <div className="flex-1 space-y-2 animate-fadeIn">
+                          <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
+                          <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
+                            <p className="text-sm leading-relaxed whitespace-pre-line">
+                              {ACORN_MESSAGES[i](name)}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-12 flex-shrink-0" />
+                        <div className="flex-1">
+                          <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 opacity-60">
+                            <p className="text-sm leading-relaxed whitespace-pre-line">
+                              {ACORN_MESSAGES[i](name)}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+
+                {acornStep < ACORN_MESSAGES.length - 1 && (
+                  <div className="text-center pt-2 pb-1 select-none">
+                    <span className="text-xs text-[#9CA3AF] animate-pulse">▼ 계속하려면 탭</span>
+                  </div>
+                )}
+
+                {acornStep === ACORN_MESSAGES.length - 1 && (
+                  <div className="animate-fadeIn pt-4">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); goToAct(3); }}
+                      className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
+                      style={{ backgroundColor: '#1C1B19' }}
+                    >
+                      그 가능성, 꺼내볼게 →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════ ACT 3: 비전보드 설명 (시각) ══════════ */}
+        {act === 3 && (
+          <div className="flex-1 flex flex-col justify-center space-y-5">
+            {/* 토리 말풍선 */}
+            <div className="flex items-start gap-4">
+              <img
+                src="/프로필상반신.png"
+                alt="토리"
+                className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
+              />
+              <div className="space-y-2 flex-1">
+                <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
+                <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
+                  <p className="text-sm leading-relaxed">{VISION_INTRO}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 비전보드 정의 박스 */}
+            <div
+              className="rounded-2xl px-5 py-4 border"
+              style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E3DF' }}
+            >
+              <p className="text-xs font-semibold text-[#9CA3AF] mb-1 tracking-wide uppercase">비전보드란?</p>
+              <p className="text-sm text-[#1C1B19] leading-relaxed">
+                네가 원하는 삶의 모습을<br />
+                이미지와 글로 시각화한 나만의 지도.
+              </p>
+            </div>
+
+            {/* 3가지 효과 카드 */}
+            <div className="space-y-2">
+              {VISION_CARDS.map((card) => (
+                <div
+                  key={card.title}
+                  className="flex items-start gap-3 rounded-2xl px-4 py-3.5"
+                  style={{ backgroundColor: card.color + '12' }}
+                >
+                  <span className="text-xl flex-shrink-0 mt-0.5">{card.emoji}</span>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: card.color }}>{card.title}</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">{card.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="bg-[#F5F5F3] rounded-xl p-3 text-center">
-              <p className="text-xs text-[#6B7280]">섹션별 이미지 보드 + 통합 1장 + <span className="font-semibold">미래의 하루 이야기(글)</span></p>
+
+            {/* 인용구 */}
+            <div className="rounded-xl px-4 py-3 bg-[#F5F5F3] border-l-2 border-[#1C1B19]">
+              <p className="text-xs text-[#6B7280] leading-relaxed italic">
+                "생생하게 상상한 것과 실제 경험을,<br />뇌는 잘 구분하지 못해."
+              </p>
             </div>
+
             <button
-              onClick={() => goToStep(6)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+              onClick={() => goToAct(4)}
+              className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              나도 만들고 싶어
+              내 비전보드 만들어볼게 →
             </button>
           </div>
         )}
 
-        {/* STEP 6: 상태 공감 */}
-        {step === 6 && (
+        {/* ══════════ ACT 4: 6 화단 안내 → 시작 ══════════ */}
+        {act === 4 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold leading-snug">
-                {name}아, 요즘<br />어때?
-              </h2>
+            <div className="flex items-start gap-4">
+              <img
+                src="/프로필상반신.png"
+                alt="토리"
+                className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
+              />
+              <div className="space-y-2 flex-1">
+                <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
+                <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3">
+                  <p className="text-sm leading-relaxed">
+                    좋아{name ? `, ${name}아` : ''}.<br />
+                    이제 진짜 시작이야.<br />
+                    비전보드는 삶의 6가지 영역으로 이루어져 있어.<br />
+                    하나씩 채워가다 보면 네 삶 전체가 그려지기 시작할 거야.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2.5">
-              {[
-                { label: '솔직히 막연해. 뭘 원하는지 모르겠어.', value: 'foggy' },
-                { label: '원하는 건 있는데 어떻게 해야 할지 모르겠어.', value: 'know' },
-                { label: '방향은 있어. 좀 더 선명하게 만들고 싶어.', value: 'vivid' },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => goToStep(7)}
-                  className="w-full text-left px-4 py-3.5 rounded-xl border border-[#E5E3DF] text-sm leading-relaxed active:opacity-70 transition-opacity"
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* STEP 7: 가벼운 첫 질문 + 초대 */}
-        {step === 7 && (
-          <div className="flex-1 flex flex-col justify-center space-y-7">
-            <div>
-              <p className="text-sm text-[#9CA3AF] mb-2">좋아.</p>
-              <h2 className="text-2xl font-bold leading-snug">
-                그럼 같이<br />그려보자.
-              </h2>
+            <div className="ml-16 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {SIX_AREAS.map((area) => (
+                  <div
+                    key={area.label}
+                    className="rounded-xl px-3.5 py-3 text-left"
+                    style={{ backgroundColor: area.color + '15' }}
+                  >
+                    <p className="text-sm font-bold" style={{ color: area.color }}>{area.label}</p>
+                    <p className="text-[11px] text-[#6B7280] mt-0.5">{area.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="text-[#6B7280] leading-relaxed text-sm">
-              6가지 영역을 lumi랑 대화하면서 채워. 칸 채우기가 아니라 진짜 대화야. 어디서부터 해도 괜찮고, 언제든 이어서 해도 돼.
-            </p>
-            <div className="bg-[#F5F5F3] rounded-2xl p-4">
-              <p className="text-xs text-[#9CA3AF] mb-1">lumi가 이런 식으로 물어볼 거야</p>
-              <p className="text-sm leading-relaxed">"{name}아, 지금 '나' 영역에서 어떤 상태야? 요즘 어떻게 지내고 있어?"</p>
-            </div>
+
             <button
               onClick={handleFinish}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+              className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              시작할게 →
+              비전보드 시작하기 →
             </button>
           </div>
         )}
 
       </div>
 
-      {step > 1 && (
+      {canGoBack() && (
         <button
-          onClick={() => goToStep((step - 1) as Step)}
-          className="w-full text-[#C4C2BE] py-2 text-xs mt-4 flex items-center justify-center gap-1"
+          onClick={handleBack}
+          className="w-full text-[#C4C2BE] py-2 text-xs mt-4 flex items-center justify-center gap-1 hover:text-[#6B7280] transition-colors"
         >
           ← 이전
         </button>

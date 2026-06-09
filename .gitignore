@@ -1,2 +1,5 @@
 .claude/HANDOFF.md
 .codex/HANDOFF.md
+
+.vercel
+.env*.local

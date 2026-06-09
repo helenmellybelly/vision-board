@@ -95,6 +95,7 @@ export interface BoardData {
   welcomeSeen?: boolean;
   oneSentence?: string;
   futureDayStory?: string;
+
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];

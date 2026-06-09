@@ -2,17 +2,45 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v5.1 프로덕션 라이브 — AI 이미지 생성 제거, 업로드/URL 전용으로 전환
+- **상태:** v6.3 온보딩 Tori 스토리텔링 + 이미지/영상 최적화 완료
 - **주요 기능:**
-  - 섹션 채팅(lumi) → 장면 → 순간(`/moment/[id]`) → 장면카드+이미지(`/scenes/[id]`)
-  - `/moment/[id]`: situation 입력 + 스토리 생성 (2단계), 헤더에 ← 뒤로가기 버튼
-  - `/scenes/[id]`: 묘사 3카드 (편집/슬롯별 재생성) + 직접 업로드 + URL 입력으로 이미지 추가
-  - `/board`: 섹션별 이미지 3칸 + 스토리 보기 토글 (uploadedImages + generatedImages 모두 표시)
-  - `/dashboard`: 섹션 진행 현황만 표시, 헤더 "지금 그려가는 내 삶"
+  - 온보딩 Act 0: 새 인사 영상(인사.mp4) 자동재생 + 새 텍스트 + "다음 →" 통일
+  - 온보딩 Act 1: 새 프로필 이미지(프로필상반신.png) + floating 효과 제거
+  - 온보딩 Act 2: 도토리 이야기 탭 투 컨티뉴 + 4초 auto-fallback
+  - 구 캐릭터/영상 리소스 완전 제거 (tori-hello.mp4, tori-profile.png)
 - **알려진 이슈:** 없음
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-09 (v6.3 — 온보딩 스토리텔링 최종 QA + 배포)
+- 온보딩 Act 0: 인사 영상(인사.mp4) autoplay loop muted 적용, 재생 버튼 제거
+- 온보딩 Act 0: 신규 텍스트("안녕, 나는 토리야...") 적용, 버튼 "다음 →" 통일
+- 온보딩 Act 1: 프로필 이미지(프로필상반신.png) 교체, animate-float 제거
+- 온보딩 Act 2: 도토리 이야기 2.2초 자동전환 → 탭 투 컨티뉴 + 4초 fallback
+- globals.css: @keyframes float / .animate-float 완전 제거
+- Playwright QA: Act 0→1→2→3→4 전체 흐름 정상 확인
+- Vercel 배포 완료
+
+### 2026-06-09 (v6.2 — 온보딩 UX 진단)
+- 온보딩 전체 플로우 분석: 몰입도 저하 요소 7가지 진단
+- 재설계 방향성 수립: 캐릭터 모션(framer-motion), select phase 제거, 비전보드 예시 캐러셀, 버킷리스트 없음 fallback
+- 핸드오프 생성 — 다음 세션에서 구현 재개 필요
+
+### 2026-06-10 (v6.1 — Bucket List 개선 + 카피/컨셉 정비)
+- 온보딩 Step 2: 단일 입력→textarea 다중항목+select phase로 개편
+- 온보딩 Step 1: 도토리 메타포 제거, 비전보드 설명으로 교체
+- 저장 구조: `bucketListItem`→`bucketListItems: string[]` 배열 확정
+- 랜딩/대시보드/피니시: 버킷리스트 컨텍스트 연결 추가
+- lib/ 전반: 정원사 말투 통일, '꿈'→'원함' 교체 (helpContent/placeholders/questions)
+- build 성공 + Playwright로 온보딩 Step 2 풀사이클 동작 확인
+
+### 2026-06-08 (v6.0 — Tori Rebrand)
+- AI 가이드 lumi(✦) → 🐿️ 토리(꿈의 정원사) 리브랜드
+- 온보딩 7단계→4단계 압축: 토리 등장 → 버킷리스트+상상 → 이름+상태 → 진입
+- 전체 UI에서 ✦→🐿️, 정원/화단 워딩 제거 (정원사 아이덴티티만 유지)
+- 질문 cushionText/introText/whyText 원문 복원 (정원 메타포가 질문 의도 바꾸던 문제 수정)
+- 타이핑 애니메이션 keyframe(animate-typing) 추가
 
 ### 2026-06-05 (v5.1)
 - AI 이미지 생성 완전 제거 → 직접 업로드 + URL 입력 방식으로 교체 (`scenes/[id]`)

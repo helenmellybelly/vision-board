@@ -2,19 +2,63 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v3.8 프로덕션 라이브 — 이미지 섹션 5가지 개선 (버그 2개 + UI 3개)
+- **상태:** v6.4 프로덕션 배포 완료 — 온보딩 5-Act 리스트럭처링 + 섹션 채팅 단순화
 - **주요 기능:**
-  - 섹션 채팅(lumi) → 장면 → 순간 → 스토리 → 묘사 확인 → 이미지
-  - **이미지 흐름 (v3.8):** AI 이미지 3장 구도 다양성 강제 (와이드/미디엄/클로즈업), 통합 5슬롯 갤러리 (AI+업로드 자유 혼합), images 단계 스크롤 최소화 (요약 칩으로 대체)
-  - **이미지 흐름 (v3.7):** 4단계 재설계 (순간→스토리→묘사확인→이미지), 한국어 묘사 3개 제안 + 확인
-  - 섹션당 이미지 최대 5장: AI 생성 최대 3개 (어느 슬롯이든 직접 교체 가능) + 사용자 업로드 최대 2개
-  - 묘사 수정 UI: ✏ 아이콘 + hover/focus 테두리 + placeholder
-  - 업로드 이미지 압축 저장 (quality 0.60, maxWidth 800)
-  - 각 단계 back 버튼 + 4단계 step indicator
-- **알려진 이슈:** 프로덕션 테스트 필요 (이미지 다양성 개선 확인, 5슬롯 업로드 동작 확인)
+  - 🐿️ 토리 캐릭터 (꿈의 정원사) — Acts 0-4 구조
+  - 온보딩 Acts 0-4: 토리 소개(영상) → 이름 입력 → 도토리 잠재력 스토리 → 비전보드 시각 설명(카드+인용구) → 6영역 시작
+  - 섹션 채팅: 도입 2개 메시지 + 질문 1개 말풍선(cushion+question 통합)
+  - 버킷리스트·gardenState 완전 제거
+  - ChapterProgress, 섹션 채팅 → 장면 → 이미지 흐름
+  - AI 이미지 3장 구도 다양성, 통합 5슬롯 갤러리
+- **알려진 이슈:** 없음
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-09 (v6.4 온보딩 5-Act 리스트럭처링 + 섹션 채팅 단순화)
+- **온보딩 재편:** Acts 0-4 구조 — 토리 소개(신규 카피) → 이름 → 도토리 잠재력 스토리(별도 페이지) → 비전보드 시각 설명(정의박스+효과카드3개+인용구) → 6영역 그리드
+- **코드 정리:** 버킷리스트·gardenState 완전 제거 (onboarding, storage, types, dashboard, finish)
+- **섹션 채팅 단순화:** 도입 3→2 메시지, cushionText+questionText 하나의 말풍선으로 통합, ChatBubble whitespace-pre-line 추가
+- **프로덕션 배포:** https://vision-board-web.vercel.app (commit b4f3302)
+
+### 2026-06-09 (온보딩 리스트럭처링 기획 완료 — 구현 전 wrap)
+- **온보딩 page.tsx 분석 완료:** 675줄 6-Act 구조 전면 파악, Act 4 정원 진단 코드 영역(l.440-560) 식별
+- **리스트럭처링 플랜:** Acts 6→4(0→1→2→3) 축소 플랜 수립 — Act 4(garden 진단) 제거, 버킷리스트(bucketPhase) 제거, Act 2 신규 비전보드 스토리텔링(7개 말풍선) 추가
+- **카피 방향:** Act 0 인사 간소화("다음 →"), Act 2 신규 카피(비전보드 정의→시각화 동기부여→삶의 주도권→구체화 예시), 도토리 이야기 은유 재구성
+- **미해결 항목:** Image 2(채팅 양방향 말풍선 단순화), Image 4(어색한 한국어 표현 전면 점검)
+- **HANDOFF 생성** — 새 세션에서 `/wrap` 후 `HANDOFF_2026-06-09-온보딩-리스트럭처링.md`로 이어서 구현
+
+### 2026-06-09 (v6.3-story code implemented — deploy)
+- **온보딩 page.tsx 전면 구현:** Acts 0-5 구조, Tori 첫인사(정원사), 도토리 이야기 6단 말풍선(2.5cm→60m 2,400배, 2.2초 자동 전환), 버킷리스트 유/무 분기, 정원/화단 은유 일관화
+- **프롬프트 수정:** `lib/onboarding-prompt.ts` — 도토리/참나무 직접 언급 금지 제거, Tori가 당당히 도토리 세계관을 말하도록 변경
+- **회복:** `git checkout HEAD`로 날아간 Acts 0-5 WIP를 대화 기록에서 복원 후 v6.3-story 카피 적용
+- **배포:** Vercel preview 배포 완료 (fc680a0, feat/tori-rebrand)
+- **Vercel preview:** https://vision-board-qc1il785y-heleneasytask-7494s-projects.vercel.app
+
+### 2026-06-09 (v6.3-story implement)
+- 온보딩 스토리텔링 전면 분석: 도토리→참나무 2,400배 성장 은유를 철학 백본으로 채택
+- Act별 스토리보드 설계: 인사(영상) → 첫 만남(이름) → 버킷리스트(유/무 분기) → 감정 연결 → 정원 진단 → 6영역 안내
+- 버킷리스트 유/무 분기 처리: 없으면 "괜찮아, 지금부터 나와 함께 찾아가자" 위로 플로우
+- AI 모델 추천: Claude 3.5 Sonnet (한국어/캐릭터 일관성/공감 최적)
+- **코드 구현:** Act 1~5 카피 전면 개선 — 씨앗/정원 은유 자연스럽게 위빙, 감정 곡선(호기심→기대→설렘→뿌듯함→의지) 반영
+- **신규 파일:** `lib/onboarding-prompt.ts` — 온보딩 전용 Tori 시스템 프롬프트 (도토리 은유 백본, 한국어 전용, 카카오톡 톤, Act별 감정 곡선 명시)
+- **완료 확인:** LSP diagnostics 0 에러, Production build 성공
+- **HANDOFF 업데이트:** 2개 HANDOFF 모두 v6.3 구현 완료 상태로 갱신
+
+### 2026-06-09 (v6.2-v6.3 온보딩 UX 개선 + 랜딩 캐러셀)
+- 온보딩 Step 2: select phase 제거 — textarea 입력 후 바로 imagine → feeling → connect 직행 (BucketPhase.SELECT → 제거)
+- "버킷리스트 없어요" fallback: 빈 textarea → 토리 위로 메시지 → noBucketPhase → Step 3 이동
+- `globals.css`: `@keyframes float` (4s, 8px) + `@keyframes breath` (3s, scale 1.05) 추가
+- Step 1 토리 이미지: `animate-float` 클래스 적용 (부드러운 상하 애니메이션)
+- 랜딩 페이지: 예시 비전보드 오토 롤링 캐러셀 (Unsplash 3장, 4초 자동 전환, 닷 네비게이션, hover 일시정지)
+- 캐러셀 verification.png: Playwright로 실제 렌더링 확인 완료
+- 배운 점: `.next` 캐시 purge가 필요한 상황 인지; Start-Process → npm은 `cmd.exe` 경유 필요 (Windows)
+
+### 2026-06-08 (v6.1 온보딩 카피 + 토리 이미지)
+- 온보딩 Step 1: 이모지 박스 → 실제 토리 일러스트(`public/tori-gardener.png`) 교체
+- Step 1 카피: 도토리→참나무 잠재력 비유 추가 + 다정한 어조 ("안녕? 나는 토리야. … 네가 어떤 참나무로 자라날지 나 정말 궁금해.") — /copywriting + /marketing-psychology 원칙 적용
+- Step 2 input/connect: Step 1 비유와 자연스럽게 연결, connect phase "그 장면들이 모이면 네 참나무 모양이 보여" 마무리
+- Vercel 프로덕션 배포 완료 (commit 77da487)
 
 ### 2026-06-04 (v3.8 이미지 섹션 전면 개선)
 - **버그 수정 2개:** AI 이미지 3장 동일 문제 → describe/generate API에 와이드샷/미디엄샷/클로즈업 구도 강제 + 컴퓨터 장면 최대 1개 제한; images 단계 묘사 카드 중복 표시(opacity-60) 완전 제거

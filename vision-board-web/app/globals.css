@@ -55,9 +55,28 @@ textarea {
   animation: slideUp 0.4s ease-out;
 }
 
+@keyframes typing {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.animate-typing {
+  animation: typing 1.2s ease-in-out infinite;
+}
+
+@keyframes breath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-breath {
+  animation: breath 3s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fadeIn,
-  .animate-slideUp {
+  .animate-slideUp,
+  .animate-breath {
     animation: none;
   }
 }

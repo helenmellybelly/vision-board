@@ -30,7 +30,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
         className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
         style={{ backgroundColor: section.lightColor }}
       >
-        <span className="text-2xl">✦</span>
+        <span className="text-2xl">🌱</span>
       </div>
 
       <h2 className="text-2xl font-bold mb-3">
