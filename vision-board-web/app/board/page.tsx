@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadBoard } from '@/lib/storage';
+import { loadBoard, saveUploadedImage } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
-import { BoardData, SlotId } from '@/lib/types';
+import { compressImage } from '@/lib/imageUtils';
+import { BoardData, SectionId, SlotId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 
 function StoryToggle({ story, color }: { story: string; color: string }) {
@@ -43,10 +44,35 @@ function StoryToggle({ story, color }: { story: string; color: string }) {
 export default function BoardPage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTargetRef = useRef<{ sectionId: SectionId; index: number } | null>(null);
 
   useEffect(() => {
     setBoard(loadBoard());
   }, []);
+
+  function openUpload(sectionId: SectionId, index: number) {
+    uploadTargetRef.current = { sectionId, index };
+    fileInputRef.current?.click();
+  }
+
+  function handleFileSelected(file: File) {
+    const target = uploadTargetRef.current;
+    if (!target) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const raw = e.target?.result as string;
+      const compressed = await compressImage(raw, 0.60, 800);
+      saveUploadedImage(target.sectionId, target.index, compressed);
+      setBoard(loadBoard());
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeUploaded(sectionId: SectionId, index: number) {
+    saveUploadedImage(sectionId, index, null);
+    setBoard(loadBoard());
+  }
 
   if (!board) return null;
 
@@ -115,27 +141,36 @@ export default function BoardPage() {
                 )}
               </div>
 
-              {/* 이미지 3칸 */}
+              {/* 이미지 3칸 — 빈 칸은 탭해서 바로 사진 업로드 */}
               <div className="grid grid-cols-3 gap-2">
                 {images.map((img, imgIdx) => (
-                  <div key={imgIdx} className="aspect-square">
+                  <div key={imgIdx} className="aspect-square relative">
                     {img ? (
-                      <img
-                        src={img}
-                        alt=""
-                        className="w-full h-full object-cover rounded-xl"
-                      />
+                      <>
+                        <img
+                          src={img}
+                          alt=""
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                        {uploaded[imgIdx] && (
+                          <button
+                            onClick={() => removeUploaded(section.id, imgIdx)}
+                            className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-xs flex items-center justify-center"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </>
                     ) : (
                       <button
-                        onClick={() => router.push(`/scene/${section.id}`)}
-                        className="w-full h-full rounded-xl border-2 border-dashed flex items-center justify-center active:opacity-70"
+                        onClick={() => openUpload(section.id, imgIdx)}
+                        className="w-full h-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-0.5 active:opacity-70"
                         style={{ borderColor: section.color + '40', backgroundColor: section.lightColor }}
                       >
-                        {imgIdx === 0 && (
-                          <span className="text-xs font-medium text-center leading-tight" style={{ color: section.color + '80' }}>
-                            + 장면<br />추가
-                          </span>
-                        )}
+                        <span className="text-base leading-none" style={{ color: section.color + '90' }}>+</span>
+                        <span className="text-[10px] font-medium" style={{ color: section.color + '80' }}>
+                          사진 추가
+                        </span>
                       </button>
                     )}
                   </div>
@@ -150,6 +185,18 @@ export default function BoardPage() {
           );
         })}
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileSelected(file);
+          e.target.value = '';
+        }}
+      />
 
       {completedCount === 6 && (
         <div className="mt-8 px-4">
