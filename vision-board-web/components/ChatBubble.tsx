@@ -10,15 +10,14 @@ export default function ChatBubble({ role, content, isLoading }: Props) {
   return (
     <div className={`flex ${isTori ? 'justify-start' : 'justify-end'} mb-3`}>
       {isTori && (
-        <div
-          className="w-7 h-7 rounded-xl flex items-center justify-center mr-2 flex-shrink-0 mt-0.5"
-          style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)' }}
-        >
-          <span className="text-white text-xs">🐿️</span>
-        </div>
+        <img
+          src="/프로필상반신.png"
+          alt="토리"
+          className="w-8 h-8 rounded-xl object-contain mr-2 flex-shrink-0 mt-0.5"
+        />
       )}
       <div
-        className="max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-line"
+        className="max-w-[85%] md:max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-line"
         style={{
           backgroundColor: isTori ? '#F5F5F3' : '#1C1B19',
           color: isTori ? '#1C1B19' : '#FFFFFF',

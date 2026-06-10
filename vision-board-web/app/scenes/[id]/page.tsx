@@ -458,15 +458,9 @@ export default function ScenesPage() {
             {[0, 1, 2].map((i) => renderSlot(i))}
           </div>
           {visibleSlots >= 4 && (
-            <div className="flex gap-2 mb-2">
-              <div style={{ width: 'calc((100% - 16px) / 3)' }}>
-                {renderSlot(3)}
-              </div>
-              {visibleSlots >= 5 && (
-                <div style={{ width: 'calc((100% - 16px) / 3)' }}>
-                  {renderSlot(4)}
-                </div>
-              )}
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <div>{renderSlot(3)}</div>
+              {visibleSlots >= 5 && <div>{renderSlot(4)}</div>}
             </div>
           )}
           {visibleSlots < 5 && (

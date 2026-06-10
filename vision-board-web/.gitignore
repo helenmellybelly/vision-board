@@ -44,3 +44,6 @@ next-env.d.ts
 
 # handoff (session handover, not committed)
 .claude/HANDOFF.md
+
+# QA screenshots
+/verify-shots/

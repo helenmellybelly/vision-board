@@ -80,7 +80,7 @@ export default function FinishPage() {
   }).filter((x) => x.kw);
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md mx-auto w-full px-6 py-10 animate-fadeIn">
+    <main className="min-h-screen flex flex-col max-w-md mx-auto w-full px-4 md:px-6 pt-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] animate-fadeIn">
 
       {/* 패턴 비추기 */}
       {phase === 'pattern' && (

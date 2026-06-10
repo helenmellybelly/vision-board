@@ -38,7 +38,7 @@ export default function ChatInput({ onSend, disabled, placeholder = '여기에 �
   const canSend = !!text.trim() && !disabled;
 
   return (
-    <div className="border-t border-[#E5E3DF] bg-white px-4 pt-3 pb-3">
+    <div className="border-t border-[#E5E3DF] bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <div className="flex items-end gap-2">
         <textarea
           ref={textareaRef}
@@ -48,7 +48,7 @@ export default function ChatInput({ onSend, disabled, placeholder = '여기에 �
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 resize-none text-sm leading-relaxed bg-[#F5F5F3] rounded-xl px-3 py-2.5 outline-none max-h-32 overflow-y-auto"
+          className="flex-1 resize-none text-sm leading-relaxed bg-white border border-[#E5E3DF] focus:border-[#1C1B19] transition-colors rounded-xl px-3 py-2.5 outline-none max-h-32 overflow-y-auto placeholder:text-[#9CA3AF]"
           style={{ color: '#1C1B19' }}
         />
         <button

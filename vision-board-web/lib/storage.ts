@@ -169,6 +169,12 @@ export function saveOneSentence(sentence: string): void {
   saveBoard(board);
 }
 
+export function saveBoardYear(year: string): void {
+  const board = loadBoard();
+  board.boardYear = year;
+  saveBoard(board);
+}
+
 export function saveFutureDayStory(story: string): void {
   const board = loadBoard();
   board.futureDayStory = story;

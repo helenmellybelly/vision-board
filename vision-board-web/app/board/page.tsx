@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadBoard, saveUploadedImage } from '@/lib/storage';
+import { loadBoard, saveUploadedImage, saveBoardYear } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
 import { compressImage } from '@/lib/imageUtils';
 import { BoardData, SectionId, SlotId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
+import VisionBoardCollage from '@/components/VisionBoardCollage';
 
 function StoryToggle({ story, color }: { story: string; color: string }) {
   const lines = story.split('\n');
@@ -80,6 +81,16 @@ export default function BoardPage() {
     (s) => s.status === 'completed'
   ).length;
 
+  // 콜라주용 — 전 섹션의 이미지(업로드 우선, AI 생성 보조)를 하나로 모음
+  const collageImages = SECTIONS.flatMap((section) => {
+    const sec = board.sections[section.id];
+    const uploaded = sec.uploadedImages ?? [];
+    const generated = sec.generatedImages ?? [];
+    const merged = [0, 1, 2].map((i) => uploaded[i] || generated[i] || null);
+    return [...merged, uploaded[3], uploaded[4]].filter((img): img is string => !!img);
+  });
+  const boardYear = board.boardYear ?? String(new Date().getFullYear());
+
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-2xl mx-auto w-full pb-10">
       <ProcessBar board={board} />
@@ -134,7 +145,7 @@ export default function BoardPage() {
                         router.push(`/scene/${section.id}`);
                       }
                     }}
-                    className="ml-auto text-xs text-[#9CA3AF]"
+                    className="ml-auto text-xs text-[#9CA3AF] whitespace-nowrap flex-shrink-0"
                   >
                     {board.sections[section.id].status === 'text_complete' ? '이미지 만들기 →' : '장면 그리러 가기 →'}
                   </button>
@@ -185,6 +196,24 @@ export default function BoardPage() {
           );
         })}
       </div>
+
+      {/* 한눈에 보기 — 폴라로이드 콜라주 */}
+      {collageImages.length > 0 && (
+        <div className="px-4 md:px-6 mt-10 animate-fadeIn">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="font-semibold text-sm">한눈에 보기</span>
+            <span className="text-xs text-[#9CA3AF]">내 비전보드를 하나로</span>
+          </div>
+          <VisionBoardCollage
+            images={collageImages}
+            year={boardYear}
+            onYearChange={(y) => {
+              saveBoardYear(y);
+              setBoard(loadBoard());
+            }}
+          />
+        </div>
+      )}
 
       <input
         ref={fileInputRef}

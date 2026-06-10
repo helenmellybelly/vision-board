@@ -64,15 +64,8 @@ const VISION_CARDS = [
   },
 ];
 
-// Act 3 예시 목업 — 완성된 비전보드 미리보기 (Unsplash 무료 사진)
-const SAMPLE_BOARD = [
-  { label: '나', color: '#8B5CF6', img: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=200&q=60' },
-  { label: '건강', color: '#10B981', img: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=200&q=60' },
-  { label: '관계', color: '#F59E0B', img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=200&q=60' },
-  { label: '일', color: '#3B82F6', img: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=200&q=60' },
-  { label: '돈', color: '#F97316', img: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=200&q=60' },
-  { label: '공간', color: '#06B6D4', img: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=200&q=60' },
-];
+// Act 4 — 생생한 장면(새벽 러닝) 보조 사진 (Unsplash 무료 사진)
+const RUNNING_IMG = 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=800&q=60';
 
 const SIX_AREAS = [
   { label: '나', desc: '감정·성장·정체성', color: '#8B5CF6' },
@@ -160,7 +153,7 @@ export default function OnboardingPage() {
   const name = savedName || '';
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full px-6 py-8">
+    <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full px-4 md:px-6 py-8">
       {act > 0 && (
         <div className="mb-8 mt-1 flex items-center justify-center gap-1.5">
           {Array.from({ length: TOTAL_ACTS }, (_, i) => (
@@ -186,8 +179,7 @@ export default function OnboardingPage() {
                 playsInline
                 style={{ width: "280px", height: "280px", objectFit: "contain", transform: "translateZ(0)", backfaceVisibility: "hidden" }}
               >
-                <source src="/인사-투명.webm" type="video/webm" />
-                <source src="/인사-0610-fallback.mp4" type="video/mp4" />
+                <source src="/tori-final.mp4" type="video/mp4" />
               </video>
             </div>
 
@@ -376,52 +368,21 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {/* 완성 비전보드 미리보기 목업 */}
-            <div className="px-2">
-              <div
-                className="rounded-2xl bg-white border border-[#E5E3DF] px-3.5 pt-3.5 pb-3 shadow-md"
-                style={{ transform: 'rotate(-1.5deg)' }}
-              >
-                <p className="text-[11px] font-semibold text-[#1C1B19] mb-2.5">
-                  🐿️ {name ? `${name}의 비전보드` : '나의 비전보드'}
-                </p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {SAMPLE_BOARD.map((area) => (
-                    <div key={area.label}>
-                      <div className="aspect-square rounded-lg overflow-hidden bg-[#F5F5F3]">
-                        <img
-                          src={area.img}
-                          alt={area.label}
-                          loading="lazy"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex items-center gap-1 mt-1 px-0.5">
-                        <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ backgroundColor: area.color }} />
-                        <span className="text-[9px] text-[#9CA3AF] font-medium">{area.label}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* 실제 비전보드 예시 — 모바일은 세로형, 웹은 가로형 */}
+            <div className="px-1">
+              <div className="rounded-2xl overflow-hidden border border-[#E5E3DF] bg-white shadow-md">
+                <img
+                  src="/example-board-portrait.jpg"
+                  alt="비전보드 예시"
+                  className="w-full md:hidden"
+                />
+                <img
+                  src="/example-board-landscape.jpg"
+                  alt="비전보드 예시"
+                  className="w-full hidden md:block"
+                />
               </div>
               <p className="text-[11px] text-[#9CA3AF] text-center mt-3">완성하면 이런 모습이 돼.</p>
-            </div>
-
-            {/* 3가지 효과 카드 */}
-            <div className="space-y-2">
-              {VISION_CARDS.map((card) => (
-                <div
-                  key={card.title}
-                  className="flex items-start gap-3 rounded-2xl px-4 py-3.5"
-                  style={{ backgroundColor: card.color + '12' }}
-                >
-                  <span className="text-xl flex-shrink-0 mt-0.5">{card.emoji}</span>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: card.color }}>{card.title}</p>
-                    <p className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">{card.desc}</p>
-                  </div>
-                </div>
-              ))}
             </div>
 
             <button
@@ -448,12 +409,20 @@ export default function OnboardingPage() {
                 <p className="text-sm text-[#6B7280] leading-relaxed">"언젠가 건강하게 살고 싶다."</p>
               </div>
 
-              <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: '#EEF2FF' }}>
-                <p className="text-xs font-semibold mb-2" style={{ color: '#6366F1' }}>생생한 장면</p>
-                <p className="text-sm leading-relaxed font-medium" style={{ color: '#4338CA' }}>
-                  "새벽 6시에 러닝 끝내고 샤워 후 커피 한 잔.<br />
-                  몸이 가볍고 하루가 내 것인 느낌."
-                </p>
+              <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: '#EEF2FF' }}>
+                <div className="px-5 py-4">
+                  <p className="text-xs font-semibold mb-2" style={{ color: '#6366F1' }}>생생한 장면</p>
+                  <p className="text-sm leading-relaxed font-medium" style={{ color: '#4338CA' }}>
+                    "새벽 6시에 러닝 끝내고 샤워 후 커피 한 잔.<br />
+                    몸이 가볍고 하루가 내 것인 느낌."
+                  </p>
+                </div>
+                <img
+                  src={RUNNING_IMG}
+                  alt="새벽 러닝"
+                  loading="lazy"
+                  className="w-full h-36 md:h-44 object-cover"
+                />
               </div>
             </div>
 
@@ -461,6 +430,26 @@ export default function OnboardingPage() {
               두 번째처럼 뚜렷해지면, 뇌는 그쪽으로 자연히 움직이기 시작해.<br />
               그게 비전보드의 힘이야.
             </p>
+
+            {/* 비전보드를 하면 좋은 이유 — 3가지 효과 카드 */}
+            <div className="space-y-3 pt-1">
+              <p className="text-lg font-bold text-[#1C1B19]">비전보드를 하면 좋은 이유</p>
+              <div className="space-y-2">
+                {VISION_CARDS.map((card) => (
+                  <div
+                    key={card.title}
+                    className="flex items-start gap-3 rounded-2xl px-4 py-3.5"
+                    style={{ backgroundColor: card.color + '12' }}
+                  >
+                    <span className="text-xl flex-shrink-0 mt-0.5">{card.emoji}</span>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: card.color }}>{card.title}</p>
+                      <p className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">{card.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <button
               onClick={() => goToAct(5)}

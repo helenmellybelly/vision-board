@@ -95,7 +95,7 @@ export interface BoardData {
   welcomeSeen?: boolean;
   oneSentence?: string;
   futureDayStory?: string;
-
+  boardYear?: string;                    // 비전보드 콜라주 중앙 연도
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];
