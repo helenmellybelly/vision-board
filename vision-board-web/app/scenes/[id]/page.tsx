@@ -41,16 +41,13 @@ export default function ScenesPage() {
   const [editingText, setEditingText] = useState('');
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
 
-  // images
+  // images — 보드·콜라주와 동일하게 섹션당 3장으로 제한
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null, null, null]);
+  const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [visibleSlots, setVisibleSlots] = useState(3);
   const [urlInput, setUrlInput] = useState('');
 
   const uploadRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -79,17 +76,7 @@ export default function ScenesPage() {
     }
     if (sec.uploadedImages) {
       const imgs = sec.uploadedImages;
-      setUploadedImages([
-        imgs[0] ?? null,
-        imgs[1] ?? null,
-        imgs[2] ?? null,
-        imgs[3] ?? null,
-        imgs[4] ?? null,
-      ]);
-      let vs = 3;
-      if (imgs[3]) vs = 4;
-      if (imgs[4]) vs = 5;
-      setVisibleSlots(vs);
+      setUploadedImages([imgs[0] ?? null, imgs[1] ?? null, imgs[2] ?? null]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionId]);
@@ -170,15 +157,12 @@ export default function ScenesPage() {
   function handleAddUrl() {
     const url = urlInput.trim();
     if (!url) return;
-    const emptyIdx = [0, 1, 2, 3, 4].find((i) => i < visibleSlots && !getSlotUrl(i));
+    const emptyIdx = [0, 1, 2].find((i) => !getSlotUrl(i));
     if (emptyIdx === undefined) return;
     const updated = [...uploadedImages];
     updated[emptyIdx] = url;
     setUploadedImages(updated);
     saveUploadedImage(sectionId, emptyIdx, url);
-    if (emptyIdx >= visibleSlots - 1 && visibleSlots < 5) {
-      setVisibleSlots((v) => Math.min(v + 1, 5));
-    }
     setUrlInput('');
   }
 
@@ -213,7 +197,7 @@ export default function ScenesPage() {
     resetToDescriptions(sectionId);
     setDescriptions(['', '', '']);
     setGeneratedImages([]);
-    setUploadedImages([null, null, null, null, null]);
+    setUploadedImages([null, null, null]);
     setEditMenu(false);
     setPendingConfirm(null);
     await fetchDescriptions();
@@ -431,20 +415,6 @@ export default function ScenesPage() {
           <div className="grid grid-cols-3 gap-2 mb-2">
             {[0, 1, 2].map((i) => renderSlot(i))}
           </div>
-          {visibleSlots >= 4 && (
-            <div className="grid grid-cols-3 gap-2 mb-2">
-              <div>{renderSlot(3)}</div>
-              {visibleSlots >= 5 && <div>{renderSlot(4)}</div>}
-            </div>
-          )}
-          {visibleSlots < 5 && (
-            <button
-              onClick={() => setVisibleSlots((v) => Math.min(v + 1, 5))}
-              className="text-xs text-[#9CA3AF] underline mt-1 active:opacity-60"
-            >
-              + 사진 추가
-            </button>
-          )}
         </div>
 
         {/* URL 입력 */}

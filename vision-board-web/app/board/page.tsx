@@ -5,23 +5,22 @@ import { useRouter } from 'next/navigation';
 import {
   loadBoard,
   saveUploadedImage,
-  saveBoardYear,
   saveMiniStory,
-  saveFutureDayStory,
 } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
-import { getSectionRoute, getSectionCtaLabel } from '@/lib/sectionRoute';
+import { getSectionRoute, getSectionCtaLabel, shouldHighlightCta } from '@/lib/sectionRoute';
 import { compressImage } from '@/lib/imageUtils';
 import { BoardData, SectionId, SlotId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import StoryModal from '@/components/StoryModal';
-import VisionBoardCollage from '@/components/VisionBoardCollage';
 
 export default function BoardPage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
+  const [showCollageHint, setShowCollageHint] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<{ sectionId: SectionId; index: number } | null>(null);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setBoard(loadBoard());
@@ -56,81 +55,26 @@ export default function BoardPage() {
     (s) => s.status === 'completed'
   ).length;
 
-  // 콜라주용 — 전 섹션의 이미지(업로드 우선, AI 생성 보조)를 하나로 모음
-  const collageImages = SECTIONS.flatMap((section) => {
+  // 한눈에 보기 버튼 활성화 판단 — 전 섹션에 담긴 이미지 수
+  const collageImageCount = SECTIONS.flatMap((section) => {
     const sec = board.sections[section.id];
     const uploaded = sec.uploadedImages ?? [];
     const generated = sec.generatedImages ?? [];
-    const merged = [0, 1, 2].map((i) => uploaded[i] || generated[i] || null);
-    return [...merged, uploaded[3], uploaded[4]].filter((img): img is string => !!img);
-  });
-  const boardYear = board.boardYear ?? String(new Date().getFullYear());
+    return [0, 1, 2]
+      .map((i) => uploaded[i] || generated[i] || null)
+      .filter((img): img is string => !!img);
+  }).length;
 
-  // 한눈에 보기 + 미래의 하루 — 모바일(하단)과 웹(우측 패널)에서 공용
-  const summaryPane = (compact: boolean) => (
-    <>
-      {collageImages.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="font-semibold text-sm">한눈에 보기</span>
-            <span className="text-xs text-[#9CA3AF]">내 비전보드를 하나로</span>
-          </div>
-          <VisionBoardCollage
-            compact={compact}
-            images={collageImages}
-            year={boardYear}
-            onYearChange={(y) => {
-              saveBoardYear(y);
-              setBoard(loadBoard());
-            }}
-          />
-        </div>
-      )}
-
-      {/* 미래의 하루 이야기 */}
-      <div className="mt-6">
-        {board.futureDayStory ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-sm">미래의 하루 이야기</span>
-              <button
-                onClick={() => router.push('/finish')}
-                className="text-xs text-[#9CA3AF] active:opacity-70"
-              >
-                다시 쓰러 가기 →
-              </button>
-            </div>
-            <StoryModal
-              story={board.futureDayStory}
-              color="#1C1B19"
-              label="📖 미래의 하루 읽기"
-              title="미래의 하루 이야기"
-              onSave={(s) => {
-                saveFutureDayStory(s);
-                setBoard(loadBoard());
-              }}
-            />
-          </div>
-        ) : completedCount === 6 ? (
-          <div className="space-y-2">
-            <button
-              onClick={() => router.push('/finish')}
-              className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
-            >
-              내 비전보드 완성하기 🐿️
-            </button>
-            <p className="text-[11px] text-[#9CA3AF] text-center">
-              완성하면 미래의 하루 이야기를 써줄게.
-            </p>
-          </div>
-        ) : (
-          <p className="text-[11px] text-[#9CA3AF] text-center leading-relaxed">
-            미래의 하루 이야기는 6개 영역을 모두 완성하면 열려. (현재 {completedCount}/6)
-          </p>
-        )}
-      </div>
-    </>
-  );
+  function handleCollageClick() {
+    if (collageImageCount > 0) {
+      router.push('/collage');
+      return;
+    }
+    // 비활성 상태에서 누르면 안내 문구를 잠깐 보여줌
+    setShowCollageHint(true);
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = setTimeout(() => setShowCollageHint(false), 2500);
+  }
 
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-5xl mx-auto w-full pb-10">
@@ -150,7 +94,7 @@ export default function BoardPage() {
         <p className="text-xs text-[#9CA3AF] pl-8">막연했던 바람이, 생생한 장면이 되는 곳.</p>
       </div>
 
-      <div className="md:grid md:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] md:gap-8 md:items-start md:px-6">
+      <div className="md:px-6">
         {/* 섹션별 이미지 그룹 */}
         <div className="px-4 md:px-0 space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 animate-fadeIn">
           {SECTIONS.map((section) => {
@@ -170,15 +114,25 @@ export default function BoardPage() {
                   <span className="font-semibold text-sm">{section.title.split(' — ')[0]}</span>
                   {keyword && (
                     <span
-                      className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      className="text-xs px-2 py-0.5 rounded-full font-medium truncate min-w-0"
                       style={{ backgroundColor: section.lightColor, color: section.color }}
                     >
                       {keyword}
                     </span>
                   )}
+                  {/* 사진만 있고 채팅·스토리가 남았으면 pill로 강조 — 다음 단계를 권유 */}
                   <button
                     onClick={() => router.push(getSectionRoute(sectionData, section.id))}
-                    className="ml-auto text-xs text-[#9CA3AF] whitespace-nowrap flex-shrink-0 active:opacity-70"
+                    className={
+                      shouldHighlightCta(sectionData)
+                        ? 'ml-auto text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 active:opacity-70'
+                        : 'ml-auto text-xs text-[#9CA3AF] whitespace-nowrap flex-shrink-0 active:opacity-70'
+                    }
+                    style={
+                      shouldHighlightCta(sectionData)
+                        ? { backgroundColor: section.lightColor, color: section.color }
+                        : undefined
+                    }
                   >
                     {getSectionCtaLabel(sectionData)}
                   </button>
@@ -238,15 +192,26 @@ export default function BoardPage() {
           })}
         </div>
 
-        {/* 웹(md+) — 우측 고정 패널 */}
-        <aside className="hidden md:block md:sticky md:top-4 md:max-h-[calc(100vh-2rem)] md:overflow-y-auto md:pb-4 animate-fadeIn">
-          {summaryPane(true)}
-        </aside>
       </div>
 
-      {/* 모바일 — 기존처럼 섹션 아래 배치 */}
-      <div className="md:hidden px-4 mt-10 animate-fadeIn">
-        {summaryPane(false)}
+      {/* 하단 — 한눈에 보기 (별도 페이지로 이동) */}
+      <div className="px-4 md:px-6 mt-10 animate-fadeIn">
+        <button
+          onClick={handleCollageClick}
+          title={collageImageCount === 0 ? '비전보드 사진을 1개 이상 올리면 활성화돼요' : undefined}
+          className={
+            collageImageCount > 0
+              ? 'w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity'
+              : 'w-full bg-[#F0EFEC] text-[#9CA3AF] py-4 rounded-2xl text-base font-semibold cursor-default'
+          }
+        >
+          내 비전보드 한눈에 보기 →
+        </button>
+        {showCollageHint && (
+          <p className="text-[11px] text-[#9CA3AF] text-center mt-2 animate-fadeIn">
+            비전보드 사진을 1개 이상 올리면 활성화돼요.
+          </p>
+        )}
       </div>
 
       <input

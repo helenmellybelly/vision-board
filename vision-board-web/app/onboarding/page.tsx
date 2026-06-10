@@ -82,10 +82,24 @@ const COMPARE_SLIDES = [
   },
 ];
 
-// 막연함 ↔ 선명함을 좌우로 넘겨 비교하는 스와이프 카드
+// 막연함 ↔ 선명함을 좌우로 넘겨 비교하는 스와이프 카드 (직접 조작 전까진 자동 순환)
 function CompareSwipeCard() {
   const [idx, setIdx] = useState(0);
+  const [interacted, setInteracted] = useState(false);
   const touchStartX = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (interacted) return;
+    const timer = setInterval(() => {
+      setIdx((i) => (i + 1) % COMPARE_SLIDES.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [interacted]);
+
+  function goTo(i: number) {
+    setInteracted(true);
+    setIdx(i);
+  }
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -94,8 +108,8 @@ function CompareSwipeCard() {
     if (touchStartX.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     touchStartX.current = null;
-    if (dx < -40 && idx < COMPARE_SLIDES.length - 1) setIdx(idx + 1);
-    if (dx > 40 && idx > 0) setIdx(idx - 1);
+    if (dx < -40 && idx < COMPARE_SLIDES.length - 1) goTo(idx + 1);
+    if (dx > 40 && idx > 0) goTo(idx - 1);
   }
 
   const slide = COMPARE_SLIDES[idx];
@@ -122,21 +136,21 @@ function CompareSwipeCard() {
             />
           ))}
           {/* 하단 그라데이션 + 텍스트 오버레이 */}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-5 pt-14 pb-4 pointer-events-none">
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-5 pt-16 pb-4 pointer-events-none">
             <p
-              className="text-[11px] font-semibold tracking-wide mb-1"
+              className="text-sm font-bold tracking-wide mb-1 drop-shadow"
               style={{ color: slide.key === 'vivid' ? '#A5B4FC' : '#D1D5DB' }}
             >
               {slide.label}
             </p>
-            <p className="text-sm font-medium text-white leading-relaxed whitespace-pre-line">
+            <p className="text-base font-semibold text-white leading-relaxed whitespace-pre-line drop-shadow">
               {slide.text}
             </p>
           </div>
           {/* 좌우 이동 (탭/데스크톱) */}
           {idx > 0 && (
             <button
-              onClick={() => setIdx(idx - 1)}
+              onClick={() => goTo(idx - 1)}
               aria-label="이전 장면"
               className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 text-white text-base flex items-center justify-center active:opacity-70"
             >
@@ -145,7 +159,7 @@ function CompareSwipeCard() {
           )}
           {idx < COMPARE_SLIDES.length - 1 && (
             <button
-              onClick={() => setIdx(idx + 1)}
+              onClick={() => goTo(idx + 1)}
               aria-label="다음 장면"
               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 text-white text-base flex items-center justify-center active:opacity-70"
             >
@@ -160,16 +174,20 @@ function CompareSwipeCard() {
         {COMPARE_SLIDES.map((s, i) => (
           <button
             key={s.key}
-            onClick={() => setIdx(i)}
+            onClick={() => goTo(i)}
             aria-label={s.label}
             className="w-2 h-2 rounded-full transition-colors"
             style={{ backgroundColor: i === idx ? '#1C1B19' : '#E5E3DF' }}
           />
         ))}
       </div>
-      {idx === 0 && (
-        <p className="text-[11px] text-[#9CA3AF] text-center animate-pulse">옆으로 넘겨봐 →</p>
-      )}
+      {/* 힌트 자리는 항상 차지 — 슬라이드 전환 시 아래 레이아웃이 점프하지 않게 */}
+      <p
+        className="text-[11px] text-[#9CA3AF] text-center animate-pulse h-4 leading-4"
+        style={{ visibility: idx === 0 ? 'visible' : 'hidden' }}
+      >
+        옆으로 넘겨봐 →
+      </p>
     </div>
   );
 }
@@ -286,7 +304,7 @@ export default function OnboardingPage() {
                 playsInline
                 style={{ width: "280px", height: "280px", objectFit: "contain", transform: "translateZ(0)", backfaceVisibility: "hidden" }}
               >
-                <source src="/tori-final2.mp4" type="video/mp4" />
+                <source src="/tori-final3.mp4" type="video/mp4" />
               </video>
             </div>
 
@@ -460,17 +478,18 @@ export default function OnboardingPage() {
             </div>
 
             {/* 실제 비전보드 예시 — 모바일은 세로형, 웹은 가로형 */}
-            <div className="px-1">
-              <div className="rounded-2xl overflow-hidden border border-[#E5E3DF] bg-white shadow-md">
+            <div className="px-1 flex flex-col items-center">
+              {/* 세로형 예시는 화면 절반 높이로 제한 — CTA까지 스크롤 없이 보이게 */}
+              <div className="rounded-2xl overflow-hidden border border-[#E5E3DF] bg-white shadow-md max-w-full">
                 <img
                   src="/example-board-portrait.jpg"
                   alt="비전보드 예시"
-                  className="w-full md:hidden"
+                  className="max-h-[48vh] w-auto max-w-full md:hidden"
                 />
                 <img
                   src="/example-board-landscape.jpg"
                   alt="비전보드 예시"
-                  className="w-full hidden md:block"
+                  className="max-w-full h-auto hidden md:block"
                 />
               </div>
               <p className="text-[11px] text-[#9CA3AF] text-center mt-3">완성하면 이런 모습이 돼.</p>

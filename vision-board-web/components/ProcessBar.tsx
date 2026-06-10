@@ -7,25 +7,28 @@ interface Props {
   board: BoardData;
 }
 
-type StepId = 1 | 2 | 3 | 4;
+type StepId = 1 | 2 | 3 | 4 | 5;
 
 const STEPS: { id: StepId; short: string; route: string }[] = [
   { id: 1, short: '대화', route: '/dashboard' },
   { id: 2, short: '장면', route: '/review' },
-  { id: 3, short: '이미지', route: '/board' },
-  { id: 4, short: '마무리', route: '/finish' },
+  { id: 3, short: '스토리', route: '/review' },
+  { id: 4, short: '이미지', route: '/board' },
+  { id: 5, short: '마무리', route: '/finish' },
 ];
 
 function getStepInfo(board: BoardData): { currentStep: StepId; subLabel: string } {
   const sections = Object.values(board.sections);
   const textDone = sections.filter((s) => s.status === 'text_complete' || s.status === 'completed').length;
   const sceneDone = sections.filter((s) => s.sceneText && s.sceneText.trim() !== '').length;
+  const storyDone = sections.filter((s) => s.miniStory && s.miniStory.trim() !== '').length;
   const imgDone = sections.filter((s) => s.status === 'completed').length;
 
   if (textDone < 6) return { currentStep: 1, subLabel: `${textDone}/6` };
   if (sceneDone < 6) return { currentStep: 2, subLabel: `${sceneDone}/6` };
-  if (imgDone < 6) return { currentStep: 3, subLabel: `${imgDone}/6` };
-  return { currentStep: 4, subLabel: '완성' };
+  if (storyDone < 6) return { currentStep: 3, subLabel: `${storyDone}/6` };
+  if (imgDone < 6) return { currentStep: 4, subLabel: `${imgDone}/6` };
+  return { currentStep: 5, subLabel: '완성' };
 }
 
 export default function ProcessBar({ board }: Props) {
