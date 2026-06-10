@@ -4,23 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
-import { BoardData, SectionData, SectionId, SectionStatus } from '@/lib/types';
+import { BoardData, SectionStatus } from '@/lib/types';
+import { getSectionRoute } from '@/lib/sectionRoute';
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
-
-function getSectionRoute(sectionData: SectionData, sectionId: SectionId): string {
-  switch (sectionData.status) {
-    case 'not_started':
-    case 'in_progress':
-      return `/section/${sectionId}`;
-    case 'text_complete':
-      if (!sectionData.sceneText) return `/scene/${sectionId}`;
-      if (!sectionData.miniStory) return `/moment/${sectionId}`;
-      return `/scenes/${sectionId}`;
-    case 'completed':
-      return `/scenes/${sectionId}`;
-  }
-}
 
 const STATUS_LABEL: Record<SectionStatus, string> = {
   not_started: '시작 전',

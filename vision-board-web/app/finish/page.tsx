@@ -14,6 +14,7 @@ export default function FinishPage() {
   const [phase, setPhase] = useState<FinishPhase>('pattern');
   const [sentenceInput, setSentenceInput] = useState('');
   const [story, setStory] = useState('');
+  const [confirmRewrite, setConfirmRewrite] = useState(false);
 
   useEffect(() => {
     const b = loadBoard();
@@ -178,9 +179,29 @@ export default function FinishPage() {
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{story}</p>
           </div>
 
+          {confirmRewrite && (
+            <div className="rounded-xl bg-[#FEF9C3] px-4 py-3">
+              <p className="text-xs text-[#92400E] mb-2">지금 이야기를 새로 쓸까? 직접 수정한 내용은 사라져.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setConfirmRewrite(false);
+                    if (board) generateStory(sentenceInput, board);
+                  }}
+                  className="text-xs font-semibold text-[#92400E]"
+                >
+                  새로 쓰기
+                </button>
+                <button onClick={() => setConfirmRewrite(false)} className="text-xs text-[#9CA3AF]">
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button
-              onClick={() => board && generateStory(sentenceInput, board)}
+              onClick={() => setConfirmRewrite(true)}
               className="flex-1 py-3 rounded-xl text-sm font-semibold border border-[#E5E3DF] text-[#6B7280]"
             >
               다시 써줘

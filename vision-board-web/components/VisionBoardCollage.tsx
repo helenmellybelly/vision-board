@@ -6,6 +6,8 @@ interface Props {
   images: string[];
   year: string;
   onYearChange: (year: string) => void;
+  /** 사이드 패널 등 좁은 영역용 — md: 업사이즈를 억제하고 2열 유지 */
+  compact?: boolean;
 }
 
 // 폴라로이드 미세 회전 — 인덱스 순환
@@ -22,7 +24,7 @@ function Polaroid({ src, index }: { src: string; index: number }) {
   );
 }
 
-export default function VisionBoardCollage({ images, year, onYearChange }: Props) {
+export default function VisionBoardCollage({ images, year, onYearChange, compact = false }: Props) {
   const [editing, setEditing] = useState(false);
   const [yearInput, setYearInput] = useState(year);
 
@@ -40,15 +42,28 @@ export default function VisionBoardCollage({ images, year, onYearChange }: Props
   const secondHalf = images.slice(half);
 
   return (
-    <div className="rounded-3xl px-4 py-5 md:px-6 md:py-7" style={{ backgroundColor: '#2D2B29' }}>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 items-center">
+    <div
+      className={compact ? 'rounded-3xl px-4 py-5' : 'rounded-3xl px-4 py-5 md:px-6 md:py-7'}
+      style={{ backgroundColor: '#2D2B29' }}
+    >
+      <div
+        className={
+          compact
+            ? 'grid grid-cols-2 gap-3 items-center'
+            : 'grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 items-center'
+        }
+      >
         {firstHalf.map((src, i) => (
           <Polaroid key={`a-${i}`} src={src} index={i} />
         ))}
 
         {/* 중앙 타이틀 — 연도 클릭 시 수정 */}
         <div className="col-span-2 flex flex-col items-center justify-center text-center py-4 select-none">
-          <p className="text-[11px] md:text-xs font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase">
+          <p
+            className={`font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase ${
+              compact ? 'text-[11px]' : 'text-[11px] md:text-xs'
+            }`}
+          >
             Vision Board
           </p>
           {editing ? (
@@ -60,12 +75,16 @@ export default function VisionBoardCollage({ images, year, onYearChange }: Props
               onBlur={commitYear}
               onKeyDown={(e) => e.key === 'Enter' && commitYear()}
               autoFocus
-              className="w-32 mt-1 bg-transparent text-center text-4xl md:text-5xl font-bold text-white outline-none border-b border-[#C4C2BE]"
+              className={`w-32 mt-1 bg-transparent text-center font-bold text-white outline-none border-b border-[#C4C2BE] ${
+                compact ? 'text-4xl' : 'text-4xl md:text-5xl'
+              }`}
             />
           ) : (
             <button
               onClick={() => { setYearInput(year); setEditing(true); }}
-              className="mt-1 text-4xl md:text-5xl font-bold text-white tracking-widest active:opacity-70"
+              className={`mt-1 font-bold text-white tracking-widest active:opacity-70 ${
+                compact ? 'text-4xl' : 'text-4xl md:text-5xl'
+              }`}
               title="연도 수정"
             >
               {year}

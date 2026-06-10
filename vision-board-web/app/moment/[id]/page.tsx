@@ -60,6 +60,9 @@ export default function MomentPage() {
   const [editMenu, setEditMenu] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState<'scene' | 'answers' | null>(null);
 
+  const [editingStory, setEditingStory] = useState(false);
+  const [storyDraft, setStoryDraft] = useState('');
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -266,10 +269,54 @@ export default function MomentPage() {
                   <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: section.color }}>
                     이 삶의 하루
                   </p>
-                  <p className="text-sm leading-relaxed">{renderStory(story)}</p>
+                  {editingStory ? (
+                    <>
+                      <textarea
+                        value={storyDraft}
+                        onChange={(e) => setStoryDraft(e.target.value)}
+                        rows={10}
+                        autoFocus
+                        className="w-full text-sm leading-relaxed rounded-xl border border-[#E5E3DF] bg-white px-3 py-2.5 resize-none focus:outline-none focus:border-[#C9C5BE]"
+                      />
+                      <p className="text-[10px] text-[#C9C5BE] mt-1 mb-2">**굵게** 표시는 그대로 두면 강조로 보여.</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const next = storyDraft.trim();
+                            if (!next) return;
+                            setStory(next);
+                            saveMiniStory(sectionId, next);
+                            setEditingStory(false);
+                          }}
+                          disabled={!storyDraft.trim()}
+                          className="flex-1 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-40"
+                          style={{ backgroundColor: section.color }}
+                        >
+                          저장
+                        </button>
+                        <button
+                          onClick={() => setEditingStory(false)}
+                          className="px-4 py-2 rounded-lg text-xs text-[#9CA3AF] border border-[#E5E3DF]"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm leading-relaxed">{renderStory(story)}</p>
+                  )}
                 </div>
 
-                {!usedAdditional && !showAdditional ? (
+                {!editingStory && (
+                  <button
+                    onClick={() => { setStoryDraft(story); setEditingStory(true); setShowAdditional(false); }}
+                    className="text-xs text-[#9CA3AF] underline mb-3 mr-4"
+                  >
+                    직접 수정하기
+                  </button>
+                )}
+
+                {editingStory ? null : !usedAdditional && !showAdditional ? (
                   <button
                     onClick={() => setShowAdditional(true)}
                     className="text-xs text-[#9CA3AF] underline mb-3"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   markOnboardingDone,
@@ -64,8 +64,115 @@ const VISION_CARDS = [
   },
 ];
 
-// Act 4 — 생생한 장면(새벽 러닝) 보조 사진 (Unsplash 무료 사진)
-const RUNNING_IMG = 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=800&q=60';
+// Act 4 — 막연함 vs 선명함 스와이프 슬라이드 (Unsplash 무료 사진)
+const COMPARE_SLIDES = [
+  {
+    key: 'vague',
+    label: '막연한 바람',
+    text: '"언젠가 건강하게 살고 싶다..."',
+    img: 'https://images.unsplash.com/photo-1492447166138-50c3889fccb1?auto=format&fit=crop&w=800&q=60',
+    grayscale: true,
+  },
+  {
+    key: 'vivid',
+    label: '생생한 장면',
+    text: '"새벽 6시 러닝 끝내고 샤워 후 커피 한 잔.\n몸이 가볍고 하루가 내 것인 느낌."',
+    img: 'https://images.unsplash.com/photo-1486218119243-13883505764c?auto=format&fit=crop&w=800&q=60',
+    grayscale: false,
+  },
+];
+
+// 막연함 ↔ 선명함을 좌우로 넘겨 비교하는 스와이프 카드
+function CompareSwipeCard() {
+  const [idx, setIdx] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (dx < -40 && idx < COMPARE_SLIDES.length - 1) setIdx(idx + 1);
+    if (dx > 40 && idx > 0) setIdx(idx - 1);
+  }
+
+  const slide = COMPARE_SLIDES[idx];
+
+  return (
+    <div className="space-y-2.5">
+      <div
+        className="relative rounded-2xl overflow-hidden select-none shadow-sm"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="relative h-64 md:h-72">
+          {COMPARE_SLIDES.map((s, i) => (
+            <img
+              key={s.key}
+              src={s.img}
+              alt={s.label}
+              loading={i === 0 ? undefined : 'lazy'}
+              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+              style={{
+                opacity: i === idx ? 1 : 0,
+                filter: s.grayscale ? 'grayscale(0.9) brightness(0.92)' : 'none',
+              }}
+            />
+          ))}
+          {/* 하단 그라데이션 + 텍스트 오버레이 */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-5 pt-14 pb-4 pointer-events-none">
+            <p
+              className="text-[11px] font-semibold tracking-wide mb-1"
+              style={{ color: slide.key === 'vivid' ? '#A5B4FC' : '#D1D5DB' }}
+            >
+              {slide.label}
+            </p>
+            <p className="text-sm font-medium text-white leading-relaxed whitespace-pre-line">
+              {slide.text}
+            </p>
+          </div>
+          {/* 좌우 이동 (탭/데스크톱) */}
+          {idx > 0 && (
+            <button
+              onClick={() => setIdx(idx - 1)}
+              aria-label="이전 장면"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 text-white text-base flex items-center justify-center active:opacity-70"
+            >
+              ‹
+            </button>
+          )}
+          {idx < COMPARE_SLIDES.length - 1 && (
+            <button
+              onClick={() => setIdx(idx + 1)}
+              aria-label="다음 장면"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 text-white text-base flex items-center justify-center active:opacity-70"
+            >
+              ›
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 점 인디케이터 + 힌트 */}
+      <div className="flex items-center justify-center gap-1.5">
+        {COMPARE_SLIDES.map((s, i) => (
+          <button
+            key={s.key}
+            onClick={() => setIdx(i)}
+            aria-label={s.label}
+            className="w-2 h-2 rounded-full transition-colors"
+            style={{ backgroundColor: i === idx ? '#1C1B19' : '#E5E3DF' }}
+          />
+        ))}
+      </div>
+      {idx === 0 && (
+        <p className="text-[11px] text-[#9CA3AF] text-center animate-pulse">옆으로 넘겨봐 →</p>
+      )}
+    </div>
+  );
+}
 
 const SIX_AREAS = [
   { label: '나', desc: '감정·성장·정체성', color: '#8B5CF6' },
@@ -179,7 +286,7 @@ export default function OnboardingPage() {
                 playsInline
                 style={{ width: "280px", height: "280px", objectFit: "contain", transform: "translateZ(0)", backfaceVisibility: "hidden" }}
               >
-                <source src="/tori-final.mp4" type="video/mp4" />
+                <source src="/tori-final2.mp4" type="video/mp4" />
               </video>
             </div>
 
@@ -206,45 +313,45 @@ export default function OnboardingPage() {
 
         {/* ══════════ ACT 1: 이름 ══════════ */}
         {act === 1 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div className="flex items-start gap-4">
+          <div className="flex-1 flex flex-col justify-center space-y-4">
+            {/* 토리 프로필 헤더 — 사진 옆 이름, 그 아래로 채팅이 흐름 */}
+            <div className="flex items-center gap-3">
               <img
                 src="/프로필상반신.png"
                 alt="토리"
-                className="w-14 h-14 rounded-2xl object-contain flex-shrink-0"
+                className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
               />
-              <div className="space-y-2 flex-1">
-                <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
-                <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
-                  <p className="text-sm leading-relaxed">
-                    만나서 반가워 😊<br />
-                    앞으로 너의 비전보드를 함께 만들어갈 거야.<br />
-                    <br />
-                    내 목표는 네가 원하는 삶을 발견하고,<br />
-                    그 삶을 생생하게 그려볼 수 있도록 돕는 거야.<br />
-                    언제나 너의 삶을 지켜보고 응원해주는 정원사가 될게.<br />
-                    <br />
-                    <strong>앞으로 나는 너를 뭐라고 불러줄까? 🌱</strong>
-                  </p>
-                </div>
-              </div>
+              <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
+            </div>
+
+            <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
+              <p className="text-sm leading-relaxed">
+                만나서 반가워 😊<br />
+                앞으로 너의 비전보드를 함께 만들어갈 거야.<br />
+                <br />
+                내 목표는 네가 원하는 삶을 발견하고,<br />
+                그 삶을 생생하게 그려볼 수 있도록 돕는 거야.<br />
+                언제나 너의 삶을 지켜보고 응원해주는 정원사가 될게.<br />
+                <br />
+                <strong>앞으로 나는 너를 뭐라고 불러줄까? 🌱</strong>
+              </p>
             </div>
 
             {!showNameResponse && (
-              <div className="flex gap-2 ml-16">
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && nameInput.trim() && handleNameSubmit()}
                   placeholder="이름 또는 닉네임"
-                  className="flex-1 px-4 py-3 rounded-xl border border-[#E5E3DF] text-sm outline-none focus:border-[#1C1B19] transition-colors bg-white"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-[#E5E3DF] text-sm outline-none focus:border-[#1C1B19] transition-colors bg-white"
                   autoFocus
                 />
                 <button
                   onClick={handleNameSubmit}
                   disabled={!nameInput.trim()}
-                  className="px-5 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity"
+                  className="px-5 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity flex-shrink-0 whitespace-nowrap"
                   style={{ backgroundColor: '#1C1B19' }}
                 >
                   저장
@@ -254,18 +361,11 @@ export default function OnboardingPage() {
 
             {showNameResponse && (
               <>
-                <div className="flex items-start gap-4 animate-fadeIn">
-                  <img
-                    src="/프로필상반신.png"
-                    alt="토리"
-                    className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
-                  />
-                  <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3">
-                    <p className="text-sm leading-relaxed">
-                      아, {savedName}! 좋은 이름이다 😊<br />
-                      이제 같이 시작해보자.
-                    </p>
-                  </div>
+                <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3 animate-fadeIn">
+                  <p className="text-sm leading-relaxed">
+                    아, {savedName}! 좋은 이름이다 😊<br />
+                    이제 같이 시작해보자.
+                  </p>
                 </div>
                 <button
                   onClick={() => goToAct(2)}
@@ -284,36 +384,27 @@ export default function OnboardingPage() {
           <div className="flex-1 flex flex-col justify-center">
             {acornStep >= 0 && (
               <div className="space-y-3 cursor-pointer" onClick={handleAcornTap}>
+                {/* 토리 프로필 헤더 */}
+                <div className="flex items-center gap-3 mb-1">
+                  <img
+                    src="/프로필상반신.png"
+                    alt="토리"
+                    className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
+                  />
+                  <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
+                </div>
                 {Array.from({ length: acornStep + 1 }, (_, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    {i === acornStep ? (
-                      <>
-                        <img
-                          src="/프로필상반신.png"
-                          alt="토리"
-                          className="w-12 h-12 rounded-xl object-contain flex-shrink-0 animate-fadeIn"
-                        />
-                        <div className="flex-1 space-y-2 animate-fadeIn">
-                          <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
-                          <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
-                            <p className="text-sm leading-relaxed whitespace-pre-line">
-                              {ACORN_MESSAGES[i](name)}
-                            </p>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-12 flex-shrink-0" />
-                        <div className="flex-1">
-                          <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 opacity-60">
-                            <p className="text-sm leading-relaxed whitespace-pre-line">
-                              {ACORN_MESSAGES[i](name)}
-                            </p>
-                          </div>
-                        </div>
-                      </>
-                    )}
+                  <div
+                    key={i}
+                    className={
+                      i === acornStep
+                        ? 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 animate-fadeIn'
+                        : 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 opacity-60'
+                    }
+                  >
+                    <p className="text-sm leading-relaxed whitespace-pre-line">
+                      {ACORN_MESSAGES[i](name)}
+                    </p>
                   </div>
                 ))}
 
@@ -343,17 +434,17 @@ export default function OnboardingPage() {
         {act === 3 && (
           <div className="flex-1 flex flex-col justify-center space-y-5">
             {/* 토리 말풍선 */}
-            <div className="flex items-start gap-4">
-              <img
-                src="/프로필상반신.png"
-                alt="토리"
-                className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
-              />
-              <div className="space-y-2 flex-1">
-                <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
-                <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
-                  <p className="text-sm leading-relaxed">{VISION_INTRO}</p>
-                </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/프로필상반신.png"
+                  alt="토리"
+                  className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
+                />
+                <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
+              </div>
+              <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
+                <p className="text-sm leading-relaxed">{VISION_INTRO}</p>
               </div>
             </div>
 
@@ -403,32 +494,10 @@ export default function OnboardingPage() {
               <p className="text-2xl font-bold text-[#1C1B19] leading-snug">막연함과 선명함의 차이</p>
             </div>
 
-            <div className="space-y-3">
-              <div className="rounded-2xl px-5 py-4 bg-[#F5F5F3]">
-                <p className="text-xs font-semibold text-[#9CA3AF] mb-2">막연한 바람</p>
-                <p className="text-sm text-[#6B7280] leading-relaxed">"언젠가 건강하게 살고 싶다."</p>
-              </div>
-
-              <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: '#EEF2FF' }}>
-                <div className="px-5 py-4">
-                  <p className="text-xs font-semibold mb-2" style={{ color: '#6366F1' }}>생생한 장면</p>
-                  <p className="text-sm leading-relaxed font-medium" style={{ color: '#4338CA' }}>
-                    "새벽 6시에 러닝 끝내고 샤워 후 커피 한 잔.<br />
-                    몸이 가볍고 하루가 내 것인 느낌."
-                  </p>
-                </div>
-                <img
-                  src={RUNNING_IMG}
-                  alt="새벽 러닝"
-                  loading="lazy"
-                  className="w-full h-36 md:h-44 object-cover"
-                />
-              </div>
-            </div>
+            <CompareSwipeCard />
 
             <p className="text-xs text-[#6B7280] leading-relaxed text-center px-2">
-              두 번째처럼 뚜렷해지면, 뇌는 그쪽으로 자연히 움직이기 시작해.<br />
-              그게 비전보드의 힘이야.
+              뚜렷해지는 순간, 뇌는 그쪽으로 움직이기 시작해 — 그게 비전보드의 힘이야.
             </p>
 
             {/* 비전보드를 하면 좋은 이유 — 3가지 효과 카드 */}
@@ -464,38 +533,36 @@ export default function OnboardingPage() {
         {/* ══════════ ACT 5: 6 화단 안내 → 시작 ══════════ */}
         {act === 5 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div className="flex items-start gap-4">
-              <img
-                src="/프로필상반신.png"
-                alt="토리"
-                className="w-12 h-12 rounded-xl object-contain flex-shrink-0"
-              />
-              <div className="space-y-2 flex-1">
-                <p className="text-xs text-[#9CA3AF] font-medium">토리</p>
-                <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3">
-                  <p className="text-sm leading-relaxed">
-                    좋아{name ? `, ${name}${getNameSuffix(name)}` : ''}.<br />
-                    이제 진짜 시작이야.<br />
-                    비전보드는 삶의 6가지 영역으로 이루어져 있어.<br />
-                    하나씩 채워가다 보면 네 삶 전체가 그려지기 시작할 거야.
-                  </p>
-                </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/프로필상반신.png"
+                  alt="토리"
+                  className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
+                />
+                <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
+              </div>
+              <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3">
+                <p className="text-sm leading-relaxed">
+                  좋아{name ? `, ${name}${getNameSuffix(name)}` : ''}.<br />
+                  이제 진짜 시작이야.<br />
+                  비전보드는 삶의 6가지 영역으로 이루어져 있어.<br />
+                  하나씩 채워가다 보면 네 삶 전체가 그려지기 시작할 거야.
+                </p>
               </div>
             </div>
 
-            <div className="ml-16 space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                {SIX_AREAS.map((area) => (
-                  <div
-                    key={area.label}
-                    className="rounded-xl px-3.5 py-3 text-left"
-                    style={{ backgroundColor: area.color + '15' }}
-                  >
-                    <p className="text-sm font-bold" style={{ color: area.color }}>{area.label}</p>
-                    <p className="text-[11px] text-[#6B7280] mt-0.5">{area.desc}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              {SIX_AREAS.map((area) => (
+                <div
+                  key={area.label}
+                  className="rounded-xl px-3.5 py-3 text-left"
+                  style={{ backgroundColor: area.color + '15' }}
+                >
+                  <p className="text-sm font-bold" style={{ color: area.color }}>{area.label}</p>
+                  <p className="text-[11px] text-[#6B7280] mt-0.5">{area.desc}</p>
+                </div>
+              ))}
             </div>
 
             <button
