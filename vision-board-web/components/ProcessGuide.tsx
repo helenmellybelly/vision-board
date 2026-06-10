@@ -4,9 +4,10 @@ import { useState } from 'react';
 
 const STEPS = [
   { step: 1, label: '대화', description: '6가지 주제에 짧게 답해 — 지금 여기서' },
-  { step: 2, label: '장면', description: '각 답변을 구체적인 이미지로 묘사해' },
-  { step: 3, label: '이미지', description: '어울리는 사진 3장씩 찾기' },
-  { step: 4, label: '마무리', description: '내 비전보드 완성' },
+  { step: 2, label: '장면', description: '각 답변을 구체적인 장면으로 그려' },
+  { step: 3, label: '스토리', description: '장면을 짧은 스토리로 다듬어' },
+  { step: 4, label: '이미지', description: '어울리는 사진 3장 고르기' },
+  { step: 5, label: '마무리', description: '내 비전보드 완성' },
 ];
 
 export default function ProcessGuide() {

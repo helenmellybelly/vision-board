@@ -46,7 +46,11 @@ export default function DashboardPage() {
         <div className="mb-6 animate-fadeIn">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <span>🐿️</span>
+              <img
+                src="/프로필상반신.png"
+                alt="토리"
+                className="w-7 h-7 rounded-full object-cover"
+              />
               <span className="text-sm text-[#6B7280]">정원사 토리와 함께</span>
             </div>
             <ProcessGuide />

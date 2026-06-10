@@ -28,11 +28,11 @@ const ACORN_MESSAGES = [
   (name: string) =>
     `${name ? `${name}${getNameSuffix(name)}, ` : ''}토리가 좋아하는 이야기가 있어.\n들어봐.`,
   () =>
-    `도토리 있잖아, 그 2.5cm짜리 씨앗.\n흙에 심으면 최대 60m 참나무가 돼.`,
+    `도토리 있잖아, 그 2.5cm짜리 씨앗.\n땅에 심으면 최대 60m 참나무가 돼.`,
   () =>
     `성인 남자 엄지손톱만한 씨앗 안에\n이미 60m짜리 참나무가 들어있는 거야.\n2.5cm가 60m로 변하면 2,400배 성장한 거야.`,
   () =>
-    `정말 대단하지 않아? 근데 흙에 심어야만 그렇게 돼.\n책상 위에 올려두면 그저 도토리야.`,
+    `정말 대단하지 않아? 근데 땅에 심어야만 그렇게 돼.\n책상 위에 올려두면 그저 도토리야.`,
   () =>
     `도토리한테 가장 중요한 건\n어디에 놓이느냐인 거야.\n가능성을 꺼내줄 환경이 필요한 거지.`,
   () =>
@@ -296,13 +296,14 @@ export default function OnboardingPage() {
         {/* ══════════ ACT 0: 토리 소개 ══════════ */}
         {act === 0 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div className="flex justify-center">
+            {/* 배경색을 직접 깔아야 fadeIn 중 stacking context가 격리돼도 multiply 기준면이 유지됨 */}
+            <div className="flex justify-center" style={{ backgroundColor: '#FAF9F7' }}>
               <video
                 autoPlay
                 loop
                 muted
                 playsInline
-                style={{ width: "280px", height: "280px", objectFit: "contain", transform: "translateZ(0)", backfaceVisibility: "hidden" }}
+                style={{ width: "280px", height: "280px", objectFit: "contain", transform: "translateZ(0)", backfaceVisibility: "hidden", mixBlendMode: "multiply" }}
               >
                 <source src="/tori-final3.mp4" type="video/mp4" />
               </video>
@@ -515,9 +516,12 @@ export default function OnboardingPage() {
 
             <CompareSwipeCard />
 
-            <p className="text-xs text-[#6B7280] leading-relaxed text-center px-2">
-              뚜렷해지는 순간, 뇌는 그쪽으로 움직이기 시작해 — 그게 비전보드의 힘이야.
-            </p>
+            <div className="rounded-2xl px-5 py-4 text-center" style={{ backgroundColor: '#1C1B19' }}>
+              <p className="text-sm text-white leading-relaxed">
+                뚜렷해지는 순간, <span className="font-bold">뇌는 그쪽으로 움직이기 시작해.</span>
+              </p>
+              <p className="text-xs text-[#C4C2BE] mt-1">그게 비전보드의 힘이야.</p>
+            </div>
 
             {/* 비전보드를 하면 좋은 이유 — 3가지 효과 카드 */}
             <div className="space-y-3 pt-1">

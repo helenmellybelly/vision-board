@@ -173,9 +173,45 @@ export default function SectionChatPage() {
         <div>
           {msgs.map((msg, i) => {
             if (msg.type === 'user') {
+              const msgKey = section.phaseOneQuestions[msg.qIndex].key;
+              if (phase === 'questions' && editingKey === msgKey) {
+                return (
+                  <div key={i} className="mb-1">
+                    <textarea
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="w-full text-sm rounded-xl border border-[#E5E3DF] px-3 py-2 resize-none focus:outline-none focus:border-[#C9C5BE] leading-relaxed"
+                      rows={2}
+                      autoFocus
+                    />
+                    <div className="flex gap-3 mt-1.5 justify-end">
+                      <button
+                        onClick={() => handleSaveEdit(msgKey)}
+                        className="text-xs font-semibold text-[#1C1B19]"
+                      >
+                        저장
+                      </button>
+                      <button
+                        onClick={() => setEditingKey(null)}
+                        className="text-xs text-[#9CA3AF]"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div key={i} className="flex flex-col items-end mb-1">
                   <ChatBubble role="user" content={msg.text} />
+                  {phase === 'questions' && (
+                    <button
+                      onClick={() => { setEditingKey(msgKey); setEditValue(msg.text); }}
+                      className="text-[10px] text-[#C9C5BE] mt-0.5 pr-1 active:text-[#9CA3AF]"
+                    >
+                      수정
+                    </button>
+                  )}
                 </div>
               );
             }

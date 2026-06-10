@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { BoardData } from '@/lib/types';
 
 interface Props {
@@ -17,23 +17,50 @@ const STEPS: { id: StepId; short: string; route: string }[] = [
   { id: 5, short: '마무리', route: '/finish' },
 ];
 
-function getStepInfo(board: BoardData): { currentStep: StepId; subLabel: string } {
+// 현재 경로가 가리키는 단계 (허브 페이지는 null → 상태 기반 fallback)
+function getRouteStep(pathname: string): StepId | null {
+  if (pathname.startsWith('/section')) return 1;
+  if (pathname.startsWith('/scenes')) return 4; // '/scene'보다 먼저 매칭해야 함
+  if (pathname.startsWith('/scene')) return 2;
+  if (pathname.startsWith('/moment')) return 3;
+  if (pathname.startsWith('/board')) return 4;
+  if (pathname.startsWith('/finish')) return 5;
+  return null;
+}
+
+function getStepInfo(board: BoardData, routeStep: StepId | null): {
+  currentStep: StepId;
+  maxStep: StepId;
+  subLabel: string;
+} {
   const sections = Object.values(board.sections);
   const textDone = sections.filter((s) => s.status === 'text_complete' || s.status === 'completed').length;
   const sceneDone = sections.filter((s) => s.sceneText && s.sceneText.trim() !== '').length;
   const storyDone = sections.filter((s) => s.miniStory && s.miniStory.trim() !== '').length;
   const imgDone = sections.filter((s) => s.status === 'completed').length;
 
-  if (textDone < 6) return { currentStep: 1, subLabel: `${textDone}/6` };
-  if (sceneDone < 6) return { currentStep: 2, subLabel: `${sceneDone}/6` };
-  if (storyDone < 6) return { currentStep: 3, subLabel: `${storyDone}/6` };
-  if (imgDone < 6) return { currentStep: 4, subLabel: `${imgDone}/6` };
-  return { currentStep: 5, subLabel: '완성' };
+  let stateStep: StepId = 5;
+  if (textDone < 6) stateStep = 1;
+  else if (sceneDone < 6) stateStep = 2;
+  else if (storyDone < 6) stateStep = 3;
+  else if (imgDone < 6) stateStep = 4;
+
+  const currentStep = routeStep ?? stateStep;
+  const maxStep = Math.max(stateStep, currentStep) as StepId;
+  const subLabels: Record<StepId, string> = {
+    1: `${textDone}/6`,
+    2: `${sceneDone}/6`,
+    3: `${storyDone}/6`,
+    4: `${imgDone}/6`,
+    5: '완성',
+  };
+  return { currentStep, maxStep, subLabel: subLabels[currentStep] };
 }
 
 export default function ProcessBar({ board }: Props) {
   const router = useRouter();
-  const { currentStep, subLabel } = getStepInfo(board);
+  const pathname = usePathname();
+  const { currentStep, maxStep, subLabel } = getStepInfo(board, getRouteStep(pathname));
 
   return (
     <div className="w-full px-4 pt-3 pb-2">
@@ -41,7 +68,7 @@ export default function ProcessBar({ board }: Props) {
         {STEPS.map((step, idx) => {
           const isDone = step.id < currentStep;
           const isCurrent = step.id === currentStep;
-          const isFuture = step.id > currentStep;
+          const isFuture = step.id > maxStep;
           const isLast = idx === STEPS.length - 1;
 
           return (
