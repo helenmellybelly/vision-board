@@ -202,11 +202,11 @@ export default function MomentPage() {
         {/* STEP 1: Situation */}
         <ChatBubble
           role="assistant"
-          content="장면까지 그렸으니, 이제 그 삶에서 보고 싶은 구체적인 순간들을 떠올려볼게요."
+          content="장면까지 그렸으니, 이제 그 삶에서 보고 싶은 구체적인 순간들을 떠올려볼게."
         />
         <ChatBubble
           role="assistant"
-          content="이 삶에서 어떤 장면들이 눈에 들어와요? 공간, 사람, 상황, 물건 — 뭐든 괜찮아요."
+          content="이 삶에서 어떤 장면들이 눈에 들어와? 공간, 사람, 상황, 물건 — 뭐든 괜찮아."
         />
 
         {step === 'situation' && !submittedSituation && (
@@ -229,7 +229,7 @@ export default function MomentPage() {
             <textarea
               value={situationInput}
               onChange={(e) => setSituationInput(e.target.value)}
-              placeholder="여러 줄로 써도 좋아요. 구체적일수록 이미지가 선명해져요."
+              placeholder="여러 줄로 써도 좋아. 구체적일수록 이미지가 선명해져."
               className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-sm leading-relaxed resize-none focus:outline-none focus:border-[#C9C5BE] mb-3"
               rows={4}
             />
@@ -253,7 +253,7 @@ export default function MomentPage() {
           <>
             {storyLoading ? (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4">
-                <p className="text-xs text-[#9CA3AF] mb-2">잠깐, 하루를 그려볼게요...</p>
+                <p className="text-xs text-[#9CA3AF] mb-2">잠깐, 하루를 그려볼게...</p>
                 <div className="h-2 bg-[#F5F5F3] rounded-full animate-pulse" />
                 <div className="h-2 bg-[#F5F5F3] rounded-full animate-pulse mt-2 w-3/4" />
               </div>

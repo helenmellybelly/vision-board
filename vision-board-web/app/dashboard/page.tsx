@@ -47,7 +47,6 @@ export default function DashboardPage() {
   if (!board) return null;
 
   const statuses = Object.values(board.sections).map((s) => s.status);
-  const completedCount = statuses.filter((s) => s === 'completed').length;
   const textCompleteCount = statuses.filter((s) => s === 'text_complete' || s === 'completed').length;
   const allTextDone = textCompleteCount === 6;
   const userName = board.userName;
@@ -171,14 +170,12 @@ export default function DashboardPage() {
               다 됐다, 이제 장면을 그리러 가자 →
             </button>
           )}
-          {completedCount > 0 && (
-            <button
-              onClick={() => router.push('/board')}
-              className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-sm font-semibold active:opacity-70 transition-opacity"
-            >
-              비전보드 보기
-            </button>
-          )}
+          <button
+            onClick={() => router.push('/board')}
+            className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-sm font-semibold active:opacity-70 transition-opacity"
+          >
+            나의 비전보드 보러가기 →
+          </button>
         </div>
       </div>
 

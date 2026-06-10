@@ -254,7 +254,7 @@ export default function SectionChatPage() {
               {showDownstreamWarning && (
                 <div className="rounded-xl bg-[#FEF9C3] px-4 py-3 mb-4">
                   <p className="text-xs text-[#92400E] mb-2">
-                    답변이 바뀌었으니, 이전에 만든 장면과 이미지도 다시 만들어보는 게 좋을 것 같아요.
+                    답변이 바뀌었으니, 이전에 만든 장면과 이미지도 다시 만들어보는 게 좋을 것 같아.
                   </p>
                   <div className="flex gap-3">
                     <button
