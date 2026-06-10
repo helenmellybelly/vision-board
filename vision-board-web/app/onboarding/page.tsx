@@ -8,8 +8,6 @@ import {
   saveOnboardingStep,
   loadBoard,
 } from '@/lib/storage';
-import ChapterProgress from '@/components/ChapterProgress';
-
 type Act = 0 | 1 | 2 | 3 | 4 | 5;
 
 function getNameSuffix(name: string): string {
@@ -66,6 +64,16 @@ const VISION_CARDS = [
   },
 ];
 
+// Act 3 예시 목업 — 완성된 비전보드 미리보기 (Unsplash 무료 사진)
+const SAMPLE_BOARD = [
+  { label: '나', color: '#8B5CF6', img: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=200&q=60' },
+  { label: '건강', color: '#10B981', img: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=200&q=60' },
+  { label: '관계', color: '#F59E0B', img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=200&q=60' },
+  { label: '일', color: '#3B82F6', img: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=200&q=60' },
+  { label: '돈', color: '#F97316', img: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=200&q=60' },
+  { label: '공간', color: '#06B6D4', img: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=200&q=60' },
+];
+
 const SIX_AREAS = [
   { label: '나', desc: '감정·성장·정체성', color: '#8B5CF6' },
   { label: '건강', desc: '몸·마음·루틴', color: '#10B981' },
@@ -75,19 +83,7 @@ const SIX_AREAS = [
   { label: '공간', desc: '환경·물건·분위기', color: '#06B6D4' },
 ];
 
-const CHAPTERS = [
-  { id: 1, label: '인사' },
-  { id: 2, label: '가능성' },
-  { id: 3, label: '비전' },
-  { id: 4, label: '시작' },
-];
-
-function actToChapterId(act: Act): number {
-  if (act === 0) return 0;
-  if (act === 5) return 4;
-  if (act === 4) return 3;
-  return act;
-}
+const TOTAL_ACTS = 5; // Act 1~5 진행 점 표시
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -115,14 +111,6 @@ export default function OnboardingPage() {
       setAcornStep(0);
     }
   }, [act, acornStep]);
-
-  // Act 2: 자동 전환 (2.5초)
-  useEffect(() => {
-    if (acornStep >= 0 && acornStep < ACORN_MESSAGES.length - 1) {
-      const timer = setTimeout(() => setAcornStep((s) => s + 1), 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [acornStep]);
 
   function handleAcornTap() {
     if (acornStep >= 0 && acornStep < ACORN_MESSAGES.length - 1) {
@@ -174,8 +162,14 @@ export default function OnboardingPage() {
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full px-6 py-8">
       {act > 0 && (
-        <div className="mb-8 mt-1">
-          <ChapterProgress chapters={CHAPTERS} currentId={actToChapterId(act)} />
+        <div className="mb-8 mt-1 flex items-center justify-center gap-1.5">
+          {Array.from({ length: TOTAL_ACTS }, (_, i) => (
+            <div
+              key={i}
+              className="w-1.5 h-1.5 rounded-full transition-colors duration-300"
+              style={{ backgroundColor: i < act ? '#1C1B19' : '#E5E3DF' }}
+            />
+          ))}
         </div>
       )}
 
@@ -193,7 +187,7 @@ export default function OnboardingPage() {
                 style={{ width: "280px", height: "280px", objectFit: "contain", transform: "translateZ(0)", backfaceVisibility: "hidden" }}
               >
                 <source src="/인사-투명.webm" type="video/webm" />
-                <source src="/인사- 배경없음.mp4" type="video/mp4" />
+                <source src="/인사-0610-fallback.mp4" type="video/mp4" />
               </video>
             </div>
 
@@ -382,6 +376,37 @@ export default function OnboardingPage() {
               </p>
             </div>
 
+            {/* 완성 비전보드 미리보기 목업 */}
+            <div className="px-2">
+              <div
+                className="rounded-2xl bg-white border border-[#E5E3DF] px-3.5 pt-3.5 pb-3 shadow-md"
+                style={{ transform: 'rotate(-1.5deg)' }}
+              >
+                <p className="text-[11px] font-semibold text-[#1C1B19] mb-2.5">
+                  🐿️ {name ? `${name}의 비전보드` : '나의 비전보드'}
+                </p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {SAMPLE_BOARD.map((area) => (
+                    <div key={area.label}>
+                      <div className="aspect-square rounded-lg overflow-hidden bg-[#F5F5F3]">
+                        <img
+                          src={area.img}
+                          alt={area.label}
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1 mt-1 px-0.5">
+                        <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ backgroundColor: area.color }} />
+                        <span className="text-[9px] text-[#9CA3AF] font-medium">{area.label}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[11px] text-[#9CA3AF] text-center mt-3">완성하면 이런 모습이 돼.</p>
+            </div>
+
             {/* 3가지 효과 카드 */}
             <div className="space-y-2">
               {VISION_CARDS.map((card) => (
@@ -404,7 +429,7 @@ export default function OnboardingPage() {
               className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              그게 어떻게 가능한 건데? →
+              와, 기대되는데? →
             </button>
           </div>
         )}
@@ -413,7 +438,7 @@ export default function OnboardingPage() {
         {act === 4 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
             <div className="space-y-1">
-              <p className="text-xs text-[#9CA3AF] font-medium">이게 왜 다른지 봐줄게.</p>
+              <p className="text-xs text-[#9CA3AF] font-medium">이게 왜 효과 있는지 보여줄게.</p>
               <p className="text-2xl font-bold text-[#1C1B19] leading-snug">막연함과 선명함의 차이</p>
             </div>
 
