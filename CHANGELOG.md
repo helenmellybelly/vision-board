@@ -2,19 +2,24 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.9 프로덕션 배포 완료 (master cced1ac) — 영상 흰 배경 제거·답변 인라인 수정·ProcessBar 경로 인식·ProcessGuide 5단계 동기화
+- **상태:** v6.10 프로덕션 배포 완료 (master 3cfd4ad) — Act 0 영상 `최종3.mp4`(`tori-v3.mp4`)로 교체, `mix-blend-mode: multiply` 배경 제거
 - **주요 기능:**
   - 🐿️ 토리 캐릭터 (꿈의 정원사) — Acts 0-5 구조
-  - 온보딩 Act 0: 캐릭터 영상 `tori-final3.mp4` — `mix-blend-mode: multiply` + 래퍼 배경색으로 흰 박스 제거
+  - 온보딩 Act 0: 캐릭터 영상 `tori-v3.mp4` — `mix-blend-mode: multiply` + `contrast/saturate` 필터로 배경 제거
   - 온보딩 Act 4: 막연함↔선명함 카루셀 + 다리 문장 다크 콜아웃 카드 강조
   - 대시보드: 토리 프로필 이미지(`프로필상반신.png`) 헤더, "전체 과정 보기" 모달 5단계
   - 질문 플로우: 질문 진행 중에도 답변 버블 인라인 수정 가능 (리뷰 단계와 동일 패턴)
   - ProcessBar 5단계: 대화→장면→스토리→이미지→마무리 — `usePathname` 경로 인식으로 페이지 이동 시 즉시 반영
   - /board CTA·/collage 한눈에 보기·사진 3장 통일 (v6.8)
-- **알려진 이슈:** 없음. ⚠️ 배포는 GitHub 푸시로 자동 트리거 안 됨 — `npx vercel --prod` CLI 필수. 추후 검토: `/scenes`→`/images` 리네임 후보, Act 0 영상 배경 ~1% 어두움(완벽 제거는 #FAF9F7 배경 재인코딩 필요)
+- **알려진 이슈:** 없음. ⚠️ 배포는 GitHub 푸시로 자동 트리거 안 됨 — `npx vercel --prod` CLI 필수.
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-10 (v6.10 Act 0 영상 교체 + 배포)
+- `최종3.mp4` → `public/tori-v3.mp4`로 복사, Act 0 영상 소스 교체
+- `mix-blend-mode: multiply` + `contrast(1.15) saturate(1.1)` 필터로 배경 CSS 제거
+- `vercel --prod` 프로덕션 배포 (3cfd4ad)
 
 ### 2026-06-10 (v6.9 온보딩·대시보드·질문 플로우 7건 + 배포)
 - 온보딩: Act 0 영상 흰 배경 제거(`mix-blend-mode: multiply` — fadeIn stacking context 때문에 래퍼 배경색 필수), 도토리 문구 흙→땅 2곳, Act 4 다리 문장 다크 콜아웃 카드 강조(삭제 대신 UI 개선)

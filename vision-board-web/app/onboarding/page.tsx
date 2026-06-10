@@ -296,16 +296,23 @@ export default function OnboardingPage() {
         {/* ══════════ ACT 0: 토리 소개 ══════════ */}
         {act === 0 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            {/* 배경색을 직접 깔아야 fadeIn 중 stacking context가 격리돼도 multiply 기준면이 유지됨 */}
-            <div className="flex justify-center" style={{ backgroundColor: '#FAF9F7' }}>
+            {/* mix-blend-mode:multiply로 흰 배경 제거 — 밝은 페이지 배경에서 흰 픽셀이 투과됨 */}
+            <div className="flex justify-center" style={{ backgroundColor: 'transparent' }}>
               <video
                 autoPlay
                 loop
                 muted
                 playsInline
-                style={{ width: "280px", height: "280px", objectFit: "contain", transform: "translateZ(0)", backfaceVisibility: "hidden", mixBlendMode: "multiply" }}
+                style={{
+                  width: "280px",
+                  height: "280px",
+                  objectFit: "contain",
+                  backgroundColor: "transparent",
+                  mixBlendMode: "multiply",
+                  filter: "contrast(1.15) saturate(1.1)",
+                }}
               >
-                <source src="/tori-final3.mp4" type="video/mp4" />
+                <source src="/tori-v3.mp4" type="video/mp4" />
               </video>
             </div>
 
