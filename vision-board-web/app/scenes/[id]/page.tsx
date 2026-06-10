@@ -345,8 +345,8 @@ export default function ScenesPage() {
 
         {/* Descriptions section */}
         <div className="mb-2">
-          <p className="text-sm font-semibold text-[#1C1B19] mb-1">장면을 만들어 볼까요</p>
-          <p className="text-xs text-[#9CA3AF]">탭해서 직접 수정할 수 있어요</p>
+          <p className="text-sm font-semibold text-[#1C1B19] mb-1">장면을 만들어 볼까?</p>
+          <p className="text-xs text-[#9CA3AF]">탭해서 직접 고칠 수 있어</p>
         </div>
 
         {story && <StoryToggle story={story} color={section.color} />}
@@ -362,7 +362,7 @@ export default function ScenesPage() {
           </div>
         ) : describeError ? (
           <div className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4 text-center mb-4">
-            <p className="text-sm text-[#6B7280] mb-3">묘사 생성에 실패했어요.</p>
+            <p className="text-sm text-[#6B7280] mb-3">묘사를 만들지 못했어.</p>
             <button onClick={() => fetchDescriptions()} className="text-sm text-[#374151] underline">
               다시 시도
             </button>
@@ -450,7 +450,7 @@ export default function ScenesPage() {
         {/* Images section */}
         <div className="mb-3">
           <p className="text-sm font-semibold text-[#1C1B19] mb-0.5">나의 비전보드 이미지 찾기</p>
-          <p className="text-xs text-[#9CA3AF]">직접 올리거나 URL 주소로 불러올 수 있어요.</p>
+          <p className="text-xs text-[#9CA3AF]">직접 올리거나 URL로 불러올 수 있어.</p>
         </div>
 
         <div className="mb-3">
@@ -522,7 +522,7 @@ export default function ScenesPage() {
             <div className="px-4 py-3 border-b border-[#F5F5F3]">
               {pendingConfirm === 'descriptions' ? (
                 <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                  <p className="text-xs text-[#92400E] mb-2">이미지가 삭제되고 묘사를 다시 받아요. 계속할까?</p>
+                  <p className="text-xs text-[#92400E] mb-2">이미지가 삭제되고 묘사를 다시 받아. 계속할까?</p>
                   <div className="flex gap-3">
                     <button onClick={handleEditDescriptions} className="text-xs font-medium text-[#92400E]">계속</button>
                     <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>
@@ -538,7 +538,7 @@ export default function ScenesPage() {
             <div className="px-4 py-3">
               {pendingConfirm === 'story' ? (
                 <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                  <p className="text-xs text-[#92400E] mb-2">스토리·묘사·이미지가 삭제돼요. 계속할까?</p>
+                  <p className="text-xs text-[#92400E] mb-2">스토리·묘사·이미지가 삭제돼. 계속할까?</p>
                   <div className="flex gap-3">
                     <button onClick={handleEditStory} className="text-xs font-medium text-[#92400E]">계속</button>
                     <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>

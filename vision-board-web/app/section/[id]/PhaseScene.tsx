@@ -84,7 +84,7 @@ export default function PhaseScene({ section, slot, keyword, savedAnswer, onSave
           className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
-          {text.trim() ? '다음' : '나중에 답할게요'}
+          {text.trim() ? '다음' : '나중에 답할게'}
         </button>
         <button onClick={onBack} className="w-full py-2 text-sm text-[#6B7280]">
           이전
