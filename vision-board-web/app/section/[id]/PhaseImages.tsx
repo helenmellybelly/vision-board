@@ -40,14 +40,14 @@ export default function PhaseImages({ section, savedImages, onSave, onBack }: Pr
       <div className="flex-1 space-y-5">
         <div>
           <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            className="text-caption font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: section.lightColor, color: section.color }}
           >
             4단계
           </span>
         </div>
 
-        <h2 className="text-xl font-bold leading-snug">{section.imageHintIntro}</h2>
+        <h2 className="text-title font-bold leading-snug">{section.imageHintIntro}</h2>
 
         <div className="space-y-1.5">
           {section.imageHints.map((hint, i) => (
@@ -56,7 +56,7 @@ export default function PhaseImages({ section, savedImages, onSave, onBack }: Pr
                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: section.color }}
               />
-              <p className="text-sm text-[#6B7280]">{hint}</p>
+              <p className="text-body text-[#6B7280]">{hint}</p>
             </div>
           ))}
         </div>
@@ -73,7 +73,7 @@ export default function PhaseImages({ section, savedImages, onSave, onBack }: Pr
                   />
                   <button
                     onClick={() => removeImage(i)}
-                    className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white text-xs"
+                    className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white text-caption"
                   >
                     ×
                   </button>
@@ -84,8 +84,8 @@ export default function PhaseImages({ section, savedImages, onSave, onBack }: Pr
                   className="w-full h-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 active:opacity-70 transition-opacity"
                   style={{ borderColor: section.color + '60' }}
                 >
-                  <span className="text-xl" style={{ color: section.color }}>+</span>
-                  <span className="text-xs text-[#6E6962]">사진 {i + 1}</span>
+                  <span className="text-title" style={{ color: section.color }}>+</span>
+                  <span className="text-caption text-[#6E6962]">사진 {i + 1}</span>
                 </button>
               )}
               <input
@@ -99,7 +99,7 @@ export default function PhaseImages({ section, savedImages, onSave, onBack }: Pr
           ))}
         </div>
 
-        <p className="text-xs text-[#6E6962] text-center">
+        <p className="text-caption text-[#6E6962] text-center">
           사진은 이 기기에만 저장돼. 지금 고르기 어려우면 나중에 추가해도 돼.
         </p>
       </div>
@@ -107,12 +107,12 @@ export default function PhaseImages({ section, savedImages, onSave, onBack }: Pr
       <div className="space-y-2 pt-4">
         <button
           onClick={() => onSave(images)}
-          className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
+          className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
           {hasAny ? '완료' : '일단 완료할게'}
         </button>
-        <button onClick={onBack} className="w-full py-2 text-sm text-[#6B7280]">
+        <button onClick={onBack} className="w-full py-2 text-body text-[#6B7280]">
           이전
         </button>
       </div>

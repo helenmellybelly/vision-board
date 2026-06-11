@@ -15,6 +15,25 @@
   --color-foreground: var(--foreground);
 }
 
+/* ── 타입 스케일 (7단계) — 서비스 전체 단일 소스. docs/design-system.md 참고
+   임의 px값(text-[15px] 등)·기본 유틸리티(text-sm 등) 대신 반드시 이 토큰을 사용 */
+@theme {
+  --text-display-lg: 2rem;            /* 32px — 히어로 */
+  --text-display-lg--line-height: 1.3;
+  --text-display: 1.5rem;             /* 24px — Act 타이틀 */
+  --text-display--line-height: 1.35;
+  --text-title: 1.25rem;              /* 20px — 페이지 제목 */
+  --text-title--line-height: 1.4;
+  --text-heading: 1.0625rem;          /* 17px — 섹션 헤더·CTA */
+  --text-heading--line-height: 1.5;
+  --text-body: 0.9375rem;             /* 15px — 본문·말풍선 */
+  --text-body--line-height: 1.65;
+  --text-caption: 0.8125rem;          /* 13px — 보조 설명 */
+  --text-caption--line-height: 1.5;
+  --text-micro: 0.6875rem;            /* 11px — 힌트·라벨 */
+  --text-micro--line-height: 1.4;
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
 }
@@ -26,6 +45,14 @@ button {
 :focus-visible {
   outline: 2px solid #1C1B19;
   outline-offset: 2px;
+}
+
+/* 텍스트 입력은 보더 색 전환(focus:border-*)이 포커스 표시를 대신함 —
+   이 전역 outline은 unlayered라 Tailwind의 outline-none 유틸리티(@layer utilities)를 이겨서
+   autoFocus 시 보더+아웃라인 두 줄이 겹쳐 보이는 버그가 있었음 */
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
 }
 
 button:disabled {

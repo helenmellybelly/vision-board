@@ -88,14 +88,14 @@ export default function ScenePage() {
           <button
             onClick={() => router.push(`/section/${sectionId}`)}
             aria-label="대화 단계로 돌아가기"
-            className="text-[#6E6962] text-lg leading-none mr-1 active:opacity-60"
+            className="text-[#6E6962] text-title leading-none mr-1 active:opacity-60"
           >
             ‹
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-sm">{section.title.split(' — ')[0]} · 미래의 하루</span>
+          <span className="font-semibold text-body">{section.title.split(' — ')[0]} · 미래의 하루</span>
         </div>
-        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#6E6962] py-1">
+        <button onClick={() => router.push('/dashboard')} className="text-caption text-[#6E6962] py-1">
           대시보드로
         </button>
       </header>
@@ -106,14 +106,14 @@ export default function ScenePage() {
         {slotEntries.length > 0 && (
           <div className="mb-4 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
             <div className="px-4 pt-3 pb-1">
-              <p className="text-[11px] font-semibold text-[#6E6962] uppercase tracking-wide mb-2.5">
+              <p className="text-micro font-semibold text-[#6E6962] uppercase tracking-wide mb-2.5">
                 네가 말해준 것들
               </p>
               <div className="space-y-1.5 pb-3">
                 {slotEntries.map((key) => (
                   <div key={key} className="flex items-start gap-2">
                     <span
-                      className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex-shrink-0 mt-0.5"
+                      className="text-micro font-semibold px-1.5 py-0.5 rounded-md flex-shrink-0 mt-0.5"
                       style={{
                         backgroundColor: key === 'keyword' ? section.color + '18' : '#F5F5F3',
                         color: key === 'keyword' ? section.color : '#9CA3AF',
@@ -122,7 +122,7 @@ export default function ScenePage() {
                       {SLOT_LABELS[key]}
                     </span>
                     <span
-                      className="text-sm leading-relaxed"
+                      className="text-body leading-relaxed"
                       style={{ fontWeight: key === 'keyword' ? 600 : 400 }}
                     >
                       {slots[key]}
@@ -143,12 +143,12 @@ export default function ScenePage() {
         {/* 예시 답변 패널 */}
         {examples.length > 0 && !submitted && (
           <div className="mb-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3">
-            <p className="text-[11px] font-semibold text-[#6E6962] uppercase tracking-wide mb-2">
+            <p className="text-micro font-semibold text-[#6E6962] uppercase tracking-wide mb-2">
               이런 식으로 써봐
             </p>
             <div className="space-y-1">
               {examples.map((ex, i) => (
-                <p key={i} className="text-xs text-[#6B7280] leading-relaxed before:content-['○'] before:mr-1.5 before:text-[#C9C5BE]">
+                <p key={i} className="text-caption text-[#6B7280] leading-relaxed before:content-['○'] before:mr-1.5 before:text-[#C9C5BE]">
                   {ex.trim()}
                 </p>
               ))}
@@ -171,16 +171,16 @@ export default function ScenePage() {
             <ChatBubble role="user" content={sceneText} />
 
             <div className="mt-4 bg-[#F5F5F3] rounded-2xl p-4 mb-4">
-              <p className="text-[11px] text-[#6E6962] font-semibold mb-2 uppercase tracking-wide">
+              <p className="text-micro text-[#6E6962] font-semibold mb-2 uppercase tracking-wide">
                 내가 그린 미래의 하루
               </p>
-              <p className="text-sm leading-relaxed">{sceneText}</p>
+              <p className="text-body leading-relaxed">{sceneText}</p>
             </div>
 
             <div className="mt-4 mb-2">
               <button
                 onClick={handleFindImages}
-                className="w-full py-3.5 rounded-xl text-sm font-semibold text-white active:opacity-80"
+                className="w-full py-3.5 rounded-xl text-body font-semibold text-white active:opacity-80"
                 style={{ backgroundColor: section?.color ?? '#1C1B19' }}
               >
                 이 삶의 순간들 담으러 가기 →

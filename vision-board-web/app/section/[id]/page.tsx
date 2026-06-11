@@ -144,20 +144,20 @@ export default function SectionChatPage() {
           <button
             onClick={() => router.push('/dashboard')}
             aria-label="대시보드로 돌아가기"
-            className="text-lg text-[#6E6962] pr-1 leading-none"
+            className="text-title text-[#6E6962] pr-1 leading-none"
           >
             ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-sm">{section.title.split(' — ')[0]}</span>
+          <span className="font-semibold text-body">{section.title.split(' — ')[0]}</span>
         </div>
         <div className="flex items-center gap-3">
           {savedIndicator && (
-            <span className="text-[11px] text-[#6E6962] animate-fadeIn">✓ 저장됨</span>
+            <span className="text-micro text-[#6E6962] animate-fadeIn">✓ 저장됨</span>
           )}
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-xs text-[#6E6962] py-1"
+            className="text-caption text-[#6E6962] py-1"
           >
             대시보드로
           </button>
@@ -181,20 +181,20 @@ export default function SectionChatPage() {
                     <textarea
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      className="w-full text-sm rounded-xl border border-[#E5E3DF] px-3 py-2 resize-none focus:outline-none focus:border-[#C9C5BE] leading-relaxed"
+                      className="w-full text-body rounded-xl border border-[#E5E3DF] px-3 py-2 resize-none focus:outline-none focus:border-[#C9C5BE] leading-relaxed"
                       rows={2}
                       autoFocus
                     />
                     <div className="flex gap-3 mt-1.5 justify-end">
                       <button
                         onClick={() => handleSaveEdit(msgKey)}
-                        className="text-xs font-semibold text-[#1C1B19]"
+                        className="text-caption font-semibold text-[#1C1B19]"
                       >
                         저장
                       </button>
                       <button
                         onClick={() => setEditingKey(null)}
-                        className="text-xs text-[#6E6962]"
+                        className="text-caption text-[#6E6962]"
                       >
                         취소
                       </button>
@@ -208,7 +208,7 @@ export default function SectionChatPage() {
                   {phase === 'questions' && (
                     <button
                       onClick={() => { setEditingKey(msgKey); setEditValue(msg.text); }}
-                      className="text-[10px] text-[#6E6962] mt-0.5 pr-1 active:text-[#1C1B19]"
+                      className="text-micro text-[#6E6962] mt-0.5 pr-1 active:text-[#1C1B19]"
                     >
                       수정
                     </button>
@@ -230,7 +230,7 @@ export default function SectionChatPage() {
               <div className="rounded-2xl border border-[#E5E3DF] overflow-hidden mb-4">
                 <div className="px-4 pt-3 pb-1" style={{ backgroundColor: section.lightColor }}>
                   <p
-                    className="text-[11px] font-semibold uppercase tracking-wide"
+                    className="text-micro font-semibold uppercase tracking-wide"
                     style={{ color: section.color }}
                   >
                     지금까지 말해준 것들
@@ -243,7 +243,7 @@ export default function SectionChatPage() {
                     return (
                       <div key={q.key} className="px-4 py-2.5">
                         <div className="flex gap-3">
-                          <p className="text-[11px] text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">
+                          <p className="text-micro text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">
                             {q.label}
                           </p>
                           {editingKey === q.key ? (
@@ -251,20 +251,20 @@ export default function SectionChatPage() {
                               <textarea
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
-                                className="w-full text-sm rounded-xl border border-[#E5E3DF] px-3 py-2 resize-none focus:outline-none focus:border-[#C9C5BE] leading-relaxed"
+                                className="w-full text-body rounded-xl border border-[#E5E3DF] px-3 py-2 resize-none focus:outline-none focus:border-[#C9C5BE] leading-relaxed"
                                 rows={2}
                                 autoFocus
                               />
                               <div className="flex gap-3 mt-1.5">
                                 <button
                                   onClick={() => handleSaveEdit(q.key)}
-                                  className="text-xs font-semibold text-[#1C1B19]"
+                                  className="text-caption font-semibold text-[#1C1B19]"
                                 >
                                   저장
                                 </button>
                                 <button
                                   onClick={() => setEditingKey(null)}
-                                  className="text-xs text-[#6E6962]"
+                                  className="text-caption text-[#6E6962]"
                                 >
                                   취소
                                 </button>
@@ -272,10 +272,10 @@ export default function SectionChatPage() {
                             </div>
                           ) : (
                             <div className="flex-1 flex items-start justify-between gap-2">
-                              <p className="text-sm leading-relaxed text-[#1C1B19]">{val}</p>
+                              <p className="text-body leading-relaxed text-[#1C1B19]">{val}</p>
                               <button
                                 onClick={() => { setEditingKey(q.key); setEditValue(val); setShowDownstreamWarning(false); }}
-                                className="text-[10px] text-[#6E6962] shrink-0 pt-0.5 active:text-[#1C1B19]"
+                                className="text-micro text-[#6E6962] shrink-0 pt-0.5 active:text-[#1C1B19]"
                               >
                                 수정
                               </button>
@@ -290,19 +290,19 @@ export default function SectionChatPage() {
 
               {showDownstreamWarning && (
                 <div className="rounded-xl bg-[#FEF9C3] px-4 py-3 mb-4">
-                  <p className="text-xs text-[#92400E] mb-2">
+                  <p className="text-caption text-[#92400E] mb-2">
                     답변이 바뀌었으니, 이전에 그린 미래의 하루와 이미지도 다시 만들어보는 게 좋을 것 같아.
                   </p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => router.push(`/scene/${sectionId}`)}
-                      className="text-xs font-semibold text-[#92400E]"
+                      className="text-caption font-semibold text-[#92400E]"
                     >
                       지금 다시 만들기
                     </button>
                     <button
                       onClick={() => setShowDownstreamWarning(false)}
-                      className="text-xs text-[#6E6962]"
+                      className="text-caption text-[#6E6962]"
                     >
                       나중에
                     </button>
@@ -312,13 +312,13 @@ export default function SectionChatPage() {
 
               <button
                 onClick={handleComplete}
-                className="w-full py-3.5 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white active:opacity-80"
+                className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80"
               >
                 원하는 삶을 그려보자 →
               </button>
               <button
                 onClick={() => router.push('/dashboard')}
-                className="w-full mt-3 py-2 text-xs text-[#C9C5BE] text-center active:opacity-70"
+                className="w-full mt-3 py-2 text-caption text-[#C9C5BE] text-center active:opacity-70"
               >
                 다른 섹션 먼저 할게
               </button>
@@ -334,19 +334,19 @@ export default function SectionChatPage() {
         <div className="shrink-0 border-t border-[#F5F5F3] bg-[#FAF9F7] px-4 pt-3 pb-4">
           {showHelp && (
             <div className="mb-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold text-[#6E6962] uppercase tracking-wide mb-2">
+              <p className="text-micro font-semibold text-[#6E6962] uppercase tracking-wide mb-2">
                 이런 각도로 생각해봐
               </p>
               <div className="space-y-1.5">
                 {helpQs.map((hq) => (
-                  <p key={hq.id} className="text-xs text-[#6B7280] leading-relaxed">
+                  <p key={hq.id} className="text-caption text-[#6B7280] leading-relaxed">
                     ○ {hq.text}
                   </p>
                 ))}
               </div>
               <button
                 onClick={() => setShowHelp(false)}
-                className="text-xs text-[#6E6962] mt-2.5 block"
+                className="text-caption text-[#6E6962] mt-2.5 block"
               >
                 닫기
               </button>

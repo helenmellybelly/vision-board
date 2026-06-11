@@ -157,14 +157,14 @@ export default function MomentPage() {
           <button
             onClick={() => router.push(`/scene/${sectionId}`)}
             aria-label="미래의 하루 단계로 돌아가기"
-            className="text-[#6E6962] text-xs mr-1 active:opacity-60"
+            className="text-[#6E6962] text-caption mr-1 active:opacity-60"
           >
             ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-sm">{sectionName} · 순간</span>
+          <span className="font-semibold text-body">{sectionName} · 순간</span>
         </div>
-        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#6E6962] py-1">
+        <button onClick={() => router.push('/dashboard')} className="text-caption text-[#6E6962] py-1">
           대시보드로
         </button>
       </header>
@@ -189,7 +189,7 @@ export default function MomentPage() {
                   }}
                 >
                   <span
-                    className="text-[10px] font-medium whitespace-nowrap px-1"
+                    className="text-micro font-medium whitespace-nowrap px-1"
                     style={{ color: isActive || isDone ? '#fff' : '#9CA3AF' }}
                   >
                     {STEP_LABELS[s]}
@@ -223,7 +223,7 @@ export default function MomentPage() {
                     onClick={() =>
                       setSituationInput((prev) => prev ? `${prev}\n${chip}` : chip)
                     }
-                    className="text-xs px-3 py-1.5 rounded-full border border-[#E5E3DF] bg-white text-[#6B7280] active:opacity-70"
+                    className="text-caption px-3 py-1.5 rounded-full border border-[#E5E3DF] bg-white text-[#6B7280] active:opacity-70"
                   >
                     {chip}
                   </button>
@@ -234,13 +234,13 @@ export default function MomentPage() {
               value={situationInput}
               onChange={(e) => setSituationInput(e.target.value)}
               placeholder="여러 줄로 써도 좋아. 구체적일수록 이미지가 선명해져."
-              className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-sm leading-relaxed resize-none focus:outline-none focus:border-[#C9C5BE] mb-3"
+              className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-body leading-relaxed resize-none focus:outline-none focus:border-[#C9C5BE] mb-3"
               rows={4}
             />
             <button
               onClick={handleSituationSubmit}
               disabled={!situationInput.trim()}
-              className="w-full py-3.5 rounded-xl text-sm font-medium text-white transition-opacity disabled:opacity-40"
+              className="w-full py-3.5 rounded-xl text-body font-medium text-white transition-opacity disabled:opacity-40"
               style={{ backgroundColor: section.color }}
             >
               이 순간들로 하루를 그려줘 →
@@ -257,7 +257,7 @@ export default function MomentPage() {
           <>
             {storyLoading ? (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4">
-                <p className="text-xs text-[#6E6962] mb-2">잠깐, 하루를 그려볼게...</p>
+                <p className="text-caption text-[#6E6962] mb-2">잠깐, 하루를 그려볼게...</p>
                 <div className="h-2 bg-[#F5F5F3] rounded-full animate-pulse" />
                 <div className="h-2 bg-[#F5F5F3] rounded-full animate-pulse mt-2 w-3/4" />
               </div>
@@ -267,7 +267,7 @@ export default function MomentPage() {
                   className="mt-3 rounded-2xl border px-4 py-4 mb-3"
                   style={{ borderColor: section.color + '30', backgroundColor: section.color + '08' }}
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: section.color }}>
+                  <p className="text-micro font-semibold uppercase tracking-wide mb-2" style={{ color: section.color }}>
                     이 삶의 하루
                   </p>
                   {editingStory ? (
@@ -277,9 +277,9 @@ export default function MomentPage() {
                         onChange={(e) => setStoryDraft(e.target.value)}
                         rows={10}
                         autoFocus
-                        className="w-full text-sm leading-relaxed rounded-xl border border-[#E5E3DF] bg-white px-3 py-2.5 resize-none focus:outline-none focus:border-[#C9C5BE]"
+                        className="w-full text-body leading-relaxed rounded-xl border border-[#E5E3DF] bg-white px-3 py-2.5 resize-none focus:outline-none focus:border-[#C9C5BE]"
                       />
-                      <p className="text-[10px] text-[#C9C5BE] mt-1 mb-2">**굵게** 표시는 그대로 두면 강조로 보여.</p>
+                      <p className="text-micro text-[#C9C5BE] mt-1 mb-2">**굵게** 표시는 그대로 두면 강조로 보여.</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
@@ -290,28 +290,28 @@ export default function MomentPage() {
                             setEditingStory(false);
                           }}
                           disabled={!storyDraft.trim()}
-                          className="flex-1 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-40"
+                          className="flex-1 py-2 rounded-lg text-caption font-semibold text-white disabled:opacity-40"
                           style={{ backgroundColor: section.color }}
                         >
                           저장
                         </button>
                         <button
                           onClick={() => setEditingStory(false)}
-                          className="px-4 py-2 rounded-lg text-xs text-[#6E6962] border border-[#E5E3DF]"
+                          className="px-4 py-2 rounded-lg text-caption text-[#6E6962] border border-[#E5E3DF]"
                         >
                           취소
                         </button>
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm leading-relaxed">{renderStory(story)}</p>
+                    <p className="text-body leading-relaxed">{renderStory(story)}</p>
                   )}
                 </div>
 
                 {!editingStory && (
                   <button
                     onClick={() => { setStoryDraft(story); setEditingStory(true); setShowAdditional(false); }}
-                    className="text-xs text-[#6E6962] underline mb-3 mr-4"
+                    className="text-caption text-[#6E6962] underline mb-3 mr-4"
                   >
                     직접 수정하기
                   </button>
@@ -320,7 +320,7 @@ export default function MomentPage() {
                 {editingStory ? null : !usedAdditional && !showAdditional ? (
                   <button
                     onClick={() => setShowAdditional(true)}
-                    className="text-xs text-[#6E6962] underline mb-3"
+                    className="text-caption text-[#6E6962] underline mb-3"
                   >
                     더 담고 싶은 장면이 있어요
                   </button>
@@ -330,13 +330,13 @@ export default function MomentPage() {
                       value={additionalInput}
                       onChange={(e) => setAdditionalInput(e.target.value)}
                       placeholder="예: 친구와 저녁 먹는 장면, 아침 커피 한 잔..."
-                      className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-sm leading-relaxed resize-none focus:outline-none focus:border-[#C9C5BE] mb-2"
+                      className="w-full rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 text-body leading-relaxed resize-none focus:outline-none focus:border-[#C9C5BE] mb-2"
                       rows={2}
                     />
                     <button
                       onClick={handleRegenerate}
                       disabled={!additionalInput.trim() || regenerating}
-                      className="w-full py-3 rounded-xl text-sm border border-[#E5E3DF] bg-white text-[#374151] disabled:opacity-40"
+                      className="w-full py-3 rounded-xl text-body border border-[#E5E3DF] bg-white text-[#374151] disabled:opacity-40"
                     >
                       {regenerating ? '다시 그리는 중...' : '다시 그려줘'}
                     </button>
@@ -345,7 +345,7 @@ export default function MomentPage() {
 
                 <button
                   onClick={() => router.push(`/scenes/${sectionId}`)}
-                  className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-3"
+                  className="w-full py-3.5 rounded-xl text-body font-medium text-white mb-3"
                   style={{ backgroundColor: section.color }}
                 >
                   이 스토리로 이미지 만들기 →
@@ -353,7 +353,7 @@ export default function MomentPage() {
 
                 <button
                   onClick={() => { setEditMenu(!editMenu); setPendingConfirm(null); }}
-                  className="w-full py-2 text-xs text-[#C9C5BE] text-center"
+                  className="w-full py-2 text-caption text-[#C9C5BE] text-center"
                 >
                   {editMenu ? '닫기 ∧' : '더 수정하기 ∨'}
                 </button>
@@ -363,32 +363,32 @@ export default function MomentPage() {
                     <div className="px-4 py-3 border-b border-[#F5F5F3]">
                       {pendingConfirm === 'scene' ? (
                         <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                          <p className="text-xs text-[#92400E] mb-2">그린 하루·스토리가 삭제돼요. 계속할까?</p>
+                          <p className="text-caption text-[#92400E] mb-2">그린 하루·스토리가 삭제돼요. 계속할까?</p>
                           <div className="flex gap-3">
-                            <button onClick={handleEditScene} className="text-xs font-medium text-[#92400E]">계속</button>
-                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
+                            <button onClick={handleEditScene} className="text-caption font-medium text-[#92400E]">계속</button>
+                            <button onClick={() => setPendingConfirm(null)} className="text-caption text-[#6E6962]">취소</button>
                           </div>
                         </div>
                       ) : (
                         <button onClick={() => setPendingConfirm('scene')} className="w-full text-left">
-                          <p className="text-sm text-[#374151]">미래의 하루부터 다시</p>
-                          <p className="text-xs text-[#6E6962]">스토리 삭제됨</p>
+                          <p className="text-body text-[#374151]">미래의 하루부터 다시</p>
+                          <p className="text-caption text-[#6E6962]">스토리 삭제됨</p>
                         </button>
                       )}
                     </div>
                     <div className="px-4 py-3">
                       {pendingConfirm === 'answers' ? (
                         <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                          <p className="text-xs text-[#92400E] mb-2">모든 내용이 삭제돼요. 계속할까?</p>
+                          <p className="text-caption text-[#92400E] mb-2">모든 내용이 삭제돼요. 계속할까?</p>
                           <div className="flex gap-3">
-                            <button onClick={handleEditAnswers} className="text-xs font-medium text-[#92400E]">계속</button>
-                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
+                            <button onClick={handleEditAnswers} className="text-caption font-medium text-[#92400E]">계속</button>
+                            <button onClick={() => setPendingConfirm(null)} className="text-caption text-[#6E6962]">취소</button>
                           </div>
                         </div>
                       ) : (
                         <button onClick={() => setPendingConfirm('answers')} className="w-full text-left">
-                          <p className="text-sm text-[#374151]">답변부터 다시</p>
-                          <p className="text-xs text-[#6E6962]">모든 내용 삭제됨</p>
+                          <p className="text-body text-[#374151]">답변부터 다시</p>
+                          <p className="text-caption text-[#6E6962]">모든 내용 삭제됨</p>
                         </button>
                       )}
                     </div>

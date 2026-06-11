@@ -60,22 +60,22 @@ export default function SlotQuestion({
       <div className="flex-1 space-y-5">
         <div className="flex items-center gap-2">
           <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            className="text-caption font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: section.lightColor, color: section.color }}
           >
             {slotIndex + 1} / {totalSlots}
           </span>
           {isEditing && (
-            <span className="text-xs text-[#6E6962] bg-[#F3F4F6] px-2 py-0.5 rounded-full">수정 중</span>
+            <span className="text-caption text-[#6E6962] bg-[#F3F4F6] px-2 py-0.5 rounded-full">수정 중</span>
           )}
         </div>
 
-        <h2 className="text-xl font-bold leading-snug">{slot.mainQuestion}</h2>
+        <h2 className="text-title font-bold leading-snug">{slot.mainQuestion}</h2>
 
         {/* 예시 — 기본 노출 */}
         {slot.example && (
-          <div className="text-sm text-[#6B7280] bg-[#F9F8F6] rounded-xl px-3 py-2.5 leading-relaxed">
-            <span className="text-xs font-semibold text-[#6E6962] mr-1">예)</span>
+          <div className="text-body text-[#6B7280] bg-[#F9F8F6] rounded-xl px-3 py-2.5 leading-relaxed">
+            <span className="text-caption font-semibold text-[#6E6962] mr-1">예)</span>
             {slot.example}
           </div>
         )}
@@ -85,7 +85,7 @@ export default function SlotQuestion({
           onChange={(e) => setText(e.target.value)}
           placeholder={slot.placeholder}
           rows={4}
-          className="w-full bg-white border border-[#E5E3DF] rounded-2xl p-4 text-base placeholder-[#C4C2BE] focus:outline-none focus:border-[#1C1B19] transition-colors"
+          className="w-full bg-white border border-[#E5E3DF] rounded-2xl p-4 text-heading placeholder-[#C4C2BE] focus:outline-none focus:border-[#1C1B19] transition-colors"
           autoFocus
         />
 
@@ -94,7 +94,7 @@ export default function SlotQuestion({
           <div>
             <button
               onClick={() => setShowHelp((v) => !v)}
-              className="flex items-center gap-1.5 text-sm text-[#6B7280]"
+              className="flex items-center gap-1.5 text-body text-[#6B7280]"
             >
               <MessageCircle size={16} strokeWidth={1.8} aria-hidden="true" />
               <span>{showHelp ? '닫기' : '막막해요, 도와줘'}</span>
@@ -104,7 +104,7 @@ export default function SlotQuestion({
                 {slot.helpQuestions.map((q) => (
                   <div
                     key={q.id}
-                    className="p-3 rounded-xl text-sm text-[#1C1B19] leading-relaxed"
+                    className="p-3 rounded-xl text-body text-[#1C1B19] leading-relaxed"
                     style={{ backgroundColor: section.lightColor }}
                   >
                     {q.text}
@@ -121,7 +121,7 @@ export default function SlotQuestion({
         <button
           onClick={handleNext}
           disabled={!hasText}
-          className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-all"
+          className="w-full py-4 rounded-2xl text-heading font-semibold text-white transition-all"
           style={{
             backgroundColor: hasText ? section.color : '#D1D5DB',
             cursor: hasText ? 'pointer' : 'not-allowed',
@@ -133,13 +133,13 @@ export default function SlotQuestion({
         {/* 스킵 */}
         <button
           onClick={onSkip}
-          className="w-full py-2 text-sm text-[#6E6962]"
+          className="w-full py-2 text-body text-[#6E6962]"
         >
           {isLastSlot ? '이건 나중에 답할게' : '나중에 답할게'}
         </button>
 
         {onBack && (
-          <button onClick={onBack} className="w-full py-1.5 text-xs text-[#C4C2BE]">
+          <button onClick={onBack} className="w-full py-1.5 text-caption text-[#C4C2BE]">
             이전
           </button>
         )}

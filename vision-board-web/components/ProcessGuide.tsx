@@ -19,7 +19,7 @@ export default function ProcessGuide() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-[#6E6962] underline underline-offset-2"
+        className="text-caption text-[#6E6962] underline underline-offset-2"
       >
         전체 과정 보기
       </button>
@@ -38,23 +38,23 @@ export default function ProcessGuide() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-[#E5E3DF] rounded-full mx-auto mb-6" />
-            <h2 id="process-guide-title" className="text-base font-bold mb-5">비전보드 만드는 방법</h2>
+            <h2 id="process-guide-title" className="text-heading font-bold mb-5">비전보드 만드는 방법</h2>
             <div className="space-y-4">
               {STEPS.map(({ step, label, description }) => (
                 <div key={step} className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-full bg-[#1C1B19] text-white text-xs flex items-center justify-center font-semibold flex-shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-full bg-[#1C1B19] text-white text-caption flex items-center justify-center font-semibold flex-shrink-0 mt-0.5">
                     {step}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">{label}</p>
-                    <p className="text-xs text-[#6B7280] mt-0.5">{description}</p>
+                    <p className="text-body font-semibold">{label}</p>
+                    <p className="text-caption text-[#6B7280] mt-0.5">{description}</p>
                   </div>
                 </div>
               ))}
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="mt-6 w-full py-3 rounded-xl bg-[#F5F5F3] text-sm font-medium text-[#6B7280]"
+              className="mt-6 w-full py-3 rounded-xl bg-[#F5F5F3] text-body font-medium text-[#6B7280]"
             >
               닫기
             </button>

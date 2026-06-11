@@ -61,7 +61,7 @@ export default function VisionBoardCollage({ images, year, onYearChange, compact
         <div className="col-span-2 flex flex-col items-center justify-center text-center py-4 select-none">
           <p
             className={`font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase ${
-              compact ? 'text-[11px]' : 'text-[11px] md:text-xs'
+              compact ? 'text-micro' : 'text-micro md:text-caption'
             }`}
           >
             Vision Board
@@ -90,7 +90,7 @@ export default function VisionBoardCollage({ images, year, onYearChange, compact
               {year}
             </button>
           )}
-          <p className="text-[10px] text-[#8A8784] mt-1.5">연도를 탭하면 수정할 수 있어</p>
+          <p className="text-micro text-[#8A8784] mt-1.5">연도를 탭하면 수정할 수 있어</p>
         </div>
 
         {secondHalf.map((src, i) => (

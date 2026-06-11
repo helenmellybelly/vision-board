@@ -98,9 +98,10 @@ function CompareAutoCard() {
   const slide = COMPARE_SLIDES[idx];
 
   return (
-    <div className="space-y-2.5">
-      <div className="relative rounded-2xl overflow-hidden select-none shadow-sm">
-        <div className="relative h-44 md:h-64">
+    // 이미지가 남는 공간만큼만 차지(Act 3과 같은 패턴) — 어떤 뷰포트에서도 CTA까지 스크롤 없이
+    <div className="flex-1 min-h-0 flex flex-col space-y-1.5">
+      <div className="relative rounded-2xl overflow-hidden select-none shadow-sm flex-1 min-h-[4.5rem] max-h-64">
+        <div className="relative h-full">
           {COMPARE_SLIDES.map((s, i) => (
             <img
               key={s.key}
@@ -117,12 +118,12 @@ function CompareAutoCard() {
           {/* 하단 그라데이션 + 텍스트 오버레이 */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-5 pt-16 pb-4 pointer-events-none">
             <p
-              className="text-sm font-bold tracking-wide mb-1 drop-shadow"
+              className="text-caption font-bold tracking-wide mb-0.5 drop-shadow"
               style={{ color: slide.key === 'vivid' ? '#A5B4FC' : '#D1D5DB' }}
             >
               {slide.label}
             </p>
-            <p className="text-base font-semibold text-white leading-relaxed whitespace-pre-line drop-shadow">
+            <p className="text-body font-semibold text-white leading-snug whitespace-pre-line drop-shadow">
               {slide.text}
             </p>
           </div>
@@ -130,7 +131,7 @@ function CompareAutoCard() {
       </div>
 
       {/* 점 인디케이터 — 표시 전용 */}
-      <div className="flex items-center justify-center gap-1.5" aria-hidden="true">
+      <div className="flex items-center justify-center gap-1.5 flex-shrink-0" aria-hidden="true">
         {COMPARE_SLIDES.map((s, i) => (
           <span
             key={s.key}
@@ -278,10 +279,10 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-1 text-center px-2">
-              <p className="text-sm text-[#1C1B19] leading-relaxed font-medium">
+              <p className="text-body text-[#1C1B19] leading-relaxed font-medium">
                 안녕, 나는 토리(Tory)야.
               </p>
-              <p className="text-sm text-[#6B7280] leading-relaxed">
+              <p className="text-body text-[#6B7280] leading-relaxed">
                 네가 원하는 삶을 발견할 수 있도록<br />
                 도와주는 꿈의 정원사지.<br />
                 나는 네가 원하는 삶의 이야기가 너무 궁금해.
@@ -290,7 +291,7 @@ export default function OnboardingPage() {
 
             <button
               onClick={() => goToAct(1)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#1C1B19' }}
             >
               {ACT0_CTA}
@@ -310,11 +311,11 @@ export default function OnboardingPage() {
                 alt="토리"
                 className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
               />
-              <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
+              <p className="text-body font-semibold text-[#1C1B19]">토리</p>
             </div>
 
             <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
-              <p className="text-sm leading-relaxed">
+              <p className="text-body leading-relaxed">
                 만나서 반가워 😊<br />
                 앞으로 너의 비전보드를 함께 만들어갈 거야.<br />
                 <br />
@@ -334,13 +335,13 @@ export default function OnboardingPage() {
                   onChange={(e) => setNameInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && nameInput.trim() && handleNameSubmit()}
                   placeholder="이름 또는 닉네임"
-                  className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-[#E5E3DF] text-sm outline-none focus:border-[#1C1B19] transition-colors bg-white"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-[#E5E3DF] text-body outline-none focus:border-[#1C1B19] transition-colors bg-white"
                   autoFocus
                 />
                 <button
                   onClick={handleNameSubmit}
                   disabled={!nameInput.trim()}
-                  className="px-5 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity flex-shrink-0 whitespace-nowrap"
+                  className="px-5 py-3 rounded-xl text-body font-semibold text-white disabled:opacity-40 transition-opacity flex-shrink-0 whitespace-nowrap"
                   style={{ backgroundColor: '#1C1B19' }}
                 >
                   저장
@@ -351,14 +352,14 @@ export default function OnboardingPage() {
             {showNameResponse && (
               <>
                 <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3 animate-fadeIn">
-                  <p className="text-sm leading-relaxed">
+                  <p className="text-body leading-relaxed">
                     아, {savedName}! 좋은 이름이다 😊<br />
                     이제 같이 시작해보자.
                   </p>
                 </div>
                 <button
                   onClick={() => goToAct(2)}
-                  className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80 animate-fadeIn"
+                  className="w-full py-4 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80 animate-fadeIn"
                   style={{ backgroundColor: '#1C1B19' }}
                 >
                   그래 좋아 !
@@ -381,7 +382,7 @@ export default function OnboardingPage() {
                     alt="토리"
                     className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
                   />
-                  <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
+                  <p className="text-body font-semibold text-[#1C1B19]">토리</p>
                 </div>
 
                 {/* 메시지 영역 — 페이지 대신 여기만 스크롤, 새 메시지는 자동으로 아래에 보임 */}
@@ -396,7 +397,7 @@ export default function OnboardingPage() {
                             : 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 opacity-60'
                         }
                       >
-                        <p className="font-display text-[15px] leading-[1.8] whitespace-pre-line">
+                        <p className="text-body leading-relaxed whitespace-pre-line">
                           {ACORN_MESSAGES[i](name)}
                         </p>
                       </div>
@@ -407,13 +408,13 @@ export default function OnboardingPage() {
                 {/* 탭 힌트 / CTA — 스크롤 영역 밖 하단 고정 */}
                 {acornStep < ACORN_MESSAGES.length - 1 ? (
                   <div className="text-center pt-3 pb-1 select-none flex-shrink-0">
-                    <span className="text-xs text-[#6E6962] animate-pulse">▼ 계속하려면 탭</span>
+                    <span className="text-caption text-[#6E6962] animate-pulse">▼ 계속하려면 탭</span>
                   </div>
                 ) : (
                   <div className="animate-fadeIn pt-4 flex-shrink-0">
                     <button
                       onClick={(e) => { e.stopPropagation(); goToAct(3); }}
-                      className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
+                      className="w-full py-4 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80"
                       style={{ backgroundColor: '#1C1B19' }}
                     >
                       그 가능성, 꺼내볼게 →
@@ -436,10 +437,10 @@ export default function OnboardingPage() {
                   alt="토리"
                   className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
                 />
-                <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
+                <p className="text-body font-semibold text-[#1C1B19]">토리</p>
               </div>
               <div className="bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3">
-                <p className="text-sm leading-relaxed">{VISION_INTRO}</p>
+                <p className="text-body leading-relaxed">{VISION_INTRO}</p>
               </div>
             </div>
 
@@ -448,8 +449,8 @@ export default function OnboardingPage() {
               className="rounded-2xl px-5 py-4 border"
               style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E3DF' }}
             >
-              <p className="text-xs font-semibold text-[#6E6962] mb-1 tracking-wide uppercase">비전보드란?</p>
-              <p className="text-sm text-[#1C1B19] leading-relaxed">
+              <p className="text-caption font-semibold text-[#6E6962] mb-1 tracking-wide uppercase">비전보드란?</p>
+              <p className="text-body text-[#1C1B19] leading-relaxed">
                 네가 원하는 삶을 이미지와 글로 시각화한 나만의 지도.
               </p>
             </div>
@@ -467,12 +468,12 @@ export default function OnboardingPage() {
                 alt="비전보드 예시"
                 className="flex-1 min-h-0 w-auto max-w-full object-contain rounded-2xl border border-[#E5E3DF] shadow-md hidden md:block"
               />
-              <p className="text-[11px] text-[#6E6962] text-center mt-3 flex-shrink-0">완성하면 이런 모습이 돼.</p>
+              <p className="text-micro text-[#6E6962] text-center mt-3 flex-shrink-0">완성하면 이런 모습이 돼.</p>
             </div>
 
             <button
               onClick={() => goToAct(4)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#1C1B19' }}
             >
               와, 기대되는데? →
@@ -483,36 +484,33 @@ export default function OnboardingPage() {
         {/* ══════════ ACT 4: 막연함과 선명함의 차이 ══════════ */}
         {act === 4 && (
           <div className="flex-1 min-h-0 overflow-y-auto scroll-soft flex flex-col">
-          <div className="min-h-full flex-shrink-0 flex flex-col justify-center space-y-3">
-            <div className="space-y-0.5">
-              <p className="text-xs text-[#6E6962] font-medium">이게 왜 효과 있는지 보여줄게.</p>
-              <p className="font-display text-xl font-bold text-[#1C1B19] leading-snug">막연함과 선명함의 차이</p>
-            </div>
+          <div className="min-h-full flex-shrink-0 flex flex-col justify-center space-y-2">
+            <p className="font-display text-title font-bold text-[#1C1B19] leading-snug flex-shrink-0">막연함과 선명함의 차이</p>
 
             <CompareAutoCard />
 
             {/* 핵심 메시지 — 박스 없는 디스플레이 서체 인용구, CTA 버튼과 혼동되지 않게 */}
-            <div className="text-center px-2">
-              <p className="font-display text-[15px] text-[#1C1B19] leading-relaxed">
-                뚜렷해지는 순간, <span className="font-bold">뇌는 그쪽으로 움직이기 시작해.</span>
+            <div className="text-center px-2 flex-shrink-0">
+              <p className="font-display text-body text-[#1C1B19] leading-snug">
+                원하는 것이 뚜렷해지는 순간, <span className="font-bold">뇌는 그쪽으로 움직이기 시작해.</span>
               </p>
-              <p className="text-xs text-[#6E6962] mt-0.5">그게 비전보드의 힘이야.</p>
+              <p className="text-caption text-[#6E6962]">그게 비전보드의 힘이야.</p>
             </div>
 
             {/* 비전보드를 하면 좋은 이유 — 3가지 효과 카드 */}
-            <div className="space-y-2">
-              <p className="text-base font-bold text-[#1C1B19]">비전보드를 하면 좋은 이유</p>
-              <div className="space-y-2">
+            <div className="space-y-1.5 flex-shrink-0">
+              <p className="text-body font-bold text-[#1C1B19]">비전보드를 하면 좋은 이유</p>
+              <div className="space-y-1.5">
                 {VISION_CARDS.map((card) => (
                   <div
                     key={card.title}
-                    className="flex items-start gap-3 rounded-xl bg-white px-4 py-2.5 border border-[#E5E3DF]"
+                    className="flex items-start gap-3 rounded-xl bg-white px-4 py-1.5 border border-[#E5E3DF]"
                     style={{ borderLeft: `3px solid ${card.color}` }}
                   >
                     <card.icon size={20} strokeWidth={1.8} className="flex-shrink-0 mt-0.5" style={{ color: card.color }} aria-hidden="true" />
                     <div>
-                      <p className="text-sm font-semibold" style={{ color: card.color }}>{card.title}</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5 leading-snug">{card.desc}</p>
+                      <p className="text-body font-semibold leading-snug" style={{ color: card.color }}>{card.title}</p>
+                      <p className="text-caption text-[#6B7280] leading-snug">{card.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -521,7 +519,7 @@ export default function OnboardingPage() {
 
             <button
               onClick={() => goToAct(5)}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
+              className="w-full py-3 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80 flex-shrink-0"
               style={{ backgroundColor: '#1C1B19' }}
             >
               오, 그렇구나
@@ -541,10 +539,10 @@ export default function OnboardingPage() {
                   alt="토리"
                   className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
                 />
-                <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
+                <p className="text-body font-semibold text-[#1C1B19]">토리</p>
               </div>
               <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3">
-                <p className="text-sm leading-relaxed">
+                <p className="text-body leading-relaxed">
                   좋아{name ? `, ${name}${getNameSuffix(name)}` : ''}.<br />
                   이제 진짜 시작이야.<br />
                   비전보드는 삶의 6가지 영역으로 이루어져 있어.<br />
@@ -560,15 +558,15 @@ export default function OnboardingPage() {
                   className="rounded-xl bg-white px-3.5 py-3 text-left border border-[#E5E3DF]"
                   style={{ borderLeft: `3px solid ${area.color}` }}
                 >
-                  <p className="text-sm font-bold" style={{ color: area.color }}>{area.label}</p>
-                  <p className="text-[11px] text-[#6B7280] mt-0.5">{area.desc}</p>
+                  <p className="text-body font-bold" style={{ color: area.color }}>{area.label}</p>
+                  <p className="text-micro text-[#6B7280] mt-0.5">{area.desc}</p>
                 </div>
               ))}
             </div>
 
             <button
               onClick={handleFinish}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#1C1B19' }}
             >
               비전보드 시작하기 →
@@ -582,7 +580,7 @@ export default function OnboardingPage() {
       {canGoBack() && (
         <button
           onClick={handleBack}
-          className="w-full text-[#6E6962] py-2 text-xs mt-4 flex items-center justify-center gap-1 hover:text-[#1C1B19] transition-colors"
+          className="w-full text-[#6E6962] py-2 text-caption mt-4 flex items-center justify-center gap-1 hover:text-[#1C1B19] transition-colors"
         >
           ← 이전
         </button>
@@ -590,7 +588,7 @@ export default function OnboardingPage() {
       {act > 1 && act < 5 && (
         <button
           onClick={goToStart}
-          className="w-full text-[#6E6962] py-1 text-xs flex items-center justify-center hover:text-[#1C1B19] transition-colors"
+          className="w-full text-[#6E6962] py-1 text-caption flex items-center justify-center hover:text-[#1C1B19] transition-colors"
         >
           처음부터 다시 보기
         </button>

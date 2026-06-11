@@ -77,10 +77,10 @@ export default function BoardPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md md:max-w-5xl mx-auto w-full pb-10">
+    <main className="min-h-screen flex flex-col max-w-md md:max-w-5xl mx-auto w-full pb-6">
       <ProcessBar board={board} />
       {/* 헤더 */}
-      <div className="px-6 pt-4 pb-6">
+      <div className="px-6 pt-3 pb-4">
         <div className="flex items-center gap-3 mb-1">
           <button
             onClick={() => router.push('/dashboard')}
@@ -88,15 +88,16 @@ export default function BoardPage() {
           >
             ‹
           </button>
-          <h1 className="text-xl font-bold">내 비전보드</h1>
-          <span className="text-sm text-[#6E6962] ml-auto">{completedCount}/6</span>
+          <h1 className="text-title font-bold">내 비전보드</h1>
+          <span className="text-body text-[#6E6962] ml-auto">{completedCount}/6</span>
         </div>
-        <p className="text-xs text-[#6E6962] pl-8">막연했던 바람이, 생생한 장면이 되는 곳.</p>
+        <p className="text-caption text-[#6E6962] pl-8">막연했던 바람이, 생생한 장면이 되는 곳.</p>
       </div>
 
       <div className="md:px-6">
         {/* 섹션별 이미지 그룹 */}
-        <div className="px-4 md:px-0 space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 animate-fadeIn">
+        {/* 데스크톱은 3열(6섹션=2행)로 한 화면에 들어오게 — 스크롤 없이 전체 조망 */}
+        <div className="px-4 md:px-0 space-y-6 md:grid md:grid-cols-3 md:gap-x-6 md:gap-y-5 md:space-y-0 animate-fadeIn">
           {SECTIONS.map((section) => {
             const sectionData = board.sections[section.id];
             const uploaded = sectionData.uploadedImages ?? [];
@@ -111,10 +112,10 @@ export default function BoardPage() {
                 {/* 섹션 헤더 */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: section.color }} />
-                  <span className="font-semibold text-sm">{section.title.split(' — ')[0]}</span>
+                  <span className="font-semibold text-body">{section.title.split(' — ')[0]}</span>
                   {keyword && (
                     <span
-                      className="text-xs px-2 py-0.5 rounded-full font-medium truncate min-w-0"
+                      className="text-caption px-2 py-0.5 rounded-full font-medium truncate min-w-0"
                       style={{ backgroundColor: section.lightColor, color: section.color }}
                     >
                       {keyword}
@@ -125,8 +126,8 @@ export default function BoardPage() {
                     onClick={() => router.push(getSectionRoute(sectionData, section.id))}
                     className={
                       shouldHighlightCta(sectionData)
-                        ? 'ml-auto text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 active:opacity-70'
-                        : 'ml-auto text-xs text-[#6E6962] whitespace-nowrap flex-shrink-0 active:opacity-70'
+                        ? 'ml-auto text-caption font-semibold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 active:opacity-70'
+                        : 'ml-auto text-caption text-[#6E6962] whitespace-nowrap flex-shrink-0 active:opacity-70'
                     }
                     style={
                       shouldHighlightCta(sectionData)
@@ -152,7 +153,7 @@ export default function BoardPage() {
                           {uploaded[imgIdx] && (
                             <button
                               onClick={() => removeUploaded(section.id, imgIdx)}
-                              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-xs flex items-center justify-center"
+                              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-caption flex items-center justify-center"
                             >
                               ×
                             </button>
@@ -164,8 +165,8 @@ export default function BoardPage() {
                           className="w-full h-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-0.5 active:opacity-70"
                           style={{ borderColor: section.color + '40', backgroundColor: section.lightColor }}
                         >
-                          <span className="text-base leading-none" style={{ color: section.color + '90' }}>+</span>
-                          <span className="text-[10px] font-medium" style={{ color: section.color + '80' }}>
+                          <span className="text-heading leading-none" style={{ color: section.color + '90' }}>+</span>
+                          <span className="text-micro font-medium" style={{ color: section.color + '80' }}>
                             사진 추가
                           </span>
                         </button>
@@ -195,20 +196,20 @@ export default function BoardPage() {
       </div>
 
       {/* 하단 — 한눈에 보기 (별도 페이지로 이동) */}
-      <div className="px-4 md:px-6 mt-10 animate-fadeIn">
+      <div className="px-4 md:px-6 mt-6 animate-fadeIn">
         <button
           onClick={handleCollageClick}
           title={collageImageCount === 0 ? '비전보드 사진을 1개 이상 올리면 활성화돼요' : undefined}
           className={
             collageImageCount > 0
-              ? 'w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity'
-              : 'w-full bg-[#F0EFEC] text-[#6E6962] py-4 rounded-2xl text-base font-semibold cursor-default'
+              ? 'w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity'
+              : 'w-full bg-[#F0EFEC] text-[#6E6962] py-4 rounded-2xl text-heading font-semibold cursor-default'
           }
         >
           내 비전보드 한눈에 보기 →
         </button>
         {showCollageHint && (
-          <p className="text-[11px] text-[#6E6962] text-center mt-2 animate-fadeIn">
+          <p className="text-micro text-[#6E6962] text-center mt-2 animate-fadeIn">
             비전보드 사진을 1개 이상 올리면 활성화돼요.
           </p>
         )}

@@ -36,7 +36,7 @@ export default function DeferredCheck({ section, slots, onAnswerSlot, onDeferAll
       <div className="flex-1 space-y-5">
         <div>
           <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            className="text-caption font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: section.lightColor, color: section.color }}
           >
             잠깐
@@ -44,8 +44,8 @@ export default function DeferredCheck({ section, slots, onAnswerSlot, onDeferAll
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-xl font-bold">아직 못 답한 질문들이 있어.</h2>
-          <p className="text-sm text-[#6B7280]">지금 답하면 더 생생한 비전보드가 만들어져.</p>
+          <h2 className="text-title font-bold">아직 못 답한 질문들이 있어.</h2>
+          <p className="text-body text-[#6B7280]">지금 답하면 더 생생한 비전보드가 만들어져.</p>
         </div>
 
         <div className="space-y-3">
@@ -57,10 +57,10 @@ export default function DeferredCheck({ section, slots, onAnswerSlot, onDeferAll
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold mb-0.5" style={{ color: section.color }}>
+                  <p className="text-caption font-semibold mb-0.5" style={{ color: section.color }}>
                     {SLOT_LABELS[slotId]}
                   </p>
-                  <p className="text-sm text-[#6E6962] italic">아직 답변 전</p>
+                  <p className="text-body text-[#6E6962] italic">아직 답변 전</p>
                 </div>
                 <span className="text-[#C4C2BE]">›</span>
               </div>
@@ -72,7 +72,7 @@ export default function DeferredCheck({ section, slots, onAnswerSlot, onDeferAll
       <div className="space-y-2 pt-4">
         <button
           onClick={onDeferAll}
-          className="w-full border border-[#E5E3DF] text-[#6B7280] py-4 rounded-2xl text-sm font-medium active:opacity-70 transition-opacity"
+          className="w-full border border-[#E5E3DF] text-[#6B7280] py-4 rounded-2xl text-body font-medium active:opacity-70 transition-opacity"
         >
           나중에 한꺼번에 답할게요
         </button>

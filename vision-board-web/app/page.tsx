@@ -18,10 +18,10 @@ function HeroBoard() {
           <HeroPolaroid key={name} name={name} index={i} />
         ))}
         <div className="col-span-3 flex flex-col items-center justify-center text-center py-2.5 select-none">
-          <p className="text-[10px] font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase">
+          <p className="text-micro font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase">
             Vision Board
           </p>
-          <p className="font-display text-lg font-bold text-white tracking-widest mt-0.5">
+          <p className="font-display text-title font-bold text-white tracking-widest mt-0.5">
             나의 해
           </p>
         </div>
@@ -49,7 +49,7 @@ function HeroPolaroid({ name, index }: { name: string; index: number }) {
       >
         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SECTION_COLORS[index] }} />
       </div>
-      <p className="font-display text-[10px] text-center text-[#57534E] py-1">{name}</p>
+      <p className="font-display text-micro text-center text-[#57534E] py-1">{name}</p>
     </div>
   );
 }
@@ -107,14 +107,14 @@ export default function LandingPage() {
               className="w-11 h-11 rounded-2xl object-cover"
               style={{ boxShadow: '0 6px 18px rgba(28,27,25,0.16)' }}
             />
-            <p className="text-sm text-[#6E6962]">정원사 토리</p>
+            <p className="text-body text-[#6E6962]">정원사 토리</p>
           </div>
-          <h1 className="font-display text-[32px] font-bold leading-snug mb-4">
+          <h1 className="font-display text-display-lg font-bold leading-snug mb-4">
             비전보드는<br />
             그리고 싶은 내 인생의<br />
             그림이에요.
           </h1>
-          <p className="text-[#6B7280] leading-relaxed mb-6 text-sm">
+          <p className="text-[#6B7280] leading-relaxed mb-6 text-body">
             처음부터 이미지를 찾을 필요 없어요.<br />
             질문을 따라가다 보면, 어느새 완성됩니다.
           </p>
@@ -125,19 +125,19 @@ export default function LandingPage() {
 
           <button
             onClick={() => router.push('/onboarding')}
-            className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+            className="w-full py-4 rounded-2xl text-heading font-semibold text-white"
             style={{ backgroundColor: '#1C1B19' }}
           >
             나 발견하러 가기 →
           </button>
-          <p className="text-center text-xs text-[#6E6962] mt-3">무료 · 가입 없이 바로 시작</p>
+          <p className="text-center text-caption text-[#6E6962] mt-3">무료 · 가입 없이 바로 시작</p>
         </div>
       </section>
 
       {/* 예시 비전보드 이미지 오토 롤링 캐러셀 */}
       <section className="px-6 py-14 overflow-hidden">
-        <p className="text-xs text-[#6E6962] uppercase tracking-wider mb-2">이런 비전보드</p>
-        <h2 className="text-xl font-bold leading-snug mb-10">
+        <p className="text-caption text-[#6E6962] uppercase tracking-wider mb-2">이런 비전보드</p>
+        <h2 className="text-title font-bold leading-snug mb-10">
           누군가는<br />이렇게 그리고 있어요
         </h2>
         <div className="relative">
@@ -159,7 +159,7 @@ export default function LandingPage() {
                       loading="lazy"
                     />
                   </div>
-                  <p className="font-display text-sm text-center text-[#57534E] pt-2.5">{img.label}</p>
+                  <p className="font-display text-body text-center text-[#57534E] pt-2.5">{img.label}</p>
                 </div>
               </div>
             ))}
@@ -184,10 +184,10 @@ export default function LandingPage() {
 
       {/* Contrast: 기존 vs 토리 */}
       <section className="px-6 py-14" style={{ backgroundColor: '#F5F5F3' }}>
-        <p className="text-xs text-[#6E6962] uppercase tracking-wider mb-5">토리가 다른 이유</p>
+        <p className="text-caption text-[#6E6962] uppercase tracking-wider mb-5">토리가 다른 이유</p>
         <div className="space-y-3">
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#ECEAE6' }}>
-            <p className="text-[11px] font-semibold text-[#6E6962] mb-3 uppercase tracking-wide">기존 비전보드 / Pinterest</p>
+            <p className="text-micro font-semibold text-[#6E6962] mb-3 uppercase tracking-wide">기존 비전보드 / Pinterest</p>
             <div className="space-y-2">
               {[
                 '원하는 이미지를 찾아 붙인다',
@@ -195,14 +195,14 @@ export default function LandingPage() {
                 '"경제적 자유" — 나에겐 뭘 의미하는지 모른 채 끝남',
               ].map((text, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="text-[#C4C2BE] mt-0.5 flex-shrink-0 text-xs font-bold">×</span>
-                  <p className="text-sm text-[#6E6962] leading-relaxed">{text}</p>
+                  <span className="text-[#C4C2BE] mt-0.5 flex-shrink-0 text-caption font-bold">×</span>
+                  <p className="text-body text-[#6E6962] leading-relaxed">{text}</p>
                 </div>
               ))}
             </div>
           </div>
           <div className="rounded-2xl p-4 bg-white border border-[#E5E3DF]">
-            <p className="text-[11px] font-semibold text-[#1C1B19] mb-3 uppercase tracking-wide">토리</p>
+            <p className="text-micro font-semibold text-[#1C1B19] mb-3 uppercase tracking-wide">토리</p>
             <div className="space-y-2">
               {[
                 '먼저 질문으로 나를 발견한다',
@@ -210,8 +210,8 @@ export default function LandingPage() {
                 '"경제적 자유"가 나에게 구체적으로 무엇인지 알게 된 채 끝남',
               ].map((text, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="text-[#1C1B19] mt-0.5 flex-shrink-0 text-xs font-bold">✓</span>
-                  <p className="text-sm leading-relaxed">{text}</p>
+                  <span className="text-[#1C1B19] mt-0.5 flex-shrink-0 text-caption font-bold">✓</span>
+                  <p className="text-body leading-relaxed">{text}</p>
                 </div>
               ))}
             </div>
@@ -221,8 +221,8 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section className="px-6 py-14">
-        <p className="text-xs text-[#6E6962] uppercase tracking-wider mb-2">이렇게 만들어요</p>
-        <h2 className="text-xl font-bold leading-snug mb-10">
+        <p className="text-caption text-[#6E6962] uppercase tracking-wider mb-2">이렇게 만들어요</p>
+        <h2 className="text-title font-bold leading-snug mb-10">
           토리가 묻고,<br />당신이 답하면 보여요
         </h2>
         <div className="space-y-8">
@@ -245,14 +245,14 @@ export default function LandingPage() {
           ].map((item) => (
             <div key={item.step} className="flex gap-5">
               <span
-                className="text-2xl font-bold leading-none w-8 flex-shrink-0 mt-0.5"
+                className="text-display font-bold leading-none w-8 flex-shrink-0 mt-0.5"
                 style={{ color: '#E5E3DF' }}
               >
                 {item.step}
               </span>
               <div>
-                <p className="font-semibold text-sm mb-1">{item.title}</p>
-                <p className="text-xs text-[#6B7280] leading-relaxed">{item.desc}</p>
+                <p className="font-semibold text-body mb-1">{item.title}</p>
+                <p className="text-caption text-[#6B7280] leading-relaxed">{item.desc}</p>
               </div>
             </div>
           ))}
@@ -261,8 +261,8 @@ export default function LandingPage() {
 
       {/* What you get */}
       <section className="px-6 py-14" style={{ backgroundColor: '#F5F5F3' }}>
-        <p className="text-xs text-[#6E6962] uppercase tracking-wider mb-2">완성되면 생기는 것</p>
-        <h2 className="text-xl font-bold leading-snug mb-6">
+        <p className="text-caption text-[#6E6962] uppercase tracking-wider mb-2">완성되면 생기는 것</p>
+        <h2 className="text-title font-bold leading-snug mb-6">
           6가지 영역 비전보드<br />+ 미래의 하루 이야기
         </h2>
         <div className="grid grid-cols-3 gap-2 mb-4">
@@ -273,13 +273,13 @@ export default function LandingPage() {
               style={{ backgroundColor: SECTION_LIGHT_COLORS[i], border: `1px solid ${color}30` }}
             >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-xs font-semibold" style={{ color }}>{SECTION_NAMES[i]}</span>
+              <span className="text-caption font-semibold" style={{ color }}>{SECTION_NAMES[i]}</span>
             </div>
           ))}
         </div>
         <div className="bg-white rounded-xl p-4 border border-[#E5E3DF]">
-          <p className="text-xs text-[#6E6962] mb-2">완성되면 이런 장면이 나와</p>
-          <p className="text-sm leading-relaxed text-[#6B7280]">
+          <p className="text-caption text-[#6E6962] mb-2">완성되면 이런 장면이 나와</p>
+          <p className="text-body leading-relaxed text-[#6B7280]">
             "카페 창가, 혼자 책 읽는 오전.<br />이게 내가 원하는 &apos;나&apos; 영역의 하루야."
           </p>
         </div>
@@ -293,16 +293,16 @@ export default function LandingPage() {
           className="w-12 h-12 rounded-2xl object-cover mx-auto mb-6"
           style={{ boxShadow: '0 8px 24px rgba(28,27,25,0.12)' }}
         />
-        <h2 className="font-display text-2xl font-bold mb-2">지금, 첫 질문 하나부터.</h2>
-        <p className="text-sm text-[#6B7280] mb-8">막연해도 괜찮아. 토리가 물어볼게.</p>
+        <h2 className="font-display text-display font-bold mb-2">지금, 첫 질문 하나부터.</h2>
+        <p className="text-body text-[#6B7280] mb-8">막연해도 괜찮아. 토리가 물어볼게.</p>
         <button
           onClick={() => router.push('/onboarding')}
-          className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+          className="w-full py-4 rounded-2xl text-heading font-semibold text-white"
           style={{ backgroundColor: '#1C1B19' }}
         >
           나 발견하러 가기 →
         </button>
-        <p className="text-xs text-[#6E6962] mt-3">무료 · 가입 없이 바로 시작</p>
+        <p className="text-caption text-[#6E6962] mt-3">무료 · 가입 없이 바로 시작</p>
       </section>
 
     </main>

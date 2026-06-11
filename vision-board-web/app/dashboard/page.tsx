@@ -51,11 +51,11 @@ export default function DashboardPage() {
                 alt="토리"
                 className="w-7 h-7 rounded-full object-cover"
               />
-              <span className="text-sm text-[#6B7280]">정원사 토리와 함께</span>
+              <span className="text-body text-[#6B7280]">정원사 토리와 함께</span>
             </div>
             <ProcessGuide />
           </div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-display font-bold">
             {userName ? `${userName}의 비전보드` : '내 비전보드'}
           </h1>
         </div>
@@ -63,7 +63,7 @@ export default function DashboardPage() {
         {/* 섹션 소개 — 처음 시작하는 경우 */}
         {textCompleteCount === 0 && (
           <div className="mb-5 bg-white rounded-2xl p-4 border border-[#E5E3DF] animate-slideUp">
-            <p className="text-sm text-[#6B7280] leading-relaxed">
+            <p className="text-body text-[#6B7280] leading-relaxed">
               어디부터 시작해도 괜찮아. 네가 가장 궁금한 영역부터 시작해.
             </p>
           </div>
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                 style={{ width: `${(textCompleteCount / 6) * 100}%` }}
               />
             </div>
-            <span className="text-xs text-[#6B7280]">{textCompleteCount}/6 채워짐</span>
+            <span className="text-caption text-[#6B7280]">{textCompleteCount}/6 채워짐</span>
           </div>
         )}
 
@@ -124,9 +124,9 @@ export default function DashboardPage() {
                         </div>
                       )}
                       <div>
-                        <p className="font-semibold text-sm">{section.shortTitle ?? section.title.split(' — ')[0]}</p>
+                        <p className="font-semibold text-body">{section.shortTitle ?? section.title.split(' — ')[0]}</p>
                         {section.title.split(' — ')[1] && (
-                          <p className="text-xs text-[#6E6962] mt-0.5">{section.title.split(' — ')[1]}</p>
+                          <p className="text-caption text-[#6E6962] mt-0.5">{section.title.split(' — ')[1]}</p>
                         )}
                       </div>
                     </div>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
                         />
                       </div>
                       <span
-                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        className="text-caption px-2 py-0.5 rounded-full font-medium"
                         style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
                       >
                         {isCompleted && '✓ '}{STATUS_LABEL[status]}
@@ -160,7 +160,7 @@ export default function DashboardPage() {
 
         {/* 2단계 범례 */}
         <div className="mt-3 flex items-center gap-3 px-1">
-          <p className="text-[10px] text-[#C4C2BE]">●● = 완성 &nbsp; ●○ = 글만 완료 &nbsp; ○○ = 미시작</p>
+          <p className="text-micro text-[#C4C2BE]">●● = 완성 &nbsp; ●○ = 글만 완료 &nbsp; ○○ = 미시작</p>
         </div>
 
         {/* 하단 액션 */}
@@ -168,7 +168,7 @@ export default function DashboardPage() {
           {allTextDone && (
             <button
               onClick={() => router.push('/review')}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
               style={{ backgroundColor: '#1C1B19' }}
             >
               다 됐다, 이제 미래의 하루를 그리러 가자 →
@@ -176,7 +176,7 @@ export default function DashboardPage() {
           )}
           <button
             onClick={() => router.push('/board')}
-            className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-sm font-semibold active:opacity-70 transition-opacity"
+            className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold active:opacity-70 transition-opacity"
           >
             나의 비전보드 보러가기 →
           </button>

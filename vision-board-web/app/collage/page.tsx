@@ -60,9 +60,9 @@ export default function CollagePage() {
           >
             ‹
           </button>
-          <h1 className="text-xl font-bold">한눈에 보기</h1>
+          <h1 className="text-title font-bold">한눈에 보기</h1>
         </div>
-        <p className="text-xs text-[#6E6962] pl-8">내 비전보드를 하나로.</p>
+        <p className="text-caption text-[#6E6962] pl-8">내 비전보드를 하나로.</p>
       </div>
 
       <div className="px-4 md:px-6 animate-fadeIn">
@@ -79,21 +79,21 @@ export default function CollagePage() {
             />
             <button
               onClick={() => setWallpaperOpen(true)}
-              className="mt-4 w-full py-3.5 rounded-2xl text-sm font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
+              className="mt-4 w-full py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
             >
               📱 배경화면으로 저장
             </button>
           </>
         ) : (
           <div className="text-center py-16">
-            <p className="text-sm text-[#6E6962]">
+            <p className="text-body text-[#6E6962]">
               아직 담긴 사진이 없어.
               <br />
               비전보드에 사진을 1개 이상 올리면 여기서 볼 수 있어.
             </p>
             <button
               onClick={() => router.push('/board')}
-              className="mt-6 px-6 py-3 rounded-2xl text-sm font-semibold text-white bg-[#1C1B19] active:opacity-80"
+              className="mt-6 px-6 py-3 rounded-2xl text-body font-semibold text-white bg-[#1C1B19] active:opacity-80"
             >
               비전보드로 가기 →
             </button>
@@ -104,10 +104,10 @@ export default function CollagePage() {
         {board.futureDayStory ? (
           <div className="mt-8 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-sm">미래의 하루 이야기</span>
+              <span className="font-semibold text-body">미래의 하루 이야기</span>
               <button
                 onClick={() => router.push('/finish')}
-                className="text-xs text-[#6E6962] active:opacity-70"
+                className="text-caption text-[#6E6962] active:opacity-70"
               >
                 다시 쓰러 가기 →
               </button>
@@ -127,11 +127,11 @@ export default function CollagePage() {
           <div className="mt-8 space-y-2">
             <button
               onClick={() => router.push('/finish')}
-              className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+              className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity"
             >
               내 비전보드 완성하기 🐿️
             </button>
-            <p className="text-[11px] text-[#6E6962] text-center">
+            <p className="text-micro text-[#6E6962] text-center">
               완성하면 미래의 하루 이야기를 써줄게.
             </p>
           </div>

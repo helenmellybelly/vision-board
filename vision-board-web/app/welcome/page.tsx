@@ -59,8 +59,8 @@ export default function WelcomePage() {
           alt="토리"
           className="w-10 h-10 rounded-xl object-cover mb-6"
         />
-        <p className="text-sm text-[#6E6962] mb-1">토리</p>
-        <h1 className="text-2xl font-bold leading-snug">
+        <p className="text-body text-[#6E6962] mb-1">토리</p>
+        <h1 className="text-display font-bold leading-snug">
           {userName ? `${userName}아,` : ''} 함께 만들어갈<br />비전보드를 보여줄게.
         </h1>
       </div>
@@ -70,7 +70,7 @@ export default function WelcomePage() {
           <div key={phase.num} className="flex gap-4">
             <div className="flex flex-col items-center">
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold text-white flex-shrink-0"
                 style={{ backgroundColor: '#1C1B19' }}
               >
                 {phase.num}
@@ -80,8 +80,8 @@ export default function WelcomePage() {
               )}
             </div>
             <div className="pb-7 flex-1">
-              <p className="font-semibold text-sm mb-1">{phase.title}</p>
-              <p className="text-xs text-[#6B7280] leading-relaxed">{phase.desc}</p>
+              <p className="font-semibold text-body mb-1">{phase.title}</p>
+              <p className="text-caption text-[#6B7280] leading-relaxed">{phase.desc}</p>
               {phase.extra === 'dots' && (
                 <div className="flex gap-1.5 mt-2.5">
                   {SECTION_COLORS.map((color, i) => (
@@ -100,7 +100,7 @@ export default function WelcomePage() {
 
       <button
         onClick={handleStart}
-        className="w-full py-4 rounded-2xl text-base font-semibold text-white mt-2"
+        className="w-full py-4 rounded-2xl text-heading font-semibold text-white mt-2"
         style={{ backgroundColor: '#1C1B19' }}
       >
         시작할게 →

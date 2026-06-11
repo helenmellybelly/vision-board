@@ -80,7 +80,7 @@ export default function ProcessBar({ board }: Props) {
                 style={{ cursor: isFuture ? 'default' : 'pointer' }}
               >
                 <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-caption font-bold transition-all"
                   style={{
                     backgroundColor: isDone || isCurrent ? '#1C1B19' : 'transparent',
                     border: isFuture ? '1.5px dashed #D1D5DB' : 'none',
@@ -90,13 +90,13 @@ export default function ProcessBar({ board }: Props) {
                   {isDone ? '✓' : step.id}
                 </div>
                 <span
-                  className="text-[10px] font-semibold leading-tight"
+                  className="text-micro font-semibold leading-tight"
                   style={{ color: isCurrent ? '#1C1B19' : isDone ? '#6B7280' : '#C4C2BE' }}
                 >
                   {step.short}
                 </span>
                 {isCurrent && (
-                  <span className="text-[9px] text-[#6E6962] leading-tight">{subLabel}</span>
+                  <span className="text-micro text-[#6E6962] leading-tight">{subLabel}</span>
                 )}
               </button>
               {!isLast && (

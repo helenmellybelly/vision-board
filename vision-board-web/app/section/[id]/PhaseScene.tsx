@@ -26,7 +26,7 @@ export default function PhaseScene({ section, slot, keyword, savedAnswer, onSave
       <div className="flex-1 space-y-5">
         <div>
           <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            className="text-caption font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: section.lightColor, color: section.color }}
           >
             3단계
@@ -38,27 +38,27 @@ export default function PhaseScene({ section, slot, keyword, savedAnswer, onSave
             className="rounded-2xl p-3 text-center"
             style={{ backgroundColor: section.lightColor }}
           >
-            <p className="text-xs text-[#6B7280] mb-1">내 키워드 ②</p>
+            <p className="text-caption text-[#6B7280] mb-1">내 키워드 ②</p>
             <p className="font-bold" style={{ color: section.color }}>
               {keyword}
             </p>
           </div>
         )}
 
-        <h2 className="text-xl font-bold leading-snug">{slot.mainQuestion}</h2>
+        <h2 className="text-title font-bold leading-snug">{slot.mainQuestion}</h2>
 
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={slot.placeholder}
           rows={5}
-          className="w-full bg-white border border-[#E5E3DF] rounded-2xl p-4 text-base placeholder-[#C4C2BE] focus:outline-none focus:border-[#1C1B19] transition-colors"
+          className="w-full bg-white border border-[#E5E3DF] rounded-2xl p-4 text-heading placeholder-[#C4C2BE] focus:outline-none focus:border-[#1C1B19] transition-colors"
         />
 
         <div>
           <button
             onClick={() => setShowHelp((v) => !v)}
-            className="flex items-center gap-1.5 text-sm text-[#6B7280]"
+            className="flex items-center gap-1.5 text-body text-[#6B7280]"
           >
             <MessageCircle size={16} strokeWidth={1.8} aria-hidden="true" />
             <span>{showHelp ? '닫기' : '도움이 필요해요'}</span>
@@ -68,7 +68,7 @@ export default function PhaseScene({ section, slot, keyword, savedAnswer, onSave
               {slot.helpQuestions.map((q) => (
                 <div
                   key={q.id}
-                  className="p-3 rounded-xl text-sm leading-relaxed"
+                  className="p-3 rounded-xl text-body leading-relaxed"
                   style={{ backgroundColor: section.lightColor }}
                 >
                   {q.text}
@@ -82,12 +82,12 @@ export default function PhaseScene({ section, slot, keyword, savedAnswer, onSave
       <div className="space-y-2 pt-4">
         <button
           onClick={handleNext}
-          className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
+          className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
           {text.trim() ? '다음' : '나중에 답할게'}
         </button>
-        <button onClick={onBack} className="w-full py-2 text-sm text-[#6B7280]">
+        <button onClick={onBack} className="w-full py-2 text-body text-[#6B7280]">
           이전
         </button>
       </div>

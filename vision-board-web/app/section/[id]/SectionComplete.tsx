@@ -34,19 +34,19 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
         <Sprout size={28} strokeWidth={1.8} style={{ color: section.color }} aria-hidden="true" />
       </div>
 
-      <h2 className="text-2xl font-bold mb-3">
+      <h2 className="text-display font-bold mb-3">
         {section.shortTitle ?? section.title.split(' — ')[0]} 이야기, 다 썼어.
       </h2>
-      <p className="text-[#6B7280] text-base leading-relaxed mb-1">
+      <p className="text-[#6B7280] text-heading leading-relaxed mb-1">
         수고했어. 잠깐 쉬어도 돼.
       </p>
 
       {allTextDone ? (
-        <p className="text-[#6E6962] text-sm mb-10">
+        <p className="text-[#6E6962] text-body mb-10">
           6개 다 채웠어. 이제 전체를 한눈에 볼 수 있어.
         </p>
       ) : (
-        <p className="text-[#6E6962] text-sm mb-10">
+        <p className="text-[#6E6962] text-body mb-10">
           {6 - completedCount}개 더 남았어. 다 끝나면 미래의 하루를 같이 그려볼게.
         </p>
       )}
@@ -54,7 +54,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
       <div className="w-full space-y-3 max-w-xs">
         <button
           onClick={onDone}
-          className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
+          className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
           {allTextDone
@@ -65,7 +65,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
         </button>
         <button
           onClick={onDashboard}
-          className="w-full py-2 text-sm text-[#6E6962]"
+          className="w-full py-2 text-body text-[#6E6962]"
         >
           잠깐 쉬고 올게
         </button>

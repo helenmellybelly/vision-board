@@ -9,7 +9,13 @@ export interface WallpaperSectionGroup {
 
 export const WALLPAPER_W = 1170;
 export const WALLPAPER_H = 2532;
-const BG = '#2D2B29'; // VisionBoardCollage와 동일한 배경
+
+// 디자인 2종: polaroid = 다크 무드 폴라로이드 산포 / minimal = 크림 배경 정렬 그리드
+export type WallpaperStyle = 'polaroid' | 'minimal';
+const BG_DARK = '#2D2B29'; // VisionBoardCollage와 동일한 배경
+const BG_LIGHT = '#FAF9F7'; // 서비스 기본 크림 배경 (globals.css --background)
+const INK = '#1C1B19';
+const INK_SOFT = '#6E6962';
 
 // 콜라주와 같은 폴라로이드 회전 언어 — 인덱스 기반 결정적 배치
 const ROTATIONS = [-6, 4, -3, 6, -4, 5, -5, 3, -2, 4, -6, 3, -4, 6, -3, 5, -5, 2];
@@ -59,13 +65,13 @@ async function ensureFonts() {
   }
 }
 
-function newCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+function newCanvas(bg: string): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
   const canvas = document.createElement('canvas');
   canvas.width = WALLPAPER_W;
   canvas.height = WALLPAPER_H;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas 2d context unavailable');
-  ctx.fillStyle = BG;
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, WALLPAPER_W, WALLPAPER_H);
   return { canvas, ctx };
 }
@@ -169,15 +175,116 @@ function scatterInZone(
   });
 }
 
+// ── 미니멀 그리드 스타일 헬퍼 ──
+
+// 라운드 코너 사진 — 회전 없이 정렬, 부드러운 그림자
+function drawRoundedPhoto(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(28,27,25,0.14)';
+  ctx.shadowBlur = 22;
+  ctx.shadowOffsetY = 8;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.clip();
+  drawCover(ctx, img, x, y, w, h);
+  ctx.restore();
+}
+
+// 미니멀 헤더 — 작은 레터스페이스 라벨 + Gowun Batang 연도
+function drawMinimalHeader(ctx: CanvasRenderingContext2D, year: string) {
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = INK_SOFT;
+  ctx.font = '600 32px "Pretendard Variable", Pretendard, sans-serif';
+  ctx.fillText('V I S I O N   B O A R D', WALLPAPER_W / 2, 440);
+  ctx.fillStyle = INK;
+  ctx.font = '700 104px "Gowun Batang", serif';
+  ctx.fillText(year, WALLPAPER_W / 2, 540);
+}
+
+// 하단 섹션 컬러 도트 행 — 6개 영역의 시그니처
+function drawColorDots(ctx: CanvasRenderingContext2D, colors: string[], cy: number) {
+  const r = 13;
+  const gap = 46;
+  const totalW = colors.length * r * 2 + (colors.length - 1) * (gap - r * 2);
+  let x = (WALLPAPER_W - totalW) / 2 + r;
+  for (const color of colors) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    x += gap;
+  }
+}
+
+// 정렬 그리드 — 마지막 줄은 가운데 정렬, 블록 전체를 구역에 수직 중앙 배치
+function gridInZone(
+  ctx: CanvasRenderingContext2D,
+  imgs: HTMLImageElement[],
+  y0: number,
+  y1: number
+) {
+  const n = imgs.length;
+  if (n === 0) return;
+  const margin = 84;
+  const gap = 26;
+  const cols = n <= 4 ? 2 : 3;
+  const cell = (WALLPAPER_W - margin * 2 - gap * (cols - 1)) / cols;
+  const rows = Math.ceil(n / cols);
+  const gridH = rows * cell + (rows - 1) * gap;
+  const top = y0 + Math.max(0, (y1 - y0 - gridH) / 2);
+  imgs.forEach((img, i) => {
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+    const inRow = Math.min(cols, n - r * cols);
+    const rowOffset = ((cols - inRow) * (cell + gap)) / 2;
+    drawRoundedPhoto(
+      ctx,
+      img,
+      margin + rowOffset + c * (cell + gap),
+      top + r * (cell + gap),
+      cell,
+      cell,
+      28
+    );
+  });
+}
+
 // 모드 1: 한 장 모아담기 — 최대 18장을 위·아래 구역에 겹쳐 배치, 중앙에 타이틀
 export async function renderAllInOne(
   groups: WallpaperSectionGroup[],
-  year: string
+  year: string,
+  style: WallpaperStyle = 'polaroid'
 ): Promise<HTMLCanvasElement> {
-  const srcs = groups.flatMap((g) => g.images).slice(0, 18);
   await ensureFonts();
+
+  if (style === 'minimal') {
+    // 미니멀: 크림 배경 + 정렬 그리드(최대 12장) + 헤더·컬러 도트
+    const srcs = groups.flatMap((g) => g.images).slice(0, 12);
+    const imgs = await loadImages(srcs);
+    const { canvas, ctx } = newCanvas(BG_LIGHT);
+    drawMinimalHeader(ctx, year);
+    gridInZone(ctx, imgs, 660, 2260);
+    drawColorDots(ctx, groups.map((g) => g.color), 2360);
+    return canvas;
+  }
+
+  const srcs = groups.flatMap((g) => g.images).slice(0, 18);
   const imgs = await loadImages(srcs);
-  const { canvas, ctx } = newCanvas();
+  const { canvas, ctx } = newCanvas(BG_DARK);
 
   // 상단 ~380px은 시계·위젯 영역으로 비워둔다
   const half = Math.ceil(imgs.length / 2);
@@ -233,24 +340,80 @@ function drawSectionZone(
   }
 }
 
+// 미니멀 스타일 섹션 구역 — 어두운 잉크 라벨 + 정렬 사진(무회전)
+function drawSectionZoneMinimal(
+  ctx: CanvasRenderingContext2D,
+  group: WallpaperSectionGroup,
+  imgs: HTMLImageElement[],
+  y0: number,
+  y1: number
+) {
+  const labelY = y0 + 30;
+  ctx.font = '700 44px "Pretendard Variable", Pretendard, sans-serif';
+  ctx.textBaseline = 'middle';
+  const textW = ctx.measureText(group.label).width;
+  const dotR = 11;
+  const gap = 18;
+  const startX = (WALLPAPER_W - (dotR * 2 + gap + textW)) / 2;
+  ctx.fillStyle = group.color;
+  ctx.beginPath();
+  ctx.arc(startX + dotR, labelY, dotR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = INK;
+  ctx.textAlign = 'left';
+  ctx.fillText(group.label, startX + dotR * 2 + gap, labelY);
+  ctx.textAlign = 'center';
+
+  if (imgs.length === 0) {
+    ctx.fillStyle = '#9A958E';
+    ctx.font = '400 32px "Pretendard Variable", Pretendard, sans-serif';
+    ctx.fillText('아직 담긴 사진이 없어', WALLPAPER_W / 2, (y0 + y1) / 2 + 40);
+    return;
+  }
+
+  const contentY0 = labelY + 80;
+  const cy = (contentY0 + y1) / 2;
+  if (imgs.length === 1) {
+    drawRoundedPhoto(ctx, imgs[0], WALLPAPER_W / 2 - 280, cy - 280, 560, 560, 36);
+  } else if (imgs.length === 2) {
+    drawRoundedPhoto(ctx, imgs[0], WALLPAPER_W / 2 - 470 - 14, cy - 235, 470, 470, 32);
+    drawRoundedPhoto(ctx, imgs[1], WALLPAPER_W / 2 + 14, cy - 235, 470, 470, 32);
+  } else {
+    // 3장 — 위 2, 아래 1 가운데 정렬 (회전 없는 정돈된 배치)
+    const s = 380;
+    const g = 26;
+    const rowTop = cy - s - g / 2;
+    drawRoundedPhoto(ctx, imgs[0], WALLPAPER_W / 2 - s - g / 2, rowTop, s, s, 30);
+    drawRoundedPhoto(ctx, imgs[1], WALLPAPER_W / 2 + g / 2, rowTop, s, s, 30);
+    drawRoundedPhoto(ctx, imgs[2], WALLPAPER_W / 2 - s / 2, cy + g / 2, s, s, 30);
+  }
+}
+
 // 모드 2: 섹션 묶음 — 2개 섹션을 위·아래로 나눠 담은 월페이퍼 한 장
 export async function renderSectionPair(
   pair: WallpaperSectionGroup[],
-  year: string
+  year: string,
+  style: WallpaperStyle = 'polaroid'
 ): Promise<HTMLCanvasElement> {
   await ensureFonts();
   const imgsA = await loadImages(pair[0]?.images ?? []);
   const imgsB = pair[1] ? await loadImages(pair[1].images) : [];
-  const { canvas, ctx } = newCanvas();
+  const minimal = style === 'minimal';
+  const { canvas, ctx } = newCanvas(minimal ? BG_LIGHT : BG_DARK);
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#C4C2BE';
+  ctx.fillStyle = minimal ? INK_SOFT : '#C4C2BE';
   ctx.font = '600 30px "Pretendard Variable", Pretendard, sans-serif';
   ctx.fillText(`V I S I O N   B O A R D   ${year}`, WALLPAPER_W / 2, 300);
 
-  drawSectionZone(ctx, pair[0], imgsA, 430, 1330, 0);
-  if (pair[1]) drawSectionZone(ctx, pair[1], imgsB, 1430, 2330, 3);
+  if (minimal) {
+    drawSectionZoneMinimal(ctx, pair[0], imgsA, 430, 1330);
+    if (pair[1]) drawSectionZoneMinimal(ctx, pair[1], imgsB, 1430, 2330);
+  } else {
+    drawSectionZone(ctx, pair[0], imgsA, 430, 1330, 0);
+    if (pair[1]) drawSectionZone(ctx, pair[1], imgsB, 1430, 2330, 3);
+  }
   return canvas;
 }
 

@@ -23,14 +23,14 @@ export default function PhaseReview({ section, slots, onEdit, onNext, onBack }: 
       <div className="flex-1 space-y-5">
         <div>
           <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            className="text-caption font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: section.lightColor, color: section.color }}
           >
             내 답 확인
           </span>
         </div>
-        <h2 className="text-xl font-bold">내가 쓴 것들, 한번 봐봐</h2>
-        <p className="text-sm text-[#6B7280]">
+        <h2 className="text-title font-bold">내가 쓴 것들, 한번 봐봐</h2>
+        <p className="text-body text-[#6B7280]">
           마음에 안 드는 거 있으면 탭해서 바꿀 수 있어.
         </p>
 
@@ -46,18 +46,18 @@ export default function PhaseReview({ section, slots, onEdit, onNext, onBack }: 
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <p
-                      className="text-xs font-semibold mb-1"
+                      className="text-caption font-semibold mb-1"
                       style={{ color: section.color }}
                     >
                       {SLOT_LABELS[slotId]}
                     </p>
                     {answer && !answer.isDeferred ? (
-                      <p className="text-sm leading-relaxed">{answer.text}</p>
+                      <p className="text-body leading-relaxed">{answer.text}</p>
                     ) : (
-                      <p className="text-sm text-[#6E6962] italic">아직 비워뒀어</p>
+                      <p className="text-body text-[#6E6962] italic">아직 비워뒀어</p>
                     )}
                   </div>
-                  <span className="text-[#C4C2BE] text-sm flex-shrink-0">✎</span>
+                  <span className="text-[#C4C2BE] text-body flex-shrink-0">✎</span>
                 </div>
               </button>
             );
@@ -68,12 +68,12 @@ export default function PhaseReview({ section, slots, onEdit, onNext, onBack }: 
       <div className="space-y-2 pt-4">
         <button
           onClick={onNext}
-          className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
+          className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
           좋아, 이대로 갈게
         </button>
-        <button onClick={onBack} className="w-full py-2 text-sm text-[#6B7280]">
+        <button onClick={onBack} className="w-full py-2 text-body text-[#6B7280]">
           이전
         </button>
       </div>

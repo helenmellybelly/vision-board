@@ -245,7 +245,7 @@ export default function ScenesPage() {
             </button>
             <button
               onClick={() => handleRemoveSlot(i)}
-              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-xs flex items-center justify-center z-10"
+              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-caption flex items-center justify-center z-10"
             >
               ×
             </button>
@@ -255,8 +255,8 @@ export default function ScenesPage() {
             onClick={() => uploadRefs[i].current?.click()}
             className="w-full h-full flex flex-col items-center justify-center text-[#C9C5BE] active:opacity-70"
           >
-            <span className="text-2xl leading-none mb-1">+</span>
-            <span className="text-[10px]">사진 추가</span>
+            <span className="text-display leading-none mb-1">+</span>
+            <span className="text-micro">사진 추가</span>
           </button>
         )}
         <input
@@ -283,14 +283,14 @@ export default function ScenesPage() {
           <button
             onClick={() => router.push(`/moment/${sectionId}`)}
             aria-label="순간 단계로 돌아가기"
-            className="text-[#6E6962] text-xs mr-1 active:opacity-60"
+            className="text-[#6E6962] text-caption mr-1 active:opacity-60"
           >
             ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-sm">{sectionName} · 이미지</span>
+          <span className="font-semibold text-body">{sectionName} · 이미지</span>
         </div>
-        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#6E6962] py-1">
+        <button onClick={() => router.push('/dashboard')} className="text-caption text-[#6E6962] py-1">
           대시보드로
         </button>
       </header>
@@ -299,8 +299,8 @@ export default function ScenesPage() {
 
         {/* Descriptions section */}
         <div className="mb-2">
-          <p className="text-sm font-semibold text-[#1C1B19] mb-1">장면을 만들어 볼까?</p>
-          <p className="text-xs text-[#6E6962]">탭해서 직접 고칠 수 있어</p>
+          <p className="text-body font-semibold text-[#1C1B19] mb-1">장면을 만들어 볼까?</p>
+          <p className="text-caption text-[#6E6962]">탭해서 직접 고칠 수 있어</p>
         </div>
 
         {story && (
@@ -323,8 +323,8 @@ export default function ScenesPage() {
           </div>
         ) : describeError ? (
           <div className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4 text-center mb-4">
-            <p className="text-sm text-[#6B7280] mb-3">묘사를 만들지 못했어.</p>
-            <button onClick={() => fetchDescriptions()} className="text-sm text-[#374151] underline">
+            <p className="text-body text-[#6B7280] mb-3">묘사를 만들지 못했어.</p>
+            <button onClick={() => fetchDescriptions()} className="text-body text-[#374151] underline">
               다시 시도
             </button>
           </div>
@@ -346,7 +346,7 @@ export default function ScenesPage() {
                 }}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-semibold" style={{ color: section.color }}>
+                  <span className="text-micro font-semibold" style={{ color: section.color }}>
                     장면 {i + 1}
                   </span>
                   {editingIdx !== i && (
@@ -356,7 +356,7 @@ export default function ScenesPage() {
                         handleRegenerateOne(i);
                       }}
                       disabled={regeneratingIdx === i}
-                      className="text-[10px] text-[#6E6962] border border-[#E5E3DF] rounded-full px-2 py-0.5 active:opacity-60 disabled:opacity-40"
+                      className="text-micro text-[#6E6962] border border-[#E5E3DF] rounded-full px-2 py-0.5 active:opacity-60 disabled:opacity-40"
                     >
                       {regeneratingIdx === i ? '제안 중...' : '↻ 다시 제안'}
                     </button>
@@ -371,7 +371,7 @@ export default function ScenesPage() {
                       rows={2}
                       autoFocus
                       onClick={(e) => e.stopPropagation()}
-                      className="w-full text-sm leading-relaxed resize-none outline-none bg-transparent placeholder:text-[#D1CEC9]"
+                      className="w-full text-body leading-relaxed resize-none outline-none bg-transparent placeholder:text-[#D1CEC9]"
                     />
                     <button
                       onClick={(e) => {
@@ -382,14 +382,14 @@ export default function ScenesPage() {
                         saveImageDescriptions(sectionId, updated);
                         setEditingIdx(null);
                       }}
-                      className="mt-2 w-full py-1.5 rounded-lg text-xs font-semibold text-white"
+                      className="mt-2 w-full py-1.5 rounded-lg text-caption font-semibold text-white"
                       style={{ backgroundColor: section.color }}
                     >
                       저장
                     </button>
                   </>
                 ) : (
-                  <p className="text-sm leading-relaxed text-[#374151]">{desc || '—'}</p>
+                  <p className="text-body leading-relaxed text-[#374151]">{desc || '—'}</p>
                 )}
               </div>
             ))}
@@ -399,7 +399,7 @@ export default function ScenesPage() {
         {!describeLoading && !describeError && (
           <button
             onClick={() => fetchDescriptions()}
-            className="w-full py-2 text-xs text-[#6E6962] text-center mb-4"
+            className="w-full py-2 text-caption text-[#6E6962] text-center mb-4"
           >
             묘사 전체 다시 제안받기
           </button>
@@ -410,8 +410,8 @@ export default function ScenesPage() {
 
         {/* Images section */}
         <div className="mb-3">
-          <p className="text-sm font-semibold text-[#1C1B19] mb-0.5">나의 비전보드 이미지 찾기</p>
-          <p className="text-xs text-[#6E6962]">직접 올리거나 URL로 불러올 수 있어.</p>
+          <p className="text-body font-semibold text-[#1C1B19] mb-0.5">나의 비전보드 이미지 찾기</p>
+          <p className="text-caption text-[#6E6962]">직접 올리거나 URL로 불러올 수 있어.</p>
         </div>
 
         <div className="mb-3">
@@ -428,12 +428,12 @@ export default function ScenesPage() {
             onChange={(e) => setUrlInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl(); }}
             placeholder="이미지 URL 주소 붙여넣기"
-            className="flex-1 text-xs px-3 py-2.5 rounded-xl border border-[#E5E3DF] bg-white outline-none focus:border-[#9CA3AF] placeholder:text-[#C9C5BE]"
+            className="flex-1 text-caption px-3 py-2.5 rounded-xl border border-[#E5E3DF] bg-white outline-none focus:border-[#9CA3AF] placeholder:text-[#C9C5BE]"
           />
           <button
             onClick={handleAddUrl}
             disabled={!urlInput.trim()}
-            className="px-3 py-2.5 rounded-xl text-xs font-medium text-white disabled:opacity-40 transition-opacity"
+            className="px-3 py-2.5 rounded-xl text-caption font-medium text-white disabled:opacity-40 transition-opacity"
             style={{ backgroundColor: section.color }}
           >
             불러오기
@@ -444,7 +444,7 @@ export default function ScenesPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-3 disabled:opacity-60 transition-opacity"
+          className="w-full py-3.5 rounded-xl text-body font-medium text-white mb-3 disabled:opacity-60 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
           {saving ? '저장 중...' : '저장'}
@@ -453,7 +453,7 @@ export default function ScenesPage() {
         {/* Edit menu */}
         <button
           onClick={() => { setEditMenu(!editMenu); setPendingConfirm(null); }}
-          className="w-full py-2 text-xs text-[#C9C5BE] text-center"
+          className="w-full py-2 text-caption text-[#C9C5BE] text-center"
         >
           {editMenu ? '닫기 ∧' : '더 수정하기 ∨'}
         </button>
@@ -463,32 +463,32 @@ export default function ScenesPage() {
             <div className="px-4 py-3 border-b border-[#F5F5F3]">
               {pendingConfirm === 'descriptions' ? (
                 <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                  <p className="text-xs text-[#92400E] mb-2">이미지가 삭제되고 묘사를 다시 받아. 계속할까?</p>
+                  <p className="text-caption text-[#92400E] mb-2">이미지가 삭제되고 묘사를 다시 받아. 계속할까?</p>
                   <div className="flex gap-3">
-                    <button onClick={handleEditDescriptions} className="text-xs font-medium text-[#92400E]">계속</button>
-                    <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
+                    <button onClick={handleEditDescriptions} className="text-caption font-medium text-[#92400E]">계속</button>
+                    <button onClick={() => setPendingConfirm(null)} className="text-caption text-[#6E6962]">취소</button>
                   </div>
                 </div>
               ) : (
                 <button onClick={() => setPendingConfirm('descriptions')} className="w-full text-left">
-                  <p className="text-sm text-[#374151]">묘사 전체 다시 받기</p>
-                  <p className="text-xs text-[#6E6962]">이미지 삭제됨</p>
+                  <p className="text-body text-[#374151]">묘사 전체 다시 받기</p>
+                  <p className="text-caption text-[#6E6962]">이미지 삭제됨</p>
                 </button>
               )}
             </div>
             <div className="px-4 py-3">
               {pendingConfirm === 'story' ? (
                 <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                  <p className="text-xs text-[#92400E] mb-2">스토리·묘사·이미지가 삭제돼. 계속할까?</p>
+                  <p className="text-caption text-[#92400E] mb-2">스토리·묘사·이미지가 삭제돼. 계속할까?</p>
                   <div className="flex gap-3">
-                    <button onClick={handleEditStory} className="text-xs font-medium text-[#92400E]">계속</button>
-                    <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
+                    <button onClick={handleEditStory} className="text-caption font-medium text-[#92400E]">계속</button>
+                    <button onClick={() => setPendingConfirm(null)} className="text-caption text-[#6E6962]">취소</button>
                   </div>
                 </div>
               ) : (
                 <button onClick={() => setPendingConfirm('story')} className="w-full text-left">
-                  <p className="text-sm text-[#374151]">스토리부터 다시</p>
-                  <p className="text-xs text-[#6E6962]">묘사·이미지 삭제됨</p>
+                  <p className="text-body text-[#374151]">스토리부터 다시</p>
+                  <p className="text-caption text-[#6E6962]">묘사·이미지 삭제됨</p>
                 </button>
               )}
             </div>
@@ -521,7 +521,7 @@ export default function ScenesPage() {
             <button
               onClick={() => setLightboxSrc(null)}
               aria-label="닫기"
-              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white text-base flex items-center justify-center"
+              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white text-heading flex items-center justify-center"
             >
               ×
             </button>

@@ -88,7 +88,7 @@ export default function FinishPage() {
         <div className="flex-1 flex flex-col justify-center space-y-8">
           <div className="text-center space-y-2">
             <img src="/tori-profile-bust.png" alt="토리" className="w-14 h-14 rounded-full object-cover mx-auto" />
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-display font-bold">
               {board.userName ? `${board.userName}, ` : ''}다 됐어.
             </h1>
             <p className="text-[#6B7280]">6가지 영역에서 네가 원하는 삶을 봐.</p>
@@ -99,7 +99,7 @@ export default function FinishPage() {
               {keywords.map(({ section, kw }) => (
                 <span
                   key={section.id}
-                  className="px-3 py-1.5 rounded-full text-sm font-semibold"
+                  className="px-3 py-1.5 rounded-full text-body font-semibold"
                   style={{ backgroundColor: section.lightColor, color: section.color }}
                 >
                   {kw}
@@ -108,13 +108,13 @@ export default function FinishPage() {
             </div>
           )}
 
-          <p className="text-sm text-[#6B7280] text-center leading-relaxed">
+          <p className="text-body text-[#6B7280] text-center leading-relaxed">
             이 키워드들 사이에 공통된 실이 있어.<br />네 이야기를 한 문장으로 담아볼게.
           </p>
 
           <button
             onClick={() => setPhase('sentence')}
-            className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+            className="w-full py-4 rounded-2xl text-heading font-semibold text-white"
             style={{ backgroundColor: '#1C1B19' }}
           >
             한 문장 써보기 →
@@ -126,13 +126,13 @@ export default function FinishPage() {
       {phase === 'sentence' && (
         <div className="flex-1 flex flex-col justify-center space-y-6">
           <div>
-            <p className="text-sm text-[#6E6962] mb-2">네 비전을 한 문장으로.</p>
-            <h2 className="font-display text-2xl font-bold leading-snug">
+            <p className="text-body text-[#6E6962] mb-2">네 비전을 한 문장으로.</p>
+            <h2 className="font-display text-display font-bold leading-snug">
               3년 뒤 나는<br />어떤 사람으로 살고 있어?
             </h2>
           </div>
           {keywords.length > 0 && (
-            <div className="bg-[#F5F5F3] rounded-xl p-3 text-xs text-[#6E6962]">
+            <div className="bg-[#F5F5F3] rounded-xl p-3 text-caption text-[#6E6962]">
               힌트: {keywords.slice(0, 3).map((x) => x.kw).join(', ')} 같은 단어를 담아봐
             </div>
           )}
@@ -140,13 +140,13 @@ export default function FinishPage() {
             value={sentenceInput}
             onChange={(e) => setSentenceInput(e.target.value)}
             placeholder="예: 여유롭게 내 페이스로, 소중한 사람들과 웃으며 사는 사람."
-            className="w-full bg-white border border-[#E5E3DF] rounded-xl px-4 py-3 text-sm leading-relaxed outline-none focus:border-[#1C1B19] transition-colors resize-none"
+            className="w-full bg-white border border-[#E5E3DF] rounded-xl px-4 py-3 text-body leading-relaxed outline-none focus:border-[#1C1B19] transition-colors resize-none"
             rows={3}
           />
           <button
             onClick={handleSentenceConfirm}
             disabled={!sentenceInput.trim()}
-            className="w-full py-4 rounded-2xl text-base font-semibold text-white disabled:opacity-40"
+            className="w-full py-4 rounded-2xl text-heading font-semibold text-white disabled:opacity-40"
             style={{ backgroundColor: '#1C1B19' }}
           >
             이 문장으로 할게 →
@@ -162,7 +162,7 @@ export default function FinishPage() {
             alt="토리"
             className="w-16 h-16 rounded-2xl object-cover animate-pulse"
           />
-          <p className="text-[#6B7280] text-sm">네 하루를 쓰고 있어...</p>
+          <p className="text-[#6B7280] text-body">네 하루를 쓰고 있어...</p>
         </div>
       )}
 
@@ -170,28 +170,28 @@ export default function FinishPage() {
       {phase === 'story' && (
         <div className="flex-1 flex flex-col space-y-6">
           <div className="text-center space-y-1 pt-4">
-            <p className="text-sm text-[#6E6962]">미래의 하루 이야기</p>
-            <h2 className="text-xl font-bold">그 삶이 이루어진 날</h2>
+            <p className="text-body text-[#6E6962]">미래의 하루 이야기</p>
+            <h2 className="text-title font-bold">그 삶이 이루어진 날</h2>
           </div>
 
           <div className="bg-[#F5F5F3] rounded-2xl p-5 flex-1">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{story}</p>
+            <p className="text-body leading-relaxed whitespace-pre-wrap">{story}</p>
           </div>
 
           {confirmRewrite && (
             <div className="rounded-xl bg-[#FEF9C3] px-4 py-3">
-              <p className="text-xs text-[#92400E] mb-2">지금 이야기를 새로 쓸까? 직접 수정한 내용은 사라져.</p>
+              <p className="text-caption text-[#92400E] mb-2">지금 이야기를 새로 쓸까? 직접 수정한 내용은 사라져.</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setConfirmRewrite(false);
                     if (board) generateStory(sentenceInput, board);
                   }}
-                  className="text-xs font-semibold text-[#92400E]"
+                  className="text-caption font-semibold text-[#92400E]"
                 >
                   새로 쓰기
                 </button>
-                <button onClick={() => setConfirmRewrite(false)} className="text-xs text-[#6E6962]">
+                <button onClick={() => setConfirmRewrite(false)} className="text-caption text-[#6E6962]">
                   취소
                 </button>
               </div>
@@ -201,13 +201,13 @@ export default function FinishPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setConfirmRewrite(true)}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold border border-[#E5E3DF] text-[#6B7280]"
+              className="flex-1 py-3 rounded-xl text-body font-semibold border border-[#E5E3DF] text-[#6B7280]"
             >
               다시 써줘
             </button>
             <button
               onClick={() => setPhase('complete')}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[#1C1B19] text-white"
+              className="flex-1 py-3 rounded-xl text-body font-semibold bg-[#1C1B19] text-white"
             >
               비전보드 완성 →
             </button>
@@ -220,22 +220,22 @@ export default function FinishPage() {
         <div className="flex-1 flex flex-col items-center justify-center space-y-8 text-center">
           <div className="space-y-3">
             <img src="/tori-profile-bust.png" alt="토리" className="w-16 h-16 rounded-full object-cover mx-auto" />
-            <h1 className="text-2xl font-bold">완성됐어.</h1>
-            <p className="text-[#6B7280] leading-relaxed text-sm">
+            <h1 className="text-display font-bold">완성됐어.</h1>
+            <p className="text-[#6B7280] leading-relaxed text-body">
               이미지보드 + 미래의 하루 이야기.<br />원하는 삶을 이미지로도 보고 글로도 읽는 거야.
             </p>
           </div>
           <div className="w-full space-y-2.5">
             <button
               onClick={() => router.push('/board')}
-              className="w-full py-4 rounded-2xl text-base font-semibold text-white"
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white"
               style={{ backgroundColor: '#1C1B19' }}
             >
               비전보드 보기
             </button>
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-sm font-semibold"
+              className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold"
             >
               대시보드로
             </button>

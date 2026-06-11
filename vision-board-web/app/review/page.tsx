@@ -74,11 +74,11 @@ function AISummaryCard({ board }: { board: BoardData }) {
   if (error) {
     return (
       <div className="mx-6 mb-5 rounded-2xl bg-[#F9F8F6] p-4">
-        <p className="text-xs font-semibold text-[#6E6962] tracking-wider mb-2">AI 종합 리뷰</p>
-        <p className="text-sm text-[#6E6962] mb-2">AI 요약을 불러오지 못했어. (API 키 설정 필요)</p>
+        <p className="text-caption font-semibold text-[#6E6962] tracking-wider mb-2">AI 종합 리뷰</p>
+        <p className="text-body text-[#6E6962] mb-2">AI 요약을 불러오지 못했어. (API 키 설정 필요)</p>
         <button
           onClick={fetchSummary}
-          className="text-xs text-[#6B7280] underline"
+          className="text-caption text-[#6B7280] underline"
         >
           다시 시도
         </button>
@@ -88,8 +88,8 @@ function AISummaryCard({ board }: { board: BoardData }) {
 
   return (
     <div className="mx-6 mb-5 rounded-2xl bg-[#1C1B19] p-4">
-      <p className="text-xs font-semibold text-[#6E6962] mb-2 tracking-wider">AI 종합 리뷰</p>
-      <p className="text-sm text-white leading-relaxed">{summary}</p>
+      <p className="text-caption font-semibold text-[#6E6962] mb-2 tracking-wider">AI 종합 리뷰</p>
+      <p className="text-body text-white leading-relaxed">{summary}</p>
     </div>
   );
 }
@@ -110,11 +110,11 @@ export default function ReviewPage() {
 
       {/* 헤더 */}
       <div className="px-6 pt-4 pb-4">
-        <p className="text-xs font-semibold text-[#6E6962] tracking-widest mb-2">REVIEW</p>
-        <h1 className="text-2xl font-bold leading-snug mb-1">
+        <p className="text-caption font-semibold text-[#6E6962] tracking-widest mb-2">REVIEW</p>
+        <h1 className="text-display font-bold leading-snug mb-1">
           수고했어. 쓰다 보면 보이는 게 있어. 🐿️
         </h1>
-        <p className="text-[#6B7280] text-sm leading-relaxed">
+        <p className="text-[#6B7280] text-body leading-relaxed">
           네가 쓴 말들로, 토리가 네 이야기를 정리해봤어.
         </p>
       </div>
@@ -138,13 +138,13 @@ export default function ReviewPage() {
               >
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
-                  <span className="font-semibold text-sm" style={{ color: section.color }}>
+                  <span className="font-semibold text-body" style={{ color: section.color }}>
                     {section.title.split(' — ')[0]}
                   </span>
                 </div>
                 <button
                   onClick={() => router.push(`/section/${section.id}`)}
-                  className="text-xs active:opacity-60"
+                  className="text-caption active:opacity-60"
                   style={{ color: section.color }}
                 >
                   수정하러 가기 →
@@ -159,8 +159,8 @@ export default function ReviewPage() {
                   const text = answer?.text?.trim();
                   return (
                     <div key={slotId} className="px-4 py-2.5 flex gap-3">
-                      <p className="text-[11px] text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">{label}</p>
-                      <p className={`text-sm leading-relaxed flex-1 ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
+                      <p className="text-micro text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">{label}</p>
+                      <p className={`text-body leading-relaxed flex-1 ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
                         {text || '—'}
                       </p>
                     </div>
@@ -174,12 +174,12 @@ export default function ReviewPage() {
 
       {/* 미래의 하루 그리기 온보딩 블록 */}
       <div className="mx-6 mb-6 rounded-2xl bg-[#F9F8F6] p-5 border border-[#E5E3DF]">
-        <p className="text-xs font-semibold text-[#6E6962] tracking-widest mb-3">NEXT STEP</p>
-        <h3 className="text-base font-bold mb-2 leading-snug">이제 미래의 하루를 그릴 거야</h3>
-        <p className="text-sm text-[#6B7280] leading-relaxed mb-2">
+        <p className="text-caption font-semibold text-[#6E6962] tracking-widest mb-3">NEXT STEP</p>
+        <h3 className="text-heading font-bold mb-2 leading-snug">이제 미래의 하루를 그릴 거야</h3>
+        <p className="text-body text-[#6B7280] leading-relaxed mb-2">
           지금까지 쓴 단어들이 이루어진 3년 뒤의 하루를 구체적으로 그려보는 단계야.
         </p>
-        <p className="text-sm text-[#6B7280] leading-relaxed">
+        <p className="text-body text-[#6B7280] leading-relaxed">
           머릿속에만 있던 것들이 이미지로 선명해지면, 원하는 것을 더 강하게 느낄 수 있어.
           각 섹션마다 그 하루의 순간 3가지를 쓰고, 거기에 어울리는 사진을 담게 돼.
         </p>
@@ -189,13 +189,13 @@ export default function ReviewPage() {
       <div className="px-6 space-y-3">
         <button
           onClick={() => router.push('/scene/1')}
-          className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
+          className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity"
         >
           미래의 하루 그리기 시작 →
         </button>
         <button
           onClick={() => router.push('/dashboard')}
-          className="w-full py-2 text-sm text-[#6E6962]"
+          className="w-full py-2 text-body text-[#6E6962]"
         >
           대시보드로
         </button>
