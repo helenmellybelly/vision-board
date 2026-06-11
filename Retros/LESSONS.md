@@ -34,6 +34,9 @@ ffmpeg `colorkey=white:similarity:blend` + `-pix_fmt yuva420p` + WebM VP9 조합
 ### 배경제거 도구 처리본보다 단색 배경 원본에 colorkey가 더 깨끗하다 #coding #video
 외부 배경제거 도구가 캐릭터 디테일(왼쪽 눈)을 흰 원으로 망가뜨린 사례. 흰 배경 처리본에 colorkey=white를 쓰면 밝은 캐릭터의 하이라이트까지 반투명하게 뚫린다. 검은 배경 원본이 있다면 `colorkey=black:0.1:0.1`이 어두운 눈동자를 보존하면서 가장 깨끗했다. 변환 후에는 마젠타 배경에 overlay 합성한 프레임을 추출해 구멍 여부를 반드시 눈으로 검증할 것.
 
+### "알파"라는 이름의 영상 에셋도 실제 알파 채널이 없을 수 있다 #coding #video #ffmpeg
+`tori-alpha.webm`이 이름과 달리 `yuv420p`(알파 없음, 배경 박힘)였다. 신뢰하지 말고 `ffprobe -show_entries stream=pix_fmt`로 확인할 것(`yuva420p`여야 알파). 단 ffmpeg/ffprobe 기본 VP9 디코더는 알파를 무시하므로 디코딩·검증 시 입력 앞에 `-c:v libvpx-vp9`를 지정해야 하고, 최종 검증은 단색 배경에 overlay 합성한 프레임을 눈으로 확인한다.
+
 ### ffmpeg alphamerge 필터는 Windows PowerShell에서 filter_complex 세미콜론 파싱 실패 #coding #ffmpeg
 split+alphaextract+gblur+alphamerge 체인은 `-filter_complex_script` 파일 방식에서도 실패. 단순 `-vf colorkey` 파라미터 조정이 Windows 환경에서 더 안정적. alphamerge가 필요하면 Linux/Mac 환경을 사용할 것.
 
@@ -92,6 +95,11 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 
 ### Playwright addInitScript localStorage 시드는 모든 네비게이션마다 재실행된다 #coding #testing #playwright
 `addInitScript`로 localStorage를 시드하면 `reload()`·`goto()` 때마다 다시 실행되어 앱이 저장한 값을 시드로 덮어쓴다. "수정 후 새로고침 유지" 같은 영속성 검증이 앱 버그처럼 보이는 거짓 실패를 만든다. `if (!localStorage.getItem(key))` 가드를 넣어 최초 1회만 시드할 것. 같은 텍스트가 반응형 중복 렌더(모바일/웹 블록)로 2곳에 있으면 `getByText().isVisible()`이 strict mode 위반으로 false가 되므로 `.all()` 순회로 검사한다.
+
+## Design System
+
+### 인라인 Tailwind hex는 팔레트 교체를 전수 치환 작업으로 만든다 #coding #css #design-tokens
+`text-[#9CA3AF]` 같은 arbitrary hex가 26개 파일 129곳에 퍼져 있어 대비 수정이 일괄 정규식 치환 + 예외 수작업이 됐고, 섹션 6색도 questions.ts 외 3개 파일에 하드코딩 중복이라 4곳 동기 수정이 필요했다. 색은 globals.css CSS 변수(Tailwind v4 `text-(--var)` 지원) 또는 단일 소스 모듈에서만 정의하고 컴포넌트는 참조만 하게 할 것.
 
 ## Next.js / React
 
