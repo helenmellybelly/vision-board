@@ -88,7 +88,7 @@ export default function FinishPage() {
         <div className="flex-1 flex flex-col justify-center space-y-8">
           <div className="text-center space-y-2">
             <img src="/tori-profile-bust.png" alt="토리" className="w-14 h-14 rounded-full object-cover mx-auto" />
-            <h1 className="text-display font-bold">
+            <h1 className="font-display text-display font-bold">
               {board.userName ? `${board.userName}, ` : ''}다 됐어.
             </h1>
             <p className="text-[#6B7280]">6가지 영역에서 네가 원하는 삶을 봐.</p>
@@ -220,7 +220,7 @@ export default function FinishPage() {
         <div className="flex-1 flex flex-col items-center justify-center space-y-8 text-center">
           <div className="space-y-3">
             <img src="/tori-profile-bust.png" alt="토리" className="w-16 h-16 rounded-full object-cover mx-auto" />
-            <h1 className="text-display font-bold">완성됐어.</h1>
+            <h1 className="font-display text-display font-bold">완성됐어.</h1>
             <p className="text-[#6B7280] leading-relaxed text-body">
               이미지보드 + 미래의 하루 이야기.<br />원하는 삶을 이미지로도 보고 글로도 읽는 거야.
             </p>

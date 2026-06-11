@@ -12,6 +12,8 @@ interface StoryModalProps {
   /** 모달 상단 제목 (기본: 라벨과 동일) */
   title?: string;
   triggerClassName?: string;
+  /** 트리거 형태 — card(기본): 전체폭 카드 버튼, icon: 헤더행용 소형 원형 아이콘 */
+  triggerVariant?: 'card' | 'icon';
   /** 전달하면 모달 안에서 직접 수정 가능 */
   onSave?: (next: string) => void;
 }
@@ -39,6 +41,7 @@ export default function StoryModal({
   label = '스토리 보기',
   title,
   triggerClassName = '',
+  triggerVariant = 'card',
   onSave,
 }: StoryModalProps) {
   const [open, setOpen] = useState(false);
@@ -59,16 +62,28 @@ export default function StoryModal({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className={`w-full rounded-xl border border-[#E5E3DF] bg-white px-4 py-2.5 text-caption text-[#6E6962] flex justify-between items-center active:opacity-70 ${triggerClassName}`}
-      >
-        <span className="flex items-center gap-1.5">
-          <BookOpen size={13} strokeWidth={1.8} aria-hidden="true" />
-          {label}
-        </span>
-        <span className="text-micro">↗</span>
-      </button>
+      {triggerVariant === 'icon' ? (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label={title ?? label}
+          title={title ?? label}
+          className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 active:opacity-70 ${triggerClassName}`}
+          style={{ backgroundColor: `${color}1A`, color }}
+        >
+          <BookOpen size={12} strokeWidth={1.8} aria-hidden="true" />
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className={`w-full rounded-xl border border-[#E5E3DF] bg-white px-4 py-2.5 text-caption text-[#6E6962] flex justify-between items-center active:opacity-70 ${triggerClassName}`}
+        >
+          <span className="flex items-center gap-1.5">
+            <BookOpen size={13} strokeWidth={1.8} aria-hidden="true" />
+            {label}
+          </span>
+          <span className="text-micro">↗</span>
+        </button>
+      )}
 
       {open && (
         <div

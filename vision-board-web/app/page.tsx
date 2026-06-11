@@ -245,7 +245,7 @@ export default function LandingPage() {
           ].map((item) => (
             <div key={item.step} className="flex gap-5">
               <span
-                className="text-display font-bold leading-none w-8 flex-shrink-0 mt-0.5"
+                className="font-display text-display font-bold leading-none w-8 flex-shrink-0 mt-0.5"
                 style={{ color: '#E5E3DF' }}
               >
                 {item.step}

@@ -55,7 +55,7 @@ const VISION_CARDS: { icon: LucideIcon; title: string; desc: string; color: stri
   {
     icon: Compass,
     title: '삶의 방향을 잡아줘',
-    desc: '흔들릴 때마다 내가 원하는 방향으로 다시 돌아오게 해줘. 내 삶의 주도권을 내 손에 쥐게 해줘.',
+    desc: '흔들려도 원하는 방향으로 갈 수 있도록 도와줘. 삶의 주도권을 놓지 않게 해주지.',
     color: SECTION_COLORS[1],
   },
   {
@@ -494,7 +494,7 @@ export default function OnboardingPage() {
               <p className="font-display text-body text-[#1C1B19] leading-snug">
                 원하는 것이 뚜렷해지는 순간, <span className="font-bold">뇌는 그쪽으로 움직이기 시작해.</span>
               </p>
-              <p className="text-caption text-[#6E6962]">그게 비전보드의 힘이야.</p>
+              <p className="font-display text-body font-bold text-[#1C1B19] leading-snug mt-1">그게 비전보드의 힘이야.</p>
             </div>
 
             {/* 비전보드를 하면 좋은 이유 — 3가지 효과 카드 */}

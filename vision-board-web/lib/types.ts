@@ -85,6 +85,21 @@ export interface SectionData {
   uploadedImages?: (string | null)[];   // 사용자 직접 업로드 이미지 (최대 3개 — 보드·콜라주와 동일)
 }
 
+// 콜라주(한눈에 보기) 템플릿 — custom = 사용자가 직접 배치한 보드
+export type CollageTemplate = 'polaroid' | 'mosaic' | 'minimal' | 'custom';
+
+// 커스텀 배치 항목 — 0..1 정규화 좌표 (4:5 보드 기준). 키는 `${sectionId}-${slotIdx}`
+export interface CollageLayoutItem {
+  x: number; // 좌상단 x (컨테이너 폭 대비)
+  y: number; // 좌상단 y (컨테이너 높이 대비)
+  w: number; // 폭 (컨테이너 폭 대비, 정사각 사진)
+  z: number; // 쌓임 순서 (클수록 앞)
+}
+
+export interface CollageLayout {
+  items: Record<string, CollageLayoutItem>;
+}
+
 export interface BoardData {
   sections: Record<SectionId, SectionData>;
   onboardingDone: boolean;
@@ -96,6 +111,8 @@ export interface BoardData {
   oneSentence?: string;
   futureDayStory?: string;
   boardYear?: string;                    // 비전보드 콜라주 중앙 연도
+  collageTemplate?: CollageTemplate;     // 한눈에 보기 템플릿 선택값
+  collageLayout?: CollageLayout;         // 커스텀 배치 (custom 템플릿)
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];

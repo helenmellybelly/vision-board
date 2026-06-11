@@ -111,7 +111,7 @@ export default function ReviewPage() {
       {/* 헤더 */}
       <div className="px-6 pt-4 pb-4">
         <p className="text-caption font-semibold text-[#6E6962] tracking-widest mb-2">REVIEW</p>
-        <h1 className="text-display font-bold leading-snug mb-1">
+        <h1 className="font-display text-display font-bold leading-snug mb-1">
           수고했어. 쓰다 보면 보이는 게 있어. 🐿️
         </h1>
         <p className="text-[#6B7280] text-body leading-relaxed">

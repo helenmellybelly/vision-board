@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import useFocusTrap from './useFocusTrap';
 import {
+  WALLPAPER_SIZES,
   WallpaperSectionGroup,
   WallpaperStyle,
+  WallpaperTarget,
   renderAllInOne,
   renderSectionPair,
   saveCanvas,
@@ -22,6 +24,7 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
   const trapRef = useFocusTrap<HTMLDivElement>(true, onClose);
   const [mode, setMode] = useState<Mode>('all');
   const [style, setStyle] = useState<WallpaperStyle>('polaroid');
+  const [target, setTarget] = useState<WallpaperTarget>('mobile');
   const [pairIdx, setPairIdx] = useState(0);
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -37,7 +40,7 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
     return result;
   }, [groups]);
 
-  const key = mode === 'all' ? `all-${style}` : `pair-${pairIdx}-${style}`;
+  const key = mode === 'all' ? `all-${style}-${target}` : `pair-${pairIdx}-${style}-${target}`;
 
   // 미리보기 생성 — 모드/스타일/슬라이드별 1회만
   useEffect(() => {
@@ -47,8 +50,8 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
       try {
         const canvas =
           mode === 'all'
-            ? await renderAllInOne(groups, year, style)
-            : await renderSectionPair(pairs[pairIdx], year, style);
+            ? await renderAllInOne(groups, year, style, target)
+            : await renderSectionPair(pairs[pairIdx], year, style, target);
         if (!cancelled) {
           setPreviews((p) => ({ ...p, [key]: canvas.toDataURL('image/jpeg', 0.82) }));
         }
@@ -68,12 +71,13 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
     try {
       const canvas =
         mode === 'all'
-          ? await renderAllInOne(groups, year, style)
-          : await renderSectionPair(pairs[pairIdx], year, style);
+          ? await renderAllInOne(groups, year, style, target)
+          : await renderSectionPair(pairs[pairIdx], year, style, target);
       const suffix =
         mode === 'all' ? '' : `-${pairs[pairIdx].map((g) => g.label).join('-')}`;
       const styleSuffix = style === 'minimal' ? '-minimal' : '';
-      await saveCanvas(canvas, `vision-board-${year}${suffix}${styleSuffix}.png`);
+      const targetSuffix = target === 'desktop' ? '-pc' : '';
+      await saveCanvas(canvas, `vision-board-${year}${suffix}${styleSuffix}${targetSuffix}.png`);
     } catch {
       setError('저장에 실패했어. 다시 시도해줘.');
     } finally {
@@ -102,8 +106,34 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
           배경화면으로 저장
         </h2>
         <p className="text-caption text-[#6E6962] mb-4">
-          저장한 이미지를 휴대폰 배경화면으로 설정해봐.
+          {target === 'desktop'
+            ? '저장한 이미지를 PC 바탕화면으로 설정해봐.'
+            : '저장한 이미지를 휴대폰 배경화면으로 설정해봐.'}
         </p>
+
+        {/* 타깃 선택 — 모바일 / PC */}
+        <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="배경화면 기기">
+          <button
+            role="radio"
+            aria-checked={target === 'mobile'}
+            onClick={() => setTarget('mobile')}
+            className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors ${
+              target === 'mobile' ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
+            }`}
+          >
+            📱 모바일 배경화면
+          </button>
+          <button
+            role="radio"
+            aria-checked={target === 'desktop'}
+            onClick={() => setTarget('desktop')}
+            className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors ${
+              target === 'desktop' ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
+            }`}
+          >
+            🖥️ PC 배경화면
+          </button>
+        </div>
 
         {/* 모드 탭 */}
         <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1">
@@ -156,12 +186,20 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
             <img
               src={previews[key]}
               alt="배경화면 미리보기"
-              className="h-[46vh] w-auto rounded-2xl border border-[#E5E3DF]"
+              className={
+                target === 'desktop'
+                  ? 'w-full h-auto rounded-2xl border border-[#E5E3DF]'
+                  : 'h-[46vh] w-auto rounded-2xl border border-[#E5E3DF]'
+              }
             />
           ) : (
             <div
-              className="h-[46vh] rounded-2xl bg-[#F5F5F3] flex items-center justify-center"
-              style={{ aspectRatio: '1170 / 2532' }}
+              className={`rounded-2xl bg-[#F5F5F3] flex items-center justify-center ${
+                target === 'desktop' ? 'w-full' : 'h-[46vh]'
+              }`}
+              style={{
+                aspectRatio: `${WALLPAPER_SIZES[target].w} / ${WALLPAPER_SIZES[target].h}`,
+              }}
             >
               <span className="text-caption text-[#6E6962] animate-pulse">만드는 중...</span>
             </div>

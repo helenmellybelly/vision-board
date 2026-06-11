@@ -1,4 +1,4 @@
-import { BoardData, SectionData, SectionId, SlotAnswer, SlotId, ChatMessage, ExtractedSlots } from './types';
+import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, SlotAnswer, SlotId, ChatMessage, ExtractedSlots } from './types';
 
 const STORAGE_KEY = 'vision-board-data';
 
@@ -172,6 +172,18 @@ export function saveOneSentence(sentence: string): void {
 export function saveBoardYear(year: string): void {
   const board = loadBoard();
   board.boardYear = year;
+  saveBoard(board);
+}
+
+export function saveCollageTemplate(template: CollageTemplate): void {
+  const board = loadBoard();
+  board.collageTemplate = template;
+  saveBoard(board);
+}
+
+export function saveCollageLayout(layout: CollageLayout): void {
+  const board = loadBoard();
+  board.collageLayout = layout;
   saveBoard(board);
 }
 

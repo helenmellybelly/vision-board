@@ -77,11 +77,11 @@ export default function BoardPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md md:max-w-5xl mx-auto w-full pb-6">
+    <main className="h-dvh overflow-hidden flex flex-col max-w-md md:max-w-3xl mx-auto w-full">
       <ProcessBar board={board} />
       {/* 헤더 */}
-      <div className="px-6 pt-3 pb-4">
-        <div className="flex items-center gap-3 mb-1">
+      <div className="px-4 md:px-6 pt-2 pb-2 flex-shrink-0">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/dashboard')}
             className="p-2 -ml-2 text-[#6B7280] active:opacity-60"
@@ -94,10 +94,8 @@ export default function BoardPage() {
         <p className="text-caption text-[#6E6962] pl-8">막연했던 바람이, 생생한 장면이 되는 곳.</p>
       </div>
 
-      <div className="md:px-6">
-        {/* 섹션별 이미지 그룹 */}
-        {/* 데스크톱은 3열(6섹션=2행)로 한 화면에 들어오게 — 스크롤 없이 전체 조망 */}
-        <div className="px-4 md:px-0 space-y-6 md:grid md:grid-cols-3 md:gap-x-6 md:gap-y-5 md:space-y-0 animate-fadeIn">
+      {/* 섹션별 이미지 그룹 — 2열×3행, 뷰포트 높이에 맞춰 스크롤 없이 전체 조망 */}
+      <div className="flex-1 min-h-0 grid grid-cols-2 grid-rows-3 gap-x-3 gap-y-2 px-4 md:px-6 animate-fadeIn">
           {SECTIONS.map((section) => {
             const sectionData = board.sections[section.id];
             const uploaded = sectionData.uploadedImages ?? [];
@@ -108,18 +106,31 @@ export default function BoardPage() {
             const keyword = sectionData.extractedSlots?.keyword ?? sectionData.slots[2 as SlotId]?.text;
 
             return (
-              <div key={section.id}>
-                {/* 섹션 헤더 */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: section.color }} />
-                  <span className="font-semibold text-body">{section.title.split(' — ')[0]}</span>
+              <div key={section.id} className="flex flex-col min-h-0">
+                {/* 섹션 헤더 — 무스크롤 예산을 위해 한 줄에 압축, 스토리는 아이콘으로 */}
+                <div className="flex items-center gap-1.5 mb-1.5 flex-shrink-0">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
+                  <span className="font-semibold text-caption md:text-body whitespace-nowrap">{section.title.split(' — ')[0]}</span>
                   {keyword && (
                     <span
-                      className="text-caption px-2 py-0.5 rounded-full font-medium truncate min-w-0"
+                      className="hidden md:inline-block text-caption px-2 py-0.5 rounded-full font-medium truncate min-w-0"
                       style={{ backgroundColor: section.lightColor, color: section.color }}
                     >
                       {keyword}
                     </span>
+                  )}
+                  {/* 스토리 — 있으면 헤더 아이콘으로 팝업 */}
+                  {sectionData.miniStory && (
+                    <StoryModal
+                      story={sectionData.miniStory}
+                      color={section.color}
+                      title={`${section.title.split(' — ')[0]} 스토리`}
+                      triggerVariant="icon"
+                      onSave={(s) => {
+                        saveMiniStory(section.id, s);
+                        setBoard(loadBoard());
+                      }}
+                    />
                   )}
                   {/* 사진만 있고 채팅·스토리가 남았으면 pill로 강조 — 다음 단계를 권유 */}
                   <button
@@ -139,10 +150,10 @@ export default function BoardPage() {
                   </button>
                 </div>
 
-                {/* 이미지 3칸 — 빈 칸은 탭해서 바로 사진 업로드 */}
-                <div className="grid grid-cols-3 gap-2">
+                {/* 이미지 3칸 — 행 높이를 그대로 채움(높이 기반), 빈 칸은 탭해서 바로 사진 업로드 */}
+                <div className="flex-1 min-h-0 grid grid-cols-3 gap-1.5">
                   {images.map((img, imgIdx) => (
-                    <div key={imgIdx} className="aspect-square relative">
+                    <div key={imgIdx} className="relative min-h-0">
                       {img ? (
                         <>
                           <img
@@ -166,7 +177,7 @@ export default function BoardPage() {
                           style={{ borderColor: section.color + '40', backgroundColor: section.lightColor }}
                         >
                           <span className="text-heading leading-none" style={{ color: section.color + '90' }}>+</span>
-                          <span className="text-micro font-medium" style={{ color: section.color + '80' }}>
+                          <span className="hidden md:inline text-micro font-medium" style={{ color: section.color + '80' }}>
                             사진 추가
                           </span>
                         </button>
@@ -174,42 +185,26 @@ export default function BoardPage() {
                     </div>
                   ))}
                 </div>
-
-                {/* 스토리 — 있으면 언제나 팝업으로 볼 수 있음 */}
-                {sectionData.miniStory && (
-                  <StoryModal
-                    story={sectionData.miniStory}
-                    color={section.color}
-                    title={`${section.title.split(' — ')[0]} 스토리`}
-                    triggerClassName="mt-2"
-                    onSave={(s) => {
-                      saveMiniStory(section.id, s);
-                      setBoard(loadBoard());
-                    }}
-                  />
-                )}
               </div>
             );
           })}
-        </div>
-
       </div>
 
       {/* 하단 — 한눈에 보기 (별도 페이지로 이동) */}
-      <div className="px-4 md:px-6 mt-6 animate-fadeIn">
+      <div className="px-4 md:px-6 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex-shrink-0 animate-fadeIn">
         <button
           onClick={handleCollageClick}
           title={collageImageCount === 0 ? '비전보드 사진을 1개 이상 올리면 활성화돼요' : undefined}
           className={
             collageImageCount > 0
-              ? 'w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity'
-              : 'w-full bg-[#F0EFEC] text-[#6E6962] py-4 rounded-2xl text-heading font-semibold cursor-default'
+              ? 'w-full bg-[#1C1B19] text-white py-3 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity'
+              : 'w-full bg-[#F0EFEC] text-[#6E6962] py-3 rounded-2xl text-heading font-semibold cursor-default'
           }
         >
           내 비전보드 한눈에 보기 →
         </button>
         {showCollageHint && (
-          <p className="text-micro text-[#6E6962] text-center mt-2 animate-fadeIn">
+          <p className="text-micro text-[#6E6962] text-center mt-1 animate-fadeIn">
             비전보드 사진을 1개 이상 올리면 활성화돼요.
           </p>
         )}
