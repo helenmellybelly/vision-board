@@ -98,6 +98,14 @@ textarea {
 .scroll-hide { scrollbar-width: none; }
 .scroll-hide::-webkit-scrollbar { width: 0; }
 
+/* 스크롤바: 평소 투명, 컨테이너 hover 시에만 thumb 표시 — 폭은 고정해 레이아웃 점프 방지 */
+.scroll-soft { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.scroll-soft:hover { scrollbar-color: #C9C5BE transparent; }
+.scroll-soft::-webkit-scrollbar { width: 5px; }
+.scroll-soft::-webkit-scrollbar-track { background: transparent; }
+.scroll-soft::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
+.scroll-soft:hover::-webkit-scrollbar-thumb { background: #C9C5BE; }
+
 /* 스크롤바: hover 시 표시 (JS로 .scroll-show 클래스 토글) */
 .scroll-show { scrollbar-width: thin; scrollbar-color: #C9C5BE transparent; }
 .scroll-show::-webkit-scrollbar { width: 4px; }

@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard, markWelcomeSeen } from '@/lib/storage';
-
-const SECTION_COLORS = ['#7C6BAE', '#4F7A5F', '#A8722A', '#5577A8', '#B05A36', '#3E7E8A'];
+import { SECTION_COLORS } from '@/lib/colors';
 
 const PHASES = [
   {
@@ -15,13 +14,13 @@ const PHASES = [
   },
   {
     num: '02',
-    title: '장면 그리기',
+    title: '미래의 하루 그리기',
     desc: '발견한 나를 바탕으로 3년 뒤의 구체적인 하루를 그려봐.',
   },
   {
     num: '03',
     title: '비전보드 꾸미기',
-    desc: '상상한 장면에 어울리는 이미지로 채워.',
+    desc: '상상한 하루에 어울리는 이미지로 채워.',
   },
   {
     num: '04',

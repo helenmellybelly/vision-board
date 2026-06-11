@@ -156,7 +156,7 @@ export default function MomentPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push(`/scene/${sectionId}`)}
-            aria-label="장면 단계로 돌아가기"
+            aria-label="미래의 하루 단계로 돌아가기"
             className="text-[#6E6962] text-xs mr-1 active:opacity-60"
           >
             ←
@@ -206,7 +206,7 @@ export default function MomentPage() {
         {/* STEP 1: Situation */}
         <ChatBubble
           role="assistant"
-          content="장면까지 그렸으니, 이제 그 삶에서 보고 싶은 구체적인 순간들을 떠올려볼게."
+          content="미래의 하루까지 그렸으니, 이제 그 삶에서 보고 싶은 구체적인 순간들을 떠올려볼게."
         />
         <ChatBubble
           role="assistant"
@@ -348,7 +348,7 @@ export default function MomentPage() {
                   className="w-full py-3.5 rounded-xl text-sm font-medium text-white mb-3"
                   style={{ backgroundColor: section.color }}
                 >
-                  이 스토리로 장면 만들기 →
+                  이 스토리로 이미지 만들기 →
                 </button>
 
                 <button
@@ -363,7 +363,7 @@ export default function MomentPage() {
                     <div className="px-4 py-3 border-b border-[#F5F5F3]">
                       {pendingConfirm === 'scene' ? (
                         <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                          <p className="text-xs text-[#92400E] mb-2">장면·스토리가 삭제돼요. 계속할까?</p>
+                          <p className="text-xs text-[#92400E] mb-2">그린 하루·스토리가 삭제돼요. 계속할까?</p>
                           <div className="flex gap-3">
                             <button onClick={handleEditScene} className="text-xs font-medium text-[#92400E]">계속</button>
                             <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
@@ -371,7 +371,7 @@ export default function MomentPage() {
                         </div>
                       ) : (
                         <button onClick={() => setPendingConfirm('scene')} className="w-full text-left">
-                          <p className="text-sm text-[#374151]">장면부터 다시</p>
+                          <p className="text-sm text-[#374151]">미래의 하루부터 다시</p>
                           <p className="text-xs text-[#6E6962]">스토리 삭제됨</p>
                         </button>
                       )}

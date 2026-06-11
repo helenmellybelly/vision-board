@@ -172,16 +172,16 @@ export default function ReviewPage() {
         })}
       </div>
 
-      {/* 장면 그리기 온보딩 블록 */}
+      {/* 미래의 하루 그리기 온보딩 블록 */}
       <div className="mx-6 mb-6 rounded-2xl bg-[#F9F8F6] p-5 border border-[#E5E3DF]">
         <p className="text-xs font-semibold text-[#6E6962] tracking-widest mb-3">NEXT STEP</p>
-        <h3 className="text-base font-bold mb-2 leading-snug">이제 장면을 그릴 거야</h3>
+        <h3 className="text-base font-bold mb-2 leading-snug">이제 미래의 하루를 그릴 거야</h3>
         <p className="text-sm text-[#6B7280] leading-relaxed mb-2">
-          지금까지 쓴 단어들을 구체적인 장면과 이미지로 만드는 단계야.
+          지금까지 쓴 단어들이 이루어진 3년 뒤의 하루를 구체적으로 그려보는 단계야.
         </p>
         <p className="text-sm text-[#6B7280] leading-relaxed">
           머릿속에만 있던 것들이 이미지로 선명해지면, 원하는 것을 더 강하게 느낄 수 있어.
-          각 섹션마다 장면 3가지를 쓰고, 거기에 어울리는 사진을 담게 돼.
+          각 섹션마다 그 하루의 순간 3가지를 쓰고, 거기에 어울리는 사진을 담게 돼.
         </p>
       </div>
 
@@ -191,7 +191,7 @@ export default function ReviewPage() {
           onClick={() => router.push('/scene/1')}
           className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity"
         >
-          장면 그리기 시작 →
+          미래의 하루 그리기 시작 →
         </button>
         <button
           onClick={() => router.push('/dashboard')}

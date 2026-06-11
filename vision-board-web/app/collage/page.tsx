@@ -7,10 +7,12 @@ import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
 import StoryModal from '@/components/StoryModal';
 import VisionBoardCollage from '@/components/VisionBoardCollage';
+import WallpaperSheet from '@/components/WallpaperSheet';
 
 export default function CollagePage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
 
   useEffect(() => {
     setBoard(loadBoard());
@@ -33,6 +35,20 @@ export default function CollagePage() {
   });
   const boardYear = board.boardYear ?? String(new Date().getFullYear());
 
+  // 배경화면 렌더용 — 섹션별 이미지 묶음 (업로드 우선, AI 생성 보조)
+  const sectionGroups = SECTIONS.map((section) => {
+    const sec = board.sections[section.id];
+    const uploaded = sec.uploadedImages ?? [];
+    const generated = sec.generatedImages ?? [];
+    return {
+      label: section.title.split(' — ')[0],
+      color: section.color,
+      images: [0, 1, 2]
+        .map((i) => uploaded[i] || generated[i] || null)
+        .filter((img): img is string => !!img),
+    };
+  });
+
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-3xl mx-auto w-full pb-10">
       {/* 헤더 */}
@@ -51,15 +67,23 @@ export default function CollagePage() {
 
       <div className="px-4 md:px-6 animate-fadeIn">
         {collageImages.length > 0 ? (
-          <VisionBoardCollage
-            compact={false}
-            images={collageImages}
-            year={boardYear}
-            onYearChange={(y) => {
-              saveBoardYear(y);
-              setBoard(loadBoard());
-            }}
-          />
+          <>
+            <VisionBoardCollage
+              compact={false}
+              images={collageImages}
+              year={boardYear}
+              onYearChange={(y) => {
+                saveBoardYear(y);
+                setBoard(loadBoard());
+              }}
+            />
+            <button
+              onClick={() => setWallpaperOpen(true)}
+              className="mt-4 w-full py-3.5 rounded-2xl text-sm font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
+            >
+              📱 배경화면으로 저장
+            </button>
+          </>
         ) : (
           <div className="text-center py-16">
             <p className="text-sm text-[#6E6962]">
@@ -113,6 +137,14 @@ export default function CollagePage() {
           </div>
         ) : null}
       </div>
+
+      {wallpaperOpen && (
+        <WallpaperSheet
+          groups={sectionGroups}
+          year={boardYear}
+          onClose={() => setWallpaperOpen(false)}
+        />
+      )}
     </main>
   );
 }

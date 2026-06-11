@@ -11,7 +11,7 @@ type StepId = 1 | 2 | 3 | 4 | 5;
 
 const STEPS: { id: StepId; short: string; route: string }[] = [
   { id: 1, short: '대화', route: '/dashboard' },
-  { id: 2, short: '장면', route: '/review' },
+  { id: 2, short: '하루', route: '/review' },
   { id: 3, short: '스토리', route: '/review' },
   { id: 4, short: '이미지', route: '/board' },
   { id: 5, short: '마무리', route: '/finish' },

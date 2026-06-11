@@ -22,7 +22,7 @@ export function getSectionCtaLabel(sectionData: SectionData): string {
     case 'in_progress':
       return '이어서 답하기 →';
     case 'text_complete':
-      if (!sectionData.sceneText) return '장면 그리러 가기 →';
+      if (!sectionData.sceneText) return '미래의 하루 그리러 가기 →';
       if (!sectionData.miniStory) return '원하는 하루, 스토리로 보기 →';
       return '이미지 만들기 →';
     case 'completed':

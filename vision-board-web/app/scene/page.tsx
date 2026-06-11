@@ -30,7 +30,7 @@ export default function SceneHubPage() {
           ‹
         </button>
         <div>
-          <h1 className="text-xl font-bold">장면 그리기</h1>
+          <h1 className="text-xl font-bold">미래의 하루 그리기</h1>
           <p className="text-sm text-[#6B7280] mt-0.5">
             원하는 섹션부터 골라봐.
           </p>
@@ -38,7 +38,7 @@ export default function SceneHubPage() {
       </div>
 
       <p className="text-sm text-[#6B7280] mb-5 leading-relaxed">
-        답한 내용을 보면서, 그 키워드가 느껴지는 하루를 장면으로 그려볼 거야. 장면을 그리고 나면 어울리는 사진도 골라봐.
+        답한 내용을 보면서, 그 키워드가 이루어진 미래의 하루를 그려볼 거야. 하루를 그리고 나면 어울리는 사진도 골라봐.
       </p>
 
       <div className="space-y-3 flex-1">
@@ -73,7 +73,7 @@ export default function SceneHubPage() {
                     {sceneText ? (
                       <p className="text-xs text-[#6E6962] mt-0.5 line-clamp-1">{sceneText}</p>
                     ) : (
-                      <p className="text-xs text-[#C4C2BE] mt-0.5">아직 장면 없음</p>
+                      <p className="text-xs text-[#C4C2BE] mt-0.5">아직 그리기 전이야</p>
                     )}
                   </div>
                 </div>

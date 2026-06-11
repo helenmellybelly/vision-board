@@ -288,7 +288,7 @@ export default function ScenesPage() {
             ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-sm">{sectionName} · 장면</span>
+          <span className="font-semibold text-sm">{sectionName} · 이미지</span>
         </div>
         <button onClick={() => router.push('/dashboard')} className="text-xs text-[#6E6962] py-1">
           대시보드로

@@ -3,10 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard } from '@/lib/storage';
+import { SECTION_COLORS, SECTION_LIGHT_COLORS } from '@/lib/colors';
 
-const SECTION_COLORS = ['#7C6BAE', '#4F7A5F', '#A8722A', '#5577A8', '#B05A36', '#3E7E8A'];
 const SECTION_NAMES = ['나', '건강', '관계', '일', '돈', '공간'];
-const SECTION_LIGHT_COLORS = ['#EFEDF5', '#EAEFEC', '#F5EFE5', '#EBEFF5', '#F5EBE7', '#E8F0F1'];
 
 // 콜라주와 동일한 폴라로이드 언어 — 완성본의 룩을 히어로에서 미리 보여준다
 const HERO_ROTATIONS = [-2.5, 1.5, -1.5, 2, -2, 2.5];
@@ -235,7 +234,7 @@ export default function LandingPage() {
             },
             {
               step: '02',
-              title: '원하는 삶의 장면을 그리기',
+              title: '미래의 하루를 그리기',
               desc: '발견한 나를 바탕으로, 3년 뒤의 구체적인 하루를 그려봐. 느낌과 상황이 살아있는 장면이 나와.',
             },
             {
@@ -271,7 +270,7 @@ export default function LandingPage() {
             <div
               key={i}
               className="aspect-square rounded-xl flex flex-col items-center justify-center gap-1.5"
-              style={{ backgroundColor: color + '20', border: `1px solid ${color}30` }}
+              style={{ backgroundColor: SECTION_LIGHT_COLORS[i], border: `1px solid ${color}30` }}
             >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
               <span className="text-xs font-semibold" style={{ color }}>{SECTION_NAMES[i]}</span>

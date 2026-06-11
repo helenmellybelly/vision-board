@@ -47,7 +47,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
         </p>
       ) : (
         <p className="text-[#6E6962] text-sm mb-10">
-          {6 - completedCount}개 더 남았어. 다 끝나면 장면을 같이 그려볼게.
+          {6 - completedCount}개 더 남았어. 다 끝나면 미래의 하루를 같이 그려볼게.
         </p>
       )}
 

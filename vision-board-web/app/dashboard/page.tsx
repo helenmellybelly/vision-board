@@ -171,7 +171,7 @@ export default function DashboardPage() {
               className="w-full py-4 rounded-2xl text-base font-semibold text-white active:opacity-80 transition-opacity"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              다 됐다, 이제 장면을 그리러 가자 →
+              다 됐다, 이제 미래의 하루를 그리러 가자 →
             </button>
           )}
           <button

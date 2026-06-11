@@ -68,12 +68,12 @@ export default function ScenePage() {
   const examples = sceneSlot?.example ? sceneSlot.example.split(' / ') : [];
   const keyword = slots.keyword || '';
   const cushionText = keyword
-    ? `이제 장면을 그려볼 거야. '${keyword}' 상태가 이루어진 3년 뒤의 하루야. 이 장면이 비전보드의 핵심이 될 거야.`
-    : '이제 장면을 그려볼 거야. 지금까지 말해준 것들이 이루어진 3년 뒤의 하루야.';
+    ? `이제 미래의 하루를 그려볼 거야. '${keyword}' 상태가 이루어진 3년 뒤의 하루야. 이 하루가 비전보드의 핵심이 될 거야.`
+    : '이제 미래의 하루를 그려볼 거야. 지금까지 말해준 것들이 이루어진 3년 뒤의 하루야.';
 
   const sceneQuestion = keyword
     ? '그날 어디서 뭘 하고 있어? 느낌과 상황을 구체적으로 써봐.'
-    : (sceneSlot?.mainQuestion ?? '그 장면을 구체적으로 써봐.');
+    : (sceneSlot?.mainQuestion ?? '그 하루를 구체적으로 써봐.');
 
   const slotEntries = (Object.keys(SLOT_LABELS) as Array<keyof ExtractedSlots>).filter(
     (k) => slots[k]
@@ -93,7 +93,7 @@ export default function ScenePage() {
             ‹
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-sm">{section.title.split(' — ')[0]} · 장면</span>
+          <span className="font-semibold text-sm">{section.title.split(' — ')[0]} · 미래의 하루</span>
         </div>
         <button onClick={() => router.push('/dashboard')} className="text-xs text-[#6E6962] py-1">
           대시보드로
@@ -161,7 +161,7 @@ export default function ScenePage() {
           <InlineInput
             onSubmit={handleSubmit}
             placeholder={sceneSlot.placeholder || '구체적일수록 좋아. 장소, 행동, 감각까지.'}
-            hint="여러 장면이어도 좋아. 느낌, 장소, 상황 모두 담아봐."
+            hint="여러 순간이어도 좋아. 느낌, 장소, 상황 모두 담아봐."
           />
         )}
 
@@ -172,7 +172,7 @@ export default function ScenePage() {
 
             <div className="mt-4 bg-[#F5F5F3] rounded-2xl p-4 mb-4">
               <p className="text-[11px] text-[#6E6962] font-semibold mb-2 uppercase tracking-wide">
-                완성된 장면
+                내가 그린 미래의 하루
               </p>
               <p className="text-sm leading-relaxed">{sceneText}</p>
             </div>

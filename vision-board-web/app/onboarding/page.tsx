@@ -9,6 +9,7 @@ import {
   saveOnboardingStep,
   loadBoard,
 } from '@/lib/storage';
+import { SECTION_COLORS } from '@/lib/colors';
 type Act = 0 | 1 | 2 | 3 | 4 | 5;
 
 function getNameSuffix(name: string): string {
@@ -49,23 +50,23 @@ const VISION_CARDS: { icon: LucideIcon; title: string; desc: string; color: stri
     icon: Brain,
     title: '원하는 삶을 현실로 믿게 해줘',
     desc: '비전보드를 매일 보다 보면, 뇌는 그걸 이미 경험한 것처럼 받아들이기 시작해.',
-    color: '#7C6BAE',
+    color: SECTION_COLORS[0],
   },
   {
     icon: Compass,
     title: '삶의 방향을 잡아줘',
     desc: '흔들릴 때마다 내가 원하는 방향으로 다시 돌아오게 해줘. 내 삶의 주도권을 내 손에 쥐게 해줘.',
-    color: '#4F7A5F',
+    color: SECTION_COLORS[1],
   },
   {
     icon: Sparkles,
     title: '되고 싶은 나를 그려줘',
     desc: '어떤 사람이 되고 싶은지 정의하고, 어떤 습관을 들이고 무엇을 멀리할지 살피며 살게 돼.',
-    color: '#A8722A',
+    color: SECTION_COLORS[2],
   },
 ];
 
-// Act 4 — 막연함 vs 선명함 스와이프 슬라이드 (Unsplash 무료 사진)
+// Act 4 — 막연함 vs 선명함 자동 슬라이드 (Unsplash 무료 사진)
 const COMPARE_SLIDES = [
   {
     key: 'vague',
@@ -83,46 +84,23 @@ const COMPARE_SLIDES = [
   },
 ];
 
-// 막연함 ↔ 선명함을 좌우로 넘겨 비교하는 스와이프 카드 (직접 조작 전까진 자동 순환)
-function CompareSwipeCard() {
+// 막연함 ↔ 선명함 자동 순환 비교 카드 — 수동 조작 없음, 점은 진행 표시만
+function CompareAutoCard() {
   const [idx, setIdx] = useState(0);
-  const [interacted, setInteracted] = useState(false);
-  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
-    if (interacted) return;
     const timer = setInterval(() => {
       setIdx((i) => (i + 1) % COMPARE_SLIDES.length);
     }, 3500);
     return () => clearInterval(timer);
-  }, [interacted]);
-
-  function goTo(i: number) {
-    setInteracted(true);
-    setIdx(i);
-  }
-
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
-  }
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (dx < -40 && idx < COMPARE_SLIDES.length - 1) goTo(idx + 1);
-    if (dx > 40 && idx > 0) goTo(idx - 1);
-  }
+  }, []);
 
   const slide = COMPARE_SLIDES[idx];
 
   return (
     <div className="space-y-2.5">
-      <div
-        className="relative rounded-2xl overflow-hidden select-none shadow-sm"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="relative h-64 md:h-72">
+      <div className="relative rounded-2xl overflow-hidden select-none shadow-sm">
+        <div className="relative h-44 md:h-64">
           {COMPARE_SLIDES.map((s, i) => (
             <img
               key={s.key}
@@ -148,58 +126,30 @@ function CompareSwipeCard() {
               {slide.text}
             </p>
           </div>
-          {/* 좌우 이동 (탭/데스크톱) */}
-          {idx > 0 && (
-            <button
-              onClick={() => goTo(idx - 1)}
-              aria-label="이전 장면"
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 text-white text-base flex items-center justify-center active:opacity-70"
-            >
-              ‹
-            </button>
-          )}
-          {idx < COMPARE_SLIDES.length - 1 && (
-            <button
-              onClick={() => goTo(idx + 1)}
-              aria-label="다음 장면"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 text-white text-base flex items-center justify-center active:opacity-70"
-            >
-              ›
-            </button>
-          )}
         </div>
       </div>
 
-      {/* 점 인디케이터 + 힌트 */}
-      <div className="flex items-center justify-center gap-1.5">
+      {/* 점 인디케이터 — 표시 전용 */}
+      <div className="flex items-center justify-center gap-1.5" aria-hidden="true">
         {COMPARE_SLIDES.map((s, i) => (
-          <button
+          <span
             key={s.key}
-            onClick={() => goTo(i)}
-            aria-label={s.label}
             className="w-2 h-2 rounded-full transition-colors"
             style={{ backgroundColor: i === idx ? '#1C1B19' : '#E5E3DF' }}
           />
         ))}
       </div>
-      {/* 힌트 자리는 항상 차지 — 슬라이드 전환 시 아래 레이아웃이 점프하지 않게 */}
-      <p
-        className="text-[11px] text-[#6E6962] text-center animate-pulse h-4 leading-4"
-        style={{ visibility: idx === 0 ? 'visible' : 'hidden' }}
-      >
-        옆으로 넘겨봐 →
-      </p>
     </div>
   );
 }
 
 const SIX_AREAS = [
-  { label: '나', desc: '감정·성장·정체성', color: '#7C6BAE' },
-  { label: '건강', desc: '몸·마음·루틴', color: '#4F7A5F' },
-  { label: '관계', desc: '사랑·우정·연결', color: '#A8722A' },
-  { label: '일', desc: '일·배움·성취', color: '#5577A8' },
-  { label: '돈', desc: '소비·저축·가치', color: '#B05A36' },
-  { label: '공간', desc: '환경·물건·분위기', color: '#3E7E8A' },
+  { label: '나', desc: '감정·성장·정체성', color: SECTION_COLORS[0] },
+  { label: '건강', desc: '몸·마음·루틴', color: SECTION_COLORS[1] },
+  { label: '관계', desc: '사랑·우정·연결', color: SECTION_COLORS[2] },
+  { label: '일', desc: '일·배움·성취', color: SECTION_COLORS[3] },
+  { label: '돈', desc: '소비·저축·가치', color: SECTION_COLORS[4] },
+  { label: '공간', desc: '환경·물건·분위기', color: SECTION_COLORS[5] },
 ];
 
 const TOTAL_ACTS = 5; // Act 1~5 진행 점 표시
@@ -211,6 +161,7 @@ export default function OnboardingPage() {
   const [savedName, setSavedName] = useState('');
   const [showNameResponse, setShowNameResponse] = useState(false);
   const [acornStep, setAcornStep] = useState(-1);
+  const acornScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const board = loadBoard();
@@ -231,6 +182,12 @@ export default function OnboardingPage() {
     }
   }, [act, acornStep]);
 
+  // 새 도토리 메시지가 나오면 메시지 영역만 맨 아래로 — 페이지 스크롤바 대신 내부 스크롤
+  useEffect(() => {
+    const el = acornScrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [acornStep]);
+
   function handleAcornTap() {
     if (acornStep >= 0 && acornStep < ACORN_MESSAGES.length - 1) {
       setAcornStep((s) => s + 1);
@@ -240,7 +197,6 @@ export default function OnboardingPage() {
   function goToAct(a: Act) {
     setAct(a);
     saveOnboardingStep(a);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleNameSubmit() {
@@ -279,9 +235,11 @@ export default function OnboardingPage() {
   const name = savedName || '';
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full px-4 md:px-6 py-8">
+    // 페이지 자체는 뷰포트에 고정 — 어떤 Act에서도 웹 전체 스크롤바가 생기지 않게.
+    // 내용이 넘치는 경우는 각 Act 내부의 scroll-soft 영역이 받는다.
+    <main className="h-dvh overflow-hidden flex flex-col max-w-md md:max-w-xl mx-auto w-full px-4 md:px-6 py-6 md:py-8">
       {act > 0 && (
-        <div className="mb-8 mt-1 flex items-center justify-center gap-1.5">
+        <div className="mb-4 mt-1 flex items-center justify-center gap-1.5">
           {Array.from({ length: TOTAL_ACTS }, (_, i) => (
             <div
               key={i}
@@ -292,11 +250,12 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col animate-fadeIn" key={act}>
+      <div className="flex-1 min-h-0 flex flex-col animate-fadeIn" key={act}>
 
         {/* ══════════ ACT 0: 토리 소개 ══════════ */}
         {act === 0 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto scroll-soft flex flex-col">
+          <div className="min-h-full flex-shrink-0 flex flex-col justify-center space-y-6">
             {/* webm은 진짜 알파 채널. mp4 폴백은 흰 배경이라 multiply로 투과 — 페이지 배경이 밝아야 자연스러움 */}
             <div className="flex justify-center" style={{ backgroundColor: 'transparent' }}>
               <video
@@ -337,11 +296,13 @@ export default function OnboardingPage() {
               {ACT0_CTA}
             </button>
           </div>
+          </div>
         )}
 
         {/* ══════════ ACT 1: 이름 ══════════ */}
         {act === 1 && (
-          <div className="flex-1 flex flex-col justify-center space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto scroll-soft flex flex-col">
+          <div className="min-h-full flex-shrink-0 flex flex-col justify-center space-y-4">
             {/* 토리 프로필 헤더 — 사진 옆 이름, 그 아래로 채팅이 흐름 */}
             <div className="flex items-center gap-3">
               <img
@@ -405,15 +366,16 @@ export default function OnboardingPage() {
               </>
             )}
           </div>
+          </div>
         )}
 
         {/* ══════════ ACT 2: 도토리 이야기 ══════════ */}
         {act === 2 && (
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 min-h-0 flex flex-col cursor-pointer" onClick={handleAcornTap}>
             {acornStep >= 0 && (
-              <div className="space-y-3 cursor-pointer" onClick={handleAcornTap}>
-                {/* 토리 프로필 헤더 */}
-                <div className="flex items-center gap-3 mb-1">
+              <>
+                {/* 토리 프로필 헤더 — 고정 */}
+                <div className="flex items-center gap-3 mb-3 flex-shrink-0">
                   <img
                     src="/tori-profile-bust.png"
                     alt="토리"
@@ -421,29 +383,34 @@ export default function OnboardingPage() {
                   />
                   <p className="text-sm font-semibold text-[#1C1B19]">토리</p>
                 </div>
-                {Array.from({ length: acornStep + 1 }, (_, i) => (
-                  <div
-                    key={i}
-                    className={
-                      i === acornStep
-                        ? 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 animate-fadeIn'
-                        : 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 opacity-60'
-                    }
-                  >
-                    <p className="font-display text-[15px] leading-[1.8] whitespace-pre-line">
-                      {ACORN_MESSAGES[i](name)}
-                    </p>
-                  </div>
-                ))}
 
-                {acornStep < ACORN_MESSAGES.length - 1 && (
-                  <div className="text-center pt-2 pb-1 select-none">
+                {/* 메시지 영역 — 페이지 대신 여기만 스크롤, 새 메시지는 자동으로 아래에 보임 */}
+                <div ref={acornScrollRef} className="flex-1 min-h-0 overflow-y-auto scroll-soft">
+                  <div className="min-h-full flex-shrink-0 flex flex-col justify-center space-y-3">
+                    {Array.from({ length: acornStep + 1 }, (_, i) => (
+                      <div
+                        key={i}
+                        className={
+                          i === acornStep
+                            ? 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 animate-fadeIn'
+                            : 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 opacity-60'
+                        }
+                      >
+                        <p className="font-display text-[15px] leading-[1.8] whitespace-pre-line">
+                          {ACORN_MESSAGES[i](name)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 탭 힌트 / CTA — 스크롤 영역 밖 하단 고정 */}
+                {acornStep < ACORN_MESSAGES.length - 1 ? (
+                  <div className="text-center pt-3 pb-1 select-none flex-shrink-0">
                     <span className="text-xs text-[#6E6962] animate-pulse">▼ 계속하려면 탭</span>
                   </div>
-                )}
-
-                {acornStep === ACORN_MESSAGES.length - 1 && (
-                  <div className="animate-fadeIn pt-4">
+                ) : (
+                  <div className="animate-fadeIn pt-4 flex-shrink-0">
                     <button
                       onClick={(e) => { e.stopPropagation(); goToAct(3); }}
                       className="w-full py-4 rounded-2xl text-base font-semibold text-white transition-opacity active:opacity-80"
@@ -453,14 +420,14 @@ export default function OnboardingPage() {
                     </button>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         )}
 
         {/* ══════════ ACT 3: 비전보드 설명 (시각) ══════════ */}
         {act === 3 && (
-          <div className="flex-1 flex flex-col justify-center space-y-5">
+          <div className="flex-1 min-h-0 flex flex-col space-y-5">
             {/* 토리 말풍선 */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -488,21 +455,19 @@ export default function OnboardingPage() {
             </div>
 
             {/* 실제 비전보드 예시 — 모바일은 세로형, 웹은 가로형 */}
-            <div className="px-1 flex flex-col items-center">
-              {/* 세로형 예시는 화면 절반 높이로 제한 — CTA까지 스크롤 없이 보이게 */}
-              <div className="rounded-2xl overflow-hidden border border-[#E5E3DF] bg-white shadow-md max-w-full">
-                <img
-                  src="/example-board-portrait.jpg"
-                  alt="비전보드 예시"
-                  className="max-h-[48vh] w-auto max-w-full md:hidden"
-                />
-                <img
-                  src="/example-board-landscape.jpg"
-                  alt="비전보드 예시"
-                  className="max-w-full h-auto hidden md:block"
-                />
-              </div>
-              <p className="text-[11px] text-[#6E6962] text-center mt-3">완성하면 이런 모습이 돼.</p>
+            {/* 이미지가 남는 공간만큼만 차지 — 화면 크기와 무관하게 CTA까지 스크롤 없이 보이게 */}
+            <div className="flex-1 min-h-0 px-1 flex flex-col items-center">
+              <img
+                src="/example-board-portrait.jpg"
+                alt="비전보드 예시"
+                className="flex-1 min-h-0 w-auto max-w-full object-contain rounded-2xl border border-[#E5E3DF] shadow-md md:hidden"
+              />
+              <img
+                src="/example-board-landscape.jpg"
+                alt="비전보드 예시"
+                className="flex-1 min-h-0 w-auto max-w-full object-contain rounded-2xl border border-[#E5E3DF] shadow-md hidden md:block"
+              />
+              <p className="text-[11px] text-[#6E6962] text-center mt-3 flex-shrink-0">완성하면 이런 모습이 돼.</p>
             </div>
 
             <button
@@ -517,35 +482,37 @@ export default function OnboardingPage() {
 
         {/* ══════════ ACT 4: 막연함과 선명함의 차이 ══════════ */}
         {act === 4 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
-            <div className="space-y-1">
+          <div className="flex-1 min-h-0 overflow-y-auto scroll-soft flex flex-col">
+          <div className="min-h-full flex-shrink-0 flex flex-col justify-center space-y-3">
+            <div className="space-y-0.5">
               <p className="text-xs text-[#6E6962] font-medium">이게 왜 효과 있는지 보여줄게.</p>
-              <p className="font-display text-2xl font-bold text-[#1C1B19] leading-snug">막연함과 선명함의 차이</p>
+              <p className="font-display text-xl font-bold text-[#1C1B19] leading-snug">막연함과 선명함의 차이</p>
             </div>
 
-            <CompareSwipeCard />
+            <CompareAutoCard />
 
-            <div className="rounded-2xl px-5 py-4 text-center" style={{ backgroundColor: '#1C1B19' }}>
-              <p className="text-sm text-white leading-relaxed">
+            {/* 핵심 메시지 — 박스 없는 디스플레이 서체 인용구, CTA 버튼과 혼동되지 않게 */}
+            <div className="text-center px-2">
+              <p className="font-display text-[15px] text-[#1C1B19] leading-relaxed">
                 뚜렷해지는 순간, <span className="font-bold">뇌는 그쪽으로 움직이기 시작해.</span>
               </p>
-              <p className="text-xs text-[#C4C2BE] mt-1">그게 비전보드의 힘이야.</p>
+              <p className="text-xs text-[#6E6962] mt-0.5">그게 비전보드의 힘이야.</p>
             </div>
 
             {/* 비전보드를 하면 좋은 이유 — 3가지 효과 카드 */}
-            <div className="space-y-3 pt-1">
-              <p className="text-lg font-bold text-[#1C1B19]">비전보드를 하면 좋은 이유</p>
+            <div className="space-y-2">
+              <p className="text-base font-bold text-[#1C1B19]">비전보드를 하면 좋은 이유</p>
               <div className="space-y-2">
                 {VISION_CARDS.map((card) => (
                   <div
                     key={card.title}
-                    className="flex items-start gap-3 rounded-2xl px-4 py-3.5"
-                    style={{ backgroundColor: card.color + '12' }}
+                    className="flex items-start gap-3 rounded-xl bg-white px-4 py-2.5 border border-[#E5E3DF]"
+                    style={{ borderLeft: `3px solid ${card.color}` }}
                   >
                     <card.icon size={20} strokeWidth={1.8} className="flex-shrink-0 mt-0.5" style={{ color: card.color }} aria-hidden="true" />
                     <div>
                       <p className="text-sm font-semibold" style={{ color: card.color }}>{card.title}</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">{card.desc}</p>
+                      <p className="text-xs text-[#6B7280] mt-0.5 leading-snug">{card.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -560,11 +527,13 @@ export default function OnboardingPage() {
               오, 그렇구나
             </button>
           </div>
+          </div>
         )}
 
         {/* ══════════ ACT 5: 6 화단 안내 → 시작 ══════════ */}
         {act === 5 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto scroll-soft flex flex-col">
+          <div className="min-h-full flex-shrink-0 flex flex-col justify-center space-y-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <img
@@ -588,8 +557,8 @@ export default function OnboardingPage() {
               {SIX_AREAS.map((area) => (
                 <div
                   key={area.label}
-                  className="rounded-xl px-3.5 py-3 text-left"
-                  style={{ backgroundColor: area.color + '15' }}
+                  className="rounded-xl bg-white px-3.5 py-3 text-left border border-[#E5E3DF]"
+                  style={{ borderLeft: `3px solid ${area.color}` }}
                 >
                   <p className="text-sm font-bold" style={{ color: area.color }}>{area.label}</p>
                   <p className="text-[11px] text-[#6B7280] mt-0.5">{area.desc}</p>
@@ -604,6 +573,7 @@ export default function OnboardingPage() {
             >
               비전보드 시작하기 →
             </button>
+          </div>
           </div>
         )}
 

@@ -90,6 +90,9 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 
 ## Testing / QA
 
+### Playwright isVisible()은 뷰포트 교차를 검사하지 않는다 #coding #testing #playwright
+스크롤 폴드 아래에 있는 요소도 `isVisible()`이 true를 반환한다(DOM 차원의 가시성만 검사). "화면 안에 실제로 보이는가" 검증은 `boundingBox()`를 뷰포트 크기와 비교하거나 스크린샷 육안 확인으로 해야 한다. 이번 세션에서 CTA visible=true로 통과했지만 실제로는 폴드 아래에 있던 거짓 통과가 발생했다.
+
 ### 시각 효과 검증은 computed style이 아니라 스크린샷 픽셀 값으로 한다 #coding #testing #qa
 `getComputedStyle`로 `mix-blend-mode: multiply` 적용을 확인해도 실제 렌더 결과는 다를 수 있다(stacking context, 소스가 순백이 아닌 경우 등). 스크린샷에서 효과 영역 안팎의 픽셀 값을 직접 비교(예: 영역 최대 밝기 ≤ 배경 밝기)해야 "효과가 보이는가"의 증거가 된다. PowerShell `System.Drawing.Bitmap.GetPixel`로 간단히 가능.
 
@@ -100,6 +103,9 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 
 ### 인라인 Tailwind hex는 팔레트 교체를 전수 치환 작업으로 만든다 #coding #css #design-tokens
 `text-[#9CA3AF]` 같은 arbitrary hex가 26개 파일 129곳에 퍼져 있어 대비 수정이 일괄 정규식 치환 + 예외 수작업이 됐고, 섹션 6색도 questions.ts 외 3개 파일에 하드코딩 중복이라 4곳 동기 수정이 필요했다. 색은 globals.css CSS 변수(Tailwind v4 `text-(--var)` 지원) 또는 단일 소스 모듈에서만 정의하고 컴포넌트는 참조만 하게 할 것.
+
+### 고정 높이 flex 부모 안의 `min-h-full + justify-center` 래퍼는 `flex-shrink-0`이 없으면 위아래가 잘린다 #coding #css
+스크롤 컨테이너(`flex-1 min-h-0 overflow-y-auto`) 안에 `min-h-full flex flex-col justify-center` 래퍼를 두면, 콘텐츠가 넘칠 때 래퍼가 기본 flex-shrink:1로 부모 높이까지 줄어들어 justify-center가 위아래 양방향으로 클리핑한다 — scrollTop이 0인데도 첫 요소에 도달 불가. 래퍼에 `flex-shrink-0`을 함께 줘야 "콘텐츠가 적으면 중앙 정렬, 넘치면 전체 스크롤"이 된다.
 
 ## Next.js / React
 
