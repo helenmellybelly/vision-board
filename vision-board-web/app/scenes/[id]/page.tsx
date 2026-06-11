@@ -18,6 +18,7 @@ import { compressImage } from '@/lib/imageUtils';
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import StoryModal from '@/components/StoryModal';
+import useFocusTrap from '@/components/useFocusTrap';
 
 interface GeneratedImage {
   url: string;
@@ -45,6 +46,7 @@ export default function ScenesPage() {
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const lightboxTrapRef = useFocusTrap<HTMLDivElement>(!!lightboxSrc, () => setLightboxSrc(null));
   const [urlInput, setUrlInput] = useState('');
 
   const uploadRefs = [
@@ -280,14 +282,15 @@ export default function ScenesPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push(`/moment/${sectionId}`)}
-            className="text-[#9CA3AF] text-xs mr-1 active:opacity-60"
+            aria-label="순간 단계로 돌아가기"
+            className="text-[#6E6962] text-xs mr-1 active:opacity-60"
           >
             ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
           <span className="font-semibold text-sm">{sectionName} · 장면</span>
         </div>
-        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#9CA3AF] py-1">
+        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#6E6962] py-1">
           대시보드로
         </button>
       </header>
@@ -297,14 +300,14 @@ export default function ScenesPage() {
         {/* Descriptions section */}
         <div className="mb-2">
           <p className="text-sm font-semibold text-[#1C1B19] mb-1">장면을 만들어 볼까?</p>
-          <p className="text-xs text-[#9CA3AF]">탭해서 직접 고칠 수 있어</p>
+          <p className="text-xs text-[#6E6962]">탭해서 직접 고칠 수 있어</p>
         </div>
 
         {story && (
           <StoryModal
             story={story}
             color={section.color}
-            label="📖 스토리 다시 보기"
+            label="스토리 다시 보기"
             triggerClassName="mb-3"
           />
         )}
@@ -353,7 +356,7 @@ export default function ScenesPage() {
                         handleRegenerateOne(i);
                       }}
                       disabled={regeneratingIdx === i}
-                      className="text-[10px] text-[#9CA3AF] border border-[#E5E3DF] rounded-full px-2 py-0.5 active:opacity-60 disabled:opacity-40"
+                      className="text-[10px] text-[#6E6962] border border-[#E5E3DF] rounded-full px-2 py-0.5 active:opacity-60 disabled:opacity-40"
                     >
                       {regeneratingIdx === i ? '제안 중...' : '↻ 다시 제안'}
                     </button>
@@ -396,7 +399,7 @@ export default function ScenesPage() {
         {!describeLoading && !describeError && (
           <button
             onClick={() => fetchDescriptions()}
-            className="w-full py-2 text-xs text-[#9CA3AF] text-center mb-4"
+            className="w-full py-2 text-xs text-[#6E6962] text-center mb-4"
           >
             묘사 전체 다시 제안받기
           </button>
@@ -408,7 +411,7 @@ export default function ScenesPage() {
         {/* Images section */}
         <div className="mb-3">
           <p className="text-sm font-semibold text-[#1C1B19] mb-0.5">나의 비전보드 이미지 찾기</p>
-          <p className="text-xs text-[#9CA3AF]">직접 올리거나 URL로 불러올 수 있어.</p>
+          <p className="text-xs text-[#6E6962]">직접 올리거나 URL로 불러올 수 있어.</p>
         </div>
 
         <div className="mb-3">
@@ -463,13 +466,13 @@ export default function ScenesPage() {
                   <p className="text-xs text-[#92400E] mb-2">이미지가 삭제되고 묘사를 다시 받아. 계속할까?</p>
                   <div className="flex gap-3">
                     <button onClick={handleEditDescriptions} className="text-xs font-medium text-[#92400E]">계속</button>
-                    <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>
+                    <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
                   </div>
                 </div>
               ) : (
                 <button onClick={() => setPendingConfirm('descriptions')} className="w-full text-left">
                   <p className="text-sm text-[#374151]">묘사 전체 다시 받기</p>
-                  <p className="text-xs text-[#9CA3AF]">이미지 삭제됨</p>
+                  <p className="text-xs text-[#6E6962]">이미지 삭제됨</p>
                 </button>
               )}
             </div>
@@ -479,13 +482,13 @@ export default function ScenesPage() {
                   <p className="text-xs text-[#92400E] mb-2">스토리·묘사·이미지가 삭제돼. 계속할까?</p>
                   <div className="flex gap-3">
                     <button onClick={handleEditStory} className="text-xs font-medium text-[#92400E]">계속</button>
-                    <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>
+                    <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
                   </div>
                 </div>
               ) : (
                 <button onClick={() => setPendingConfirm('story')} className="w-full text-left">
                   <p className="text-sm text-[#374151]">스토리부터 다시</p>
-                  <p className="text-xs text-[#9CA3AF]">묘사·이미지 삭제됨</p>
+                  <p className="text-xs text-[#6E6962]">묘사·이미지 삭제됨</p>
                 </button>
               )}
             </div>
@@ -500,14 +503,28 @@ export default function ScenesPage() {
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           onClick={() => setLightboxSrc(null)}
         >
-          <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden">
+          <div
+            ref={lightboxTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="이미지 확대 보기"
+            className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Image
               src={lightboxSrc}
-              alt="full view"
+              alt="확대된 장면 이미지"
               fill
               className="object-cover"
               unoptimized
             />
+            <button
+              onClick={() => setLightboxSrc(null)}
+              aria-label="닫기"
+              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white text-base flex items-center justify-center"
+            >
+              ×
+            </button>
           </div>
         </div>
       )}

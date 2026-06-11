@@ -5,6 +5,8 @@
   --foreground: #1C1B19;
   --card: #FFFFFF;
   --muted: #6B7280;
+  /* 정보성 보조 텍스트 최소선 — #FAF9F7 위 5.2:1, #F5F5F3 위 5.0:1 */
+  --text-hint: #6E6962;
   --border: #E5E3DF;
 }
 
@@ -19,6 +21,11 @@
 
 button {
   cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid #1C1B19;
+  outline-offset: 2px;
 }
 
 button:disabled {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import useFocusTrap from './useFocusTrap';
 
 const STEPS = [
   { step: 1, label: '대화', description: '6가지 주제에 짧게 답해 — 지금 여기서' },
@@ -12,12 +13,13 @@ const STEPS = [
 
 export default function ProcessGuide() {
   const [open, setOpen] = useState(false);
+  const trapRef = useFocusTrap<HTMLDivElement>(open, () => setOpen(false));
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-[#9CA3AF] underline underline-offset-2"
+        className="text-xs text-[#6E6962] underline underline-offset-2"
       >
         전체 과정 보기
       </button>
@@ -28,11 +30,15 @@ export default function ProcessGuide() {
           onClick={() => setOpen(false)}
         >
           <div
+            ref={trapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="process-guide-title"
             className="bg-white w-full max-w-md rounded-t-3xl px-6 py-8 pb-10"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-[#E5E3DF] rounded-full mx-auto mb-6" />
-            <h2 className="text-base font-bold mb-5">비전보드 만드는 방법</h2>
+            <h2 id="process-guide-title" className="text-base font-bold mb-5">비전보드 만드는 방법</h2>
             <div className="space-y-4">
               {STEPS.map(({ step, label, description }) => (
                 <div key={step} className="flex items-start gap-3">

@@ -89,9 +89,9 @@ export default function BoardPage() {
             ‹
           </button>
           <h1 className="text-xl font-bold">내 비전보드</h1>
-          <span className="text-sm text-[#9CA3AF] ml-auto">{completedCount}/6</span>
+          <span className="text-sm text-[#6E6962] ml-auto">{completedCount}/6</span>
         </div>
-        <p className="text-xs text-[#9CA3AF] pl-8">막연했던 바람이, 생생한 장면이 되는 곳.</p>
+        <p className="text-xs text-[#6E6962] pl-8">막연했던 바람이, 생생한 장면이 되는 곳.</p>
       </div>
 
       <div className="md:px-6">
@@ -126,7 +126,7 @@ export default function BoardPage() {
                     className={
                       shouldHighlightCta(sectionData)
                         ? 'ml-auto text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 active:opacity-70'
-                        : 'ml-auto text-xs text-[#9CA3AF] whitespace-nowrap flex-shrink-0 active:opacity-70'
+                        : 'ml-auto text-xs text-[#6E6962] whitespace-nowrap flex-shrink-0 active:opacity-70'
                     }
                     style={
                       shouldHighlightCta(sectionData)
@@ -202,13 +202,13 @@ export default function BoardPage() {
           className={
             collageImageCount > 0
               ? 'w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-base font-semibold active:opacity-80 transition-opacity'
-              : 'w-full bg-[#F0EFEC] text-[#9CA3AF] py-4 rounded-2xl text-base font-semibold cursor-default'
+              : 'w-full bg-[#F0EFEC] text-[#6E6962] py-4 rounded-2xl text-base font-semibold cursor-default'
           }
         >
           내 비전보드 한눈에 보기 →
         </button>
         {showCollageHint && (
-          <p className="text-[11px] text-[#9CA3AF] text-center mt-2 animate-fadeIn">
+          <p className="text-[11px] text-[#6E6962] text-center mt-2 animate-fadeIn">
             비전보드 사진을 1개 이상 올리면 활성화돼요.
           </p>
         )}

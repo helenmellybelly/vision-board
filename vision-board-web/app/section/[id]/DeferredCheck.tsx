@@ -60,7 +60,7 @@ export default function DeferredCheck({ section, slots, onAnswerSlot, onDeferAll
                   <p className="text-xs font-semibold mb-0.5" style={{ color: section.color }}>
                     {SLOT_LABELS[slotId]}
                   </p>
-                  <p className="text-sm text-[#9CA3AF] italic">아직 답변 전</p>
+                  <p className="text-sm text-[#6E6962] italic">아직 답변 전</p>
                 </div>
                 <span className="text-[#C4C2BE]">›</span>
               </div>

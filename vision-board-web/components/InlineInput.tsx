@@ -56,12 +56,12 @@ export default function InlineInput({ onSubmit, placeholder = '여기에 써봐.
     >
       {example && (
         <div className="px-4 pt-3 pb-2 border-b border-[#F5F5F3]">
-          <p className="text-[11px] text-[#9CA3AF] font-medium mb-1">이런 식으로 써봐</p>
-          <p className="text-xs text-[#9CA3AF] leading-relaxed">{example}</p>
+          <p className="text-xs text-[#6E6962] font-medium mb-1">이런 식으로 써봐</p>
+          <p className="text-[13px] text-[#6E6962] leading-relaxed">{example}</p>
         </div>
       )}
       {hint && (
-        <p className="text-[11px] text-[#9CA3AF] px-4 pt-2">{hint}</p>
+        <p className="text-xs text-[#6E6962] px-4 pt-2">{hint}</p>
       )}
       <textarea
         ref={textareaRef}
@@ -71,14 +71,14 @@ export default function InlineInput({ onSubmit, placeholder = '여기에 써봐.
         placeholder={placeholder}
         disabled={disabled}
         rows={2}
-        className="w-full resize-none text-sm leading-relaxed px-4 pt-3 pb-2 outline-none max-h-40 overflow-y-auto bg-transparent placeholder:text-[#9CA3AF]"
+        className="w-full resize-none text-[15px] md:text-sm leading-relaxed px-4 pt-3 pb-2 outline-none max-h-40 overflow-y-auto bg-transparent placeholder:text-[#6E6962]"
         style={{ color: '#1C1B19' }}
       />
       <div className="flex items-center justify-between px-3 pb-3">
         {onHelp ? (
           <button
             onClick={onHelp}
-            className="text-xs text-[#9CA3AF] active:opacity-60"
+            className="text-xs text-[#6E6962] active:opacity-60"
           >
             답변 도와줘
           </button>

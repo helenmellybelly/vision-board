@@ -74,8 +74,8 @@ function AISummaryCard({ board }: { board: BoardData }) {
   if (error) {
     return (
       <div className="mx-6 mb-5 rounded-2xl bg-[#F9F8F6] p-4">
-        <p className="text-xs font-semibold text-[#9CA3AF] tracking-wider mb-2">AI 종합 리뷰</p>
-        <p className="text-sm text-[#9CA3AF] mb-2">AI 요약을 불러오지 못했어. (API 키 설정 필요)</p>
+        <p className="text-xs font-semibold text-[#6E6962] tracking-wider mb-2">AI 종합 리뷰</p>
+        <p className="text-sm text-[#6E6962] mb-2">AI 요약을 불러오지 못했어. (API 키 설정 필요)</p>
         <button
           onClick={fetchSummary}
           className="text-xs text-[#6B7280] underline"
@@ -88,7 +88,7 @@ function AISummaryCard({ board }: { board: BoardData }) {
 
   return (
     <div className="mx-6 mb-5 rounded-2xl bg-[#1C1B19] p-4">
-      <p className="text-xs font-semibold text-[#9CA3AF] mb-2 tracking-wider">AI 종합 리뷰</p>
+      <p className="text-xs font-semibold text-[#6E6962] mb-2 tracking-wider">AI 종합 리뷰</p>
       <p className="text-sm text-white leading-relaxed">{summary}</p>
     </div>
   );
@@ -110,7 +110,7 @@ export default function ReviewPage() {
 
       {/* 헤더 */}
       <div className="px-6 pt-4 pb-4">
-        <p className="text-xs font-semibold text-[#9CA3AF] tracking-widest mb-2">REVIEW</p>
+        <p className="text-xs font-semibold text-[#6E6962] tracking-widest mb-2">REVIEW</p>
         <h1 className="text-2xl font-bold leading-snug mb-1">
           수고했어. 쓰다 보면 보이는 게 있어. 🐿️
         </h1>
@@ -159,7 +159,7 @@ export default function ReviewPage() {
                   const text = answer?.text?.trim();
                   return (
                     <div key={slotId} className="px-4 py-2.5 flex gap-3">
-                      <p className="text-[11px] text-[#9CA3AF] w-20 shrink-0 pt-0.5 font-medium">{label}</p>
+                      <p className="text-[11px] text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">{label}</p>
                       <p className={`text-sm leading-relaxed flex-1 ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
                         {text || '—'}
                       </p>
@@ -174,7 +174,7 @@ export default function ReviewPage() {
 
       {/* 장면 그리기 온보딩 블록 */}
       <div className="mx-6 mb-6 rounded-2xl bg-[#F9F8F6] p-5 border border-[#E5E3DF]">
-        <p className="text-xs font-semibold text-[#9CA3AF] tracking-widest mb-3">NEXT STEP</p>
+        <p className="text-xs font-semibold text-[#6E6962] tracking-widest mb-3">NEXT STEP</p>
         <h3 className="text-base font-bold mb-2 leading-snug">이제 장면을 그릴 거야</h3>
         <p className="text-sm text-[#6B7280] leading-relaxed mb-2">
           지금까지 쓴 단어들을 구체적인 장면과 이미지로 만드는 단계야.
@@ -195,7 +195,7 @@ export default function ReviewPage() {
         </button>
         <button
           onClick={() => router.push('/dashboard')}
-          className="w-full py-2 text-sm text-[#9CA3AF]"
+          className="w-full py-2 text-sm text-[#6E6962]"
         >
           대시보드로
         </button>

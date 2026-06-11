@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Brain, Compass, Sparkles, type LucideIcon } from 'lucide-react';
 import {
   markOnboardingDone,
   saveUserName,
@@ -43,21 +44,21 @@ const ACORN_MESSAGES = [
 
 const VISION_INTRO = `그 가능성이 펼쳐질 환경을 만드는 도구가 있어. 바로 '비전보드'야.`;
 
-const VISION_CARDS = [
+const VISION_CARDS: { icon: LucideIcon; title: string; desc: string; color: string }[] = [
   {
-    emoji: '🧠',
+    icon: Brain,
     title: '원하는 삶을 현실로 믿게 해줘',
     desc: '비전보드를 매일 보다 보면, 뇌는 그걸 이미 경험한 것처럼 받아들이기 시작해.',
     color: '#8B5CF6',
   },
   {
-    emoji: '🧭',
+    icon: Compass,
     title: '삶의 방향을 잡아줘',
     desc: '흔들릴 때마다 내가 원하는 방향으로 다시 돌아오게 해줘. 내 삶의 주도권을 내 손에 쥐게 해줘.',
     color: '#10B981',
   },
   {
-    emoji: '🪞',
+    icon: Sparkles,
     title: '되고 싶은 나를 그려줘',
     desc: '어떤 사람이 되고 싶은지 정의하고, 어떤 습관을 들이고 무엇을 멀리할지 살피며 살게 돼.',
     color: '#F59E0B',
@@ -183,7 +184,7 @@ function CompareSwipeCard() {
       </div>
       {/* 힌트 자리는 항상 차지 — 슬라이드 전환 시 아래 레이아웃이 점프하지 않게 */}
       <p
-        className="text-[11px] text-[#9CA3AF] text-center animate-pulse h-4 leading-4"
+        className="text-[11px] text-[#6E6962] text-center animate-pulse h-4 leading-4"
         style={{ visibility: idx === 0 ? 'visible' : 'hidden' }}
       >
         옆으로 넘겨봐 →
@@ -296,7 +297,7 @@ export default function OnboardingPage() {
         {/* ══════════ ACT 0: 토리 소개 ══════════ */}
         {act === 0 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
-            {/* mix-blend-mode:multiply로 흰 배경 제거 — 밝은 페이지 배경에서 흰 픽셀이 투과됨 */}
+            {/* webm은 진짜 알파 채널. mp4 폴백은 흰 배경이라 multiply로 투과 — 페이지 배경이 밝아야 자연스러움 */}
             <div className="flex justify-center" style={{ backgroundColor: 'transparent' }}>
               <video
                 autoPlay
@@ -312,6 +313,7 @@ export default function OnboardingPage() {
                   filter: "contrast(1.15) saturate(1.1)",
                 }}
               >
+                <source src="/tori-v3-alpha.webm" type="video/webm" />
                 <source src="/tori-v3.mp4" type="video/mp4" />
               </video>
             </div>
@@ -343,7 +345,7 @@ export default function OnboardingPage() {
             {/* 토리 프로필 헤더 — 사진 옆 이름, 그 아래로 채팅이 흐름 */}
             <div className="flex items-center gap-3">
               <img
-                src="/프로필상반신.png"
+                src="/tori-profile-bust.png"
                 alt="토리"
                 className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
               />
@@ -413,7 +415,7 @@ export default function OnboardingPage() {
                 {/* 토리 프로필 헤더 */}
                 <div className="flex items-center gap-3 mb-1">
                   <img
-                    src="/프로필상반신.png"
+                    src="/tori-profile-bust.png"
                     alt="토리"
                     className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
                   />
@@ -436,7 +438,7 @@ export default function OnboardingPage() {
 
                 {acornStep < ACORN_MESSAGES.length - 1 && (
                   <div className="text-center pt-2 pb-1 select-none">
-                    <span className="text-xs text-[#9CA3AF] animate-pulse">▼ 계속하려면 탭</span>
+                    <span className="text-xs text-[#6E6962] animate-pulse">▼ 계속하려면 탭</span>
                   </div>
                 )}
 
@@ -463,7 +465,7 @@ export default function OnboardingPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <img
-                  src="/프로필상반신.png"
+                  src="/tori-profile-bust.png"
                   alt="토리"
                   className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
                 />
@@ -479,7 +481,7 @@ export default function OnboardingPage() {
               className="rounded-2xl px-5 py-4 border"
               style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E3DF' }}
             >
-              <p className="text-xs font-semibold text-[#9CA3AF] mb-1 tracking-wide uppercase">비전보드란?</p>
+              <p className="text-xs font-semibold text-[#6E6962] mb-1 tracking-wide uppercase">비전보드란?</p>
               <p className="text-sm text-[#1C1B19] leading-relaxed">
                 네가 원하는 삶을 이미지와 글로 시각화한 나만의 지도.
               </p>
@@ -500,7 +502,7 @@ export default function OnboardingPage() {
                   className="max-w-full h-auto hidden md:block"
                 />
               </div>
-              <p className="text-[11px] text-[#9CA3AF] text-center mt-3">완성하면 이런 모습이 돼.</p>
+              <p className="text-[11px] text-[#6E6962] text-center mt-3">완성하면 이런 모습이 돼.</p>
             </div>
 
             <button
@@ -517,7 +519,7 @@ export default function OnboardingPage() {
         {act === 4 && (
           <div className="flex-1 flex flex-col justify-center space-y-6">
             <div className="space-y-1">
-              <p className="text-xs text-[#9CA3AF] font-medium">이게 왜 효과 있는지 보여줄게.</p>
+              <p className="text-xs text-[#6E6962] font-medium">이게 왜 효과 있는지 보여줄게.</p>
               <p className="text-2xl font-bold text-[#1C1B19] leading-snug">막연함과 선명함의 차이</p>
             </div>
 
@@ -540,7 +542,7 @@ export default function OnboardingPage() {
                     className="flex items-start gap-3 rounded-2xl px-4 py-3.5"
                     style={{ backgroundColor: card.color + '12' }}
                   >
-                    <span className="text-xl flex-shrink-0 mt-0.5">{card.emoji}</span>
+                    <card.icon size={20} strokeWidth={1.8} className="flex-shrink-0 mt-0.5" style={{ color: card.color }} aria-hidden="true" />
                     <div>
                       <p className="text-sm font-semibold" style={{ color: card.color }}>{card.title}</p>
                       <p className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">{card.desc}</p>
@@ -566,7 +568,7 @@ export default function OnboardingPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <img
-                  src="/프로필상반신.png"
+                  src="/tori-profile-bust.png"
                   alt="토리"
                   className="w-12 h-12 rounded-2xl object-contain flex-shrink-0"
                 />
@@ -610,7 +612,7 @@ export default function OnboardingPage() {
       {canGoBack() && (
         <button
           onClick={handleBack}
-          className="w-full text-[#C4C2BE] py-2 text-xs mt-4 flex items-center justify-center gap-1 hover:text-[#6B7280] transition-colors"
+          className="w-full text-[#6E6962] py-2 text-xs mt-4 flex items-center justify-center gap-1 hover:text-[#1C1B19] transition-colors"
         >
           ← 이전
         </button>
@@ -618,7 +620,7 @@ export default function OnboardingPage() {
       {act > 1 && act < 5 && (
         <button
           onClick={goToStart}
-          className="w-full text-[#D1D5DB] py-1 text-[11px] flex items-center justify-center hover:text-[#9CA3AF] transition-colors"
+          className="w-full text-[#6E6962] py-1 text-xs flex items-center justify-center hover:text-[#1C1B19] transition-colors"
         >
           처음부터 다시 보기
         </button>

@@ -13,7 +13,7 @@ export default function ResetPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <p className="text-[#9CA3AF] text-sm">초기화 중...</p>
+      <p className="text-[#6E6962] text-sm">초기화 중...</p>
     </div>
   );
 }

@@ -55,13 +55,12 @@ export default function WelcomePage() {
   return (
     <main className="min-h-screen flex flex-col max-w-md mx-auto w-full px-6 py-10">
       <div className="mb-8 animate-fadeIn">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center mb-6"
-          style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)' }}
-        >
-          <span className="text-white text-lg">🐿️</span>
-        </div>
-        <p className="text-sm text-[#9CA3AF] mb-1">토리</p>
+        <img
+          src="/tori-profile-bust.png"
+          alt="토리"
+          className="w-10 h-10 rounded-xl object-cover mb-6"
+        />
+        <p className="text-sm text-[#6E6962] mb-1">토리</p>
         <h1 className="text-2xl font-bold leading-snug">
           {userName ? `${userName}아,` : ''} 함께 만들어갈<br />비전보드를 보여줄게.
         </h1>

@@ -71,7 +71,7 @@ export default function SceneHubPage() {
                       </p>
                     )}
                     {sceneText ? (
-                      <p className="text-xs text-[#9CA3AF] mt-0.5 line-clamp-1">{sceneText}</p>
+                      <p className="text-xs text-[#6E6962] mt-0.5 line-clamp-1">{sceneText}</p>
                     ) : (
                       <p className="text-xs text-[#C4C2BE] mt-0.5">아직 장면 없음</p>
                     )}
@@ -94,7 +94,7 @@ export default function SceneHubPage() {
                       그리기 전
                     </span>
                   )}
-                  <span className="text-[#9CA3AF] text-sm">›</span>
+                  <span className="text-[#6E6962] text-sm">›</span>
                 </div>
               </div>
             </button>
@@ -103,7 +103,7 @@ export default function SceneHubPage() {
 
         {availableSections.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-[#9CA3AF] text-sm">
+            <p className="text-[#6E6962] text-sm">
               섹션 답변을 먼저 완료해야 해.
             </p>
             <button

@@ -53,13 +53,13 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="flex flex-col justify-center px-6 pt-16 pb-12 min-h-screen">
         <div className="animate-fadeIn">
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8"
-            style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)', boxShadow: '0 8px 24px rgba(28,27,25,0.18)' }}
-          >
-            <span className="text-white text-2xl">🐿️</span>
-          </div>
-          <p className="text-sm text-[#9CA3AF] mb-3">정원사 토리</p>
+          <img
+            src="/tori-profile-bust.png"
+            alt="정원사 토리"
+            className="w-14 h-14 rounded-2xl object-cover mb-8"
+            style={{ boxShadow: '0 8px 24px rgba(28,27,25,0.18)' }}
+          />
+          <p className="text-sm text-[#6E6962] mb-3">정원사 토리</p>
           <h1 className="text-3xl font-bold leading-tight mb-4">
             비전보드는<br />
             그리고 싶은 내 인생의<br />
@@ -70,7 +70,7 @@ export default function LandingPage() {
             질문을 따라가다 보면, 어느새 완성됩니다.
           </p>
           <div className="mb-10 p-3 rounded-xl" style={{ backgroundColor: '#F5F5F3' }}>
-            <p className="text-xs text-[#9CA3AF] font-semibold mb-1">예를 들면 이런 질문부터</p>
+            <p className="text-xs text-[#6E6962] font-semibold mb-1">예를 들면 이런 질문부터</p>
             <p className="text-sm leading-relaxed text-[#6B7280]">
               &ldquo;인생 버킷리스트, 떠오르는 대로 써봐.&rdquo;
             </p>
@@ -88,7 +88,7 @@ export default function LandingPage() {
 
       {/* 예시 비전보드 이미지 오토 롤링 캐러셀 */}
       <section className="px-6 py-14 overflow-hidden">
-        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-2">이런 비전보드</p>
+        <p className="text-xs text-[#6E6962] uppercase tracking-wider mb-2">이런 비전보드</p>
         <h2 className="text-xl font-bold leading-snug mb-10">
           누군가는<br />이렇게 그리고 있어요
         </h2>
@@ -131,10 +131,10 @@ export default function LandingPage() {
 
       {/* Contrast: 기존 vs 토리 */}
       <section className="px-6 py-14" style={{ backgroundColor: '#F5F5F3' }}>
-        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-5">토리가 다른 이유</p>
+        <p className="text-xs text-[#6E6962] uppercase tracking-wider mb-5">토리가 다른 이유</p>
         <div className="space-y-3">
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#ECEAE6' }}>
-            <p className="text-[11px] font-semibold text-[#9CA3AF] mb-3 uppercase tracking-wide">기존 비전보드 / Pinterest</p>
+            <p className="text-[11px] font-semibold text-[#6E6962] mb-3 uppercase tracking-wide">기존 비전보드 / Pinterest</p>
             <div className="space-y-2">
               {[
                 '원하는 이미지를 찾아 붙인다',
@@ -143,7 +143,7 @@ export default function LandingPage() {
               ].map((text, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="text-[#C4C2BE] mt-0.5 flex-shrink-0 text-xs font-bold">×</span>
-                  <p className="text-sm text-[#9CA3AF] leading-relaxed">{text}</p>
+                  <p className="text-sm text-[#6E6962] leading-relaxed">{text}</p>
                 </div>
               ))}
             </div>
@@ -168,7 +168,7 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section className="px-6 py-14">
-        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-2">이렇게 만들어요</p>
+        <p className="text-xs text-[#6E6962] uppercase tracking-wider mb-2">이렇게 만들어요</p>
         <h2 className="text-xl font-bold leading-snug mb-10">
           토리가 묻고,<br />당신이 답하면 보여요
         </h2>
@@ -208,7 +208,7 @@ export default function LandingPage() {
 
       {/* What you get */}
       <section className="px-6 py-14" style={{ backgroundColor: '#F5F5F3' }}>
-        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider mb-2">완성되면 생기는 것</p>
+        <p className="text-xs text-[#6E6962] uppercase tracking-wider mb-2">완성되면 생기는 것</p>
         <h2 className="text-xl font-bold leading-snug mb-6">
           6가지 영역 비전보드<br />+ 미래의 하루 이야기
         </h2>
@@ -225,7 +225,7 @@ export default function LandingPage() {
           ))}
         </div>
         <div className="bg-white rounded-xl p-4 border border-[#E5E3DF]">
-          <p className="text-xs text-[#9CA3AF] mb-2">완성되면 이런 장면이 나와</p>
+          <p className="text-xs text-[#6E6962] mb-2">완성되면 이런 장면이 나와</p>
           <p className="text-sm leading-relaxed text-[#6B7280]">
             "카페 창가, 혼자 책 읽는 오전.<br />이게 내가 원하는 &apos;나&apos; 영역의 하루야."
           </p>
@@ -234,12 +234,12 @@ export default function LandingPage() {
 
       {/* Final CTA */}
       <section className="px-6 py-16 text-center">
-        <div
-          className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-6"
-          style={{ background: 'linear-gradient(135deg, #2D2B29 0%, #1C1B19 100%)', boxShadow: '0 8px 24px rgba(28,27,25,0.12)' }}
-        >
-          <span className="text-white text-xl">🐿️</span>
-        </div>
+        <img
+          src="/tori-profile-bust.png"
+          alt="정원사 토리"
+          className="w-12 h-12 rounded-2xl object-cover mx-auto mb-6"
+          style={{ boxShadow: '0 8px 24px rgba(28,27,25,0.12)' }}
+        />
         <h2 className="text-2xl font-bold mb-2">지금, 첫 질문 하나부터.</h2>
         <p className="text-sm text-[#6B7280] mb-8">막연해도 괜찮아. 토리가 물어볼게.</p>
         <button

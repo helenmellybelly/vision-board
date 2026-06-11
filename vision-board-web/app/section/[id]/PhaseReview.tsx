@@ -54,7 +54,7 @@ export default function PhaseReview({ section, slots, onEdit, onNext, onBack }: 
                     {answer && !answer.isDeferred ? (
                       <p className="text-sm leading-relaxed">{answer.text}</p>
                     ) : (
-                      <p className="text-sm text-[#9CA3AF] italic">아직 비워뒀어</p>
+                      <p className="text-sm text-[#6E6962] italic">아직 비워뒀어</p>
                     )}
                   </div>
                   <span className="text-[#C4C2BE] text-sm flex-shrink-0">✎</span>

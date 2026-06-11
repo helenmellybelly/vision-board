@@ -156,14 +156,15 @@ export default function MomentPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push(`/scene/${sectionId}`)}
-            className="text-[#9CA3AF] text-xs mr-1 active:opacity-60"
+            aria-label="장면 단계로 돌아가기"
+            className="text-[#6E6962] text-xs mr-1 active:opacity-60"
           >
             ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
           <span className="font-semibold text-sm">{sectionName} · 순간</span>
         </div>
-        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#9CA3AF] py-1">
+        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#6E6962] py-1">
           대시보드로
         </button>
       </header>
@@ -256,7 +257,7 @@ export default function MomentPage() {
           <>
             {storyLoading ? (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4">
-                <p className="text-xs text-[#9CA3AF] mb-2">잠깐, 하루를 그려볼게...</p>
+                <p className="text-xs text-[#6E6962] mb-2">잠깐, 하루를 그려볼게...</p>
                 <div className="h-2 bg-[#F5F5F3] rounded-full animate-pulse" />
                 <div className="h-2 bg-[#F5F5F3] rounded-full animate-pulse mt-2 w-3/4" />
               </div>
@@ -296,7 +297,7 @@ export default function MomentPage() {
                         </button>
                         <button
                           onClick={() => setEditingStory(false)}
-                          className="px-4 py-2 rounded-lg text-xs text-[#9CA3AF] border border-[#E5E3DF]"
+                          className="px-4 py-2 rounded-lg text-xs text-[#6E6962] border border-[#E5E3DF]"
                         >
                           취소
                         </button>
@@ -310,7 +311,7 @@ export default function MomentPage() {
                 {!editingStory && (
                   <button
                     onClick={() => { setStoryDraft(story); setEditingStory(true); setShowAdditional(false); }}
-                    className="text-xs text-[#9CA3AF] underline mb-3 mr-4"
+                    className="text-xs text-[#6E6962] underline mb-3 mr-4"
                   >
                     직접 수정하기
                   </button>
@@ -319,7 +320,7 @@ export default function MomentPage() {
                 {editingStory ? null : !usedAdditional && !showAdditional ? (
                   <button
                     onClick={() => setShowAdditional(true)}
-                    className="text-xs text-[#9CA3AF] underline mb-3"
+                    className="text-xs text-[#6E6962] underline mb-3"
                   >
                     더 담고 싶은 장면이 있어요
                   </button>
@@ -365,13 +366,13 @@ export default function MomentPage() {
                           <p className="text-xs text-[#92400E] mb-2">장면·스토리가 삭제돼요. 계속할까?</p>
                           <div className="flex gap-3">
                             <button onClick={handleEditScene} className="text-xs font-medium text-[#92400E]">계속</button>
-                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>
+                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
                           </div>
                         </div>
                       ) : (
                         <button onClick={() => setPendingConfirm('scene')} className="w-full text-left">
                           <p className="text-sm text-[#374151]">장면부터 다시</p>
-                          <p className="text-xs text-[#9CA3AF]">스토리 삭제됨</p>
+                          <p className="text-xs text-[#6E6962]">스토리 삭제됨</p>
                         </button>
                       )}
                     </div>
@@ -381,13 +382,13 @@ export default function MomentPage() {
                           <p className="text-xs text-[#92400E] mb-2">모든 내용이 삭제돼요. 계속할까?</p>
                           <div className="flex gap-3">
                             <button onClick={handleEditAnswers} className="text-xs font-medium text-[#92400E]">계속</button>
-                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#9CA3AF]">취소</button>
+                            <button onClick={() => setPendingConfirm(null)} className="text-xs text-[#6E6962]">취소</button>
                           </div>
                         </div>
                       ) : (
                         <button onClick={() => setPendingConfirm('answers')} className="w-full text-left">
                           <p className="text-sm text-[#374151]">답변부터 다시</p>
-                          <p className="text-xs text-[#9CA3AF]">모든 내용 삭제됨</p>
+                          <p className="text-xs text-[#6E6962]">모든 내용 삭제됨</p>
                         </button>
                       )}
                     </div>

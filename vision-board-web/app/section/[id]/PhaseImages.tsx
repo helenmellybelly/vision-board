@@ -85,7 +85,7 @@ export default function PhaseImages({ section, savedImages, onSave, onBack }: Pr
                   style={{ borderColor: section.color + '60' }}
                 >
                   <span className="text-xl" style={{ color: section.color }}>+</span>
-                  <span className="text-xs text-[#9CA3AF]">사진 {i + 1}</span>
+                  <span className="text-xs text-[#6E6962]">사진 {i + 1}</span>
                 </button>
               )}
               <input
@@ -99,7 +99,7 @@ export default function PhaseImages({ section, savedImages, onSave, onBack }: Pr
           ))}
         </div>
 
-        <p className="text-xs text-[#9CA3AF] text-center">
+        <p className="text-xs text-[#6E6962] text-center">
           사진은 이 기기에만 저장돼. 지금 고르기 어려우면 나중에 추가해도 돼.
         </p>
       </div>

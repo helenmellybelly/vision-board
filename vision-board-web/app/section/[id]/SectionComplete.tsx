@@ -1,5 +1,6 @@
 'use client';
 
+import { Sprout } from 'lucide-react';
 import { BoardData, Section, SectionId } from '@/lib/types';
 import { SECTIONS } from '@/lib/questions';
 
@@ -30,7 +31,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
         className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
         style={{ backgroundColor: section.lightColor }}
       >
-        <span className="text-2xl">🌱</span>
+        <Sprout size={28} strokeWidth={1.8} style={{ color: section.color }} aria-hidden="true" />
       </div>
 
       <h2 className="text-2xl font-bold mb-3">
@@ -41,11 +42,11 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
       </p>
 
       {allTextDone ? (
-        <p className="text-[#9CA3AF] text-sm mb-10">
+        <p className="text-[#6E6962] text-sm mb-10">
           6개 다 채웠어. 이제 전체를 한눈에 볼 수 있어.
         </p>
       ) : (
-        <p className="text-[#9CA3AF] text-sm mb-10">
+        <p className="text-[#6E6962] text-sm mb-10">
           {6 - completedCount}개 더 남았어. 다 끝나면 장면을 같이 그려볼게.
         </p>
       )}
@@ -64,7 +65,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
         </button>
         <button
           onClick={onDashboard}
-          className="w-full py-2 text-sm text-[#9CA3AF]"
+          className="w-full py-2 text-sm text-[#6E6962]"
         >
           잠깐 쉬고 올게
         </button>

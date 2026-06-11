@@ -96,7 +96,7 @@ export default function ProcessBar({ board }: Props) {
                   {step.short}
                 </span>
                 {isCurrent && (
-                  <span className="text-[9px] text-[#9CA3AF] leading-tight">{subLabel}</span>
+                  <span className="text-[9px] text-[#6E6962] leading-tight">{subLabel}</span>
                 )}
               </button>
               {!isLast && (

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { BookOpen, Pencil } from 'lucide-react';
+import useFocusTrap from './useFocusTrap';
 
 interface StoryModalProps {
   story: string;
   color: string;
-  /** 트리거 버튼 라벨 (기본: 📖 스토리 보기) */
+  /** 트리거 버튼 라벨 (기본: 스토리 보기) */
   label?: string;
   /** 모달 상단 제목 (기본: 라벨과 동일) */
   title?: string;
@@ -34,7 +36,7 @@ function renderStory(text: string) {
 export default function StoryModal({
   story,
   color,
-  label = '📖 스토리 보기',
+  label = '스토리 보기',
   title,
   triggerClassName = '',
   onSave,
@@ -42,6 +44,7 @@ export default function StoryModal({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const trapRef = useFocusTrap<HTMLDivElement>(open, close);
 
   function close() {
     setOpen(false);
@@ -58,9 +61,12 @@ export default function StoryModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className={`w-full rounded-xl border border-[#E5E3DF] bg-white px-4 py-2.5 text-xs text-[#9CA3AF] flex justify-between items-center active:opacity-70 ${triggerClassName}`}
+        className={`w-full rounded-xl border border-[#E5E3DF] bg-white px-4 py-2.5 text-xs text-[#6E6962] flex justify-between items-center active:opacity-70 ${triggerClassName}`}
       >
-        <span>{label}</span>
+        <span className="flex items-center gap-1.5">
+          <BookOpen size={13} strokeWidth={1.8} aria-hidden="true" />
+          {label}
+        </span>
         <span className="text-[10px]">↗</span>
       </button>
 
@@ -70,6 +76,10 @@ export default function StoryModal({
           onClick={close}
         >
           <div
+            ref={trapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title ?? label}
             className="w-full max-w-sm md:max-w-md rounded-2xl bg-white overflow-hidden shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -80,7 +90,7 @@ export default function StoryModal({
               <button
                 onClick={close}
                 aria-label="닫기"
-                className="w-7 h-7 rounded-full bg-[#F5F5F3] text-[#9CA3AF] text-sm flex items-center justify-center active:opacity-70"
+                className="w-7 h-7 rounded-full bg-[#F5F5F3] text-[#6E6962] text-sm flex items-center justify-center active:opacity-70"
               >
                 ×
               </button>
@@ -121,7 +131,7 @@ export default function StoryModal({
                   </button>
                   <button
                     onClick={() => setEditing(false)}
-                    className="px-4 py-2.5 rounded-xl text-xs text-[#9CA3AF] border border-[#E5E3DF]"
+                    className="px-4 py-2.5 rounded-xl text-xs text-[#6E6962] border border-[#E5E3DF]"
                   >
                     취소
                   </button>
@@ -133,9 +143,10 @@ export default function StoryModal({
                       setDraft(story);
                       setEditing(true);
                     }}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-medium text-[#374151] border border-[#E5E3DF] active:opacity-70"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-medium text-[#374151] border border-[#E5E3DF] active:opacity-70 flex items-center justify-center gap-1.5"
                   >
-                    ✏️ 직접 수정하기
+                    <Pencil size={12} strokeWidth={1.8} aria-hidden="true" />
+                    직접 수정하기
                   </button>
                 )
               )}

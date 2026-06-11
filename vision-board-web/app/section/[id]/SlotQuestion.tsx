@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { Section, Slot, SlotAnswer } from '@/lib/types';
 
 interface Props {
@@ -65,7 +66,7 @@ export default function SlotQuestion({
             {slotIndex + 1} / {totalSlots}
           </span>
           {isEditing && (
-            <span className="text-xs text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-full">수정 중</span>
+            <span className="text-xs text-[#6E6962] bg-[#F3F4F6] px-2 py-0.5 rounded-full">수정 중</span>
           )}
         </div>
 
@@ -74,7 +75,7 @@ export default function SlotQuestion({
         {/* 예시 — 기본 노출 */}
         {slot.example && (
           <div className="text-sm text-[#6B7280] bg-[#F9F8F6] rounded-xl px-3 py-2.5 leading-relaxed">
-            <span className="text-xs font-semibold text-[#9CA3AF] mr-1">예)</span>
+            <span className="text-xs font-semibold text-[#6E6962] mr-1">예)</span>
             {slot.example}
           </div>
         )}
@@ -95,7 +96,7 @@ export default function SlotQuestion({
               onClick={() => setShowHelp((v) => !v)}
               className="flex items-center gap-1.5 text-sm text-[#6B7280]"
             >
-              <span className="text-base">💬</span>
+              <MessageCircle size={16} strokeWidth={1.8} aria-hidden="true" />
               <span>{showHelp ? '닫기' : '막막해요, 도와줘'}</span>
             </button>
             {showHelp && (
@@ -132,7 +133,7 @@ export default function SlotQuestion({
         {/* 스킵 */}
         <button
           onClick={onSkip}
-          className="w-full py-2 text-sm text-[#9CA3AF]"
+          className="w-full py-2 text-sm text-[#6E6962]"
         >
           {isLastSlot ? '이건 나중에 답할게' : '나중에 답할게'}
         </button>

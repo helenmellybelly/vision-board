@@ -17,10 +17,10 @@ const STATUS_LABEL: Record<SectionStatus, string> = {
 };
 
 const STATUS_STYLE: Record<SectionStatus, { bg: string; text: string }> = {
-  not_started: { bg: '#F3F4F6', text: '#9CA3AF' },
-  in_progress: { bg: '#FEF9C3', text: '#D97706' },
-  text_complete: { bg: '#DBEAFE', text: '#2563EB' },
-  completed: { bg: '#D1FAE5', text: '#059669' },
+  not_started: { bg: '#F3F4F6', text: '#6E6962' },
+  in_progress: { bg: '#FEF9C3', text: '#B45309' },
+  text_complete: { bg: '#DBEAFE', text: '#1D4ED8' },
+  completed: { bg: '#D1FAE5', text: '#047857' },
 };
 
 export default function DashboardPage() {
@@ -47,7 +47,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <img
-                src="/프로필상반신.png"
+                src="/tori-profile-bust.png"
                 alt="토리"
                 className="w-7 h-7 rounded-full object-cover"
               />
@@ -113,7 +113,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="font-semibold text-sm">{section.shortTitle ?? section.title.split(' — ')[0]}</p>
                         {section.title.split(' — ')[1] && (
-                          <p className="text-xs text-[#9CA3AF] mt-0.5">{section.title.split(' — ')[1]}</p>
+                          <p className="text-xs text-[#6E6962] mt-0.5">{section.title.split(' — ')[1]}</p>
                         )}
                       </div>
                     </div>

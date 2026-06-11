@@ -87,14 +87,15 @@ export default function ScenePage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push(`/section/${sectionId}`)}
-            className="text-[#9CA3AF] text-lg leading-none mr-1 active:opacity-60"
+            aria-label="대화 단계로 돌아가기"
+            className="text-[#6E6962] text-lg leading-none mr-1 active:opacity-60"
           >
             ‹
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
           <span className="font-semibold text-sm">{section.title.split(' — ')[0]} · 장면</span>
         </div>
-        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#9CA3AF] py-1">
+        <button onClick={() => router.push('/dashboard')} className="text-xs text-[#6E6962] py-1">
           대시보드로
         </button>
       </header>
@@ -105,7 +106,7 @@ export default function ScenePage() {
         {slotEntries.length > 0 && (
           <div className="mb-4 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
             <div className="px-4 pt-3 pb-1">
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2.5">
+              <p className="text-[11px] font-semibold text-[#6E6962] uppercase tracking-wide mb-2.5">
                 네가 말해준 것들
               </p>
               <div className="space-y-1.5 pb-3">
@@ -142,7 +143,7 @@ export default function ScenePage() {
         {/* 예시 답변 패널 */}
         {examples.length > 0 && !submitted && (
           <div className="mb-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3">
-            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">
+            <p className="text-[11px] font-semibold text-[#6E6962] uppercase tracking-wide mb-2">
               이런 식으로 써봐
             </p>
             <div className="space-y-1">
@@ -170,7 +171,7 @@ export default function ScenePage() {
             <ChatBubble role="user" content={sceneText} />
 
             <div className="mt-4 bg-[#F5F5F3] rounded-2xl p-4 mb-4">
-              <p className="text-[11px] text-[#9CA3AF] font-semibold mb-2 uppercase tracking-wide">
+              <p className="text-[11px] text-[#6E6962] font-semibold mb-2 uppercase tracking-wide">
                 완성된 장면
               </p>
               <p className="text-sm leading-relaxed">{sceneText}</p>

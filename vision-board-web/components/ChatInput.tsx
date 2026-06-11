@@ -48,7 +48,7 @@ export default function ChatInput({ onSend, disabled, placeholder = '여기에 �
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 resize-none text-sm leading-relaxed bg-white border border-[#E5E3DF] focus:border-[#1C1B19] transition-colors rounded-xl px-3 py-2.5 outline-none max-h-32 overflow-y-auto placeholder:text-[#9CA3AF]"
+          className="flex-1 resize-none text-[15px] md:text-sm leading-relaxed bg-white border border-[#E5E3DF] focus:border-[#1C1B19] transition-colors rounded-xl px-3 py-2.5 outline-none max-h-32 overflow-y-auto placeholder:text-[#6E6962]"
           style={{ color: '#1C1B19' }}
         />
         <button

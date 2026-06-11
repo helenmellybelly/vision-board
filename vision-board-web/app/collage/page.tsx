@@ -46,7 +46,7 @@ export default function CollagePage() {
           </button>
           <h1 className="text-xl font-bold">한눈에 보기</h1>
         </div>
-        <p className="text-xs text-[#9CA3AF] pl-8">내 비전보드를 하나로.</p>
+        <p className="text-xs text-[#6E6962] pl-8">내 비전보드를 하나로.</p>
       </div>
 
       <div className="px-4 md:px-6 animate-fadeIn">
@@ -62,7 +62,7 @@ export default function CollagePage() {
           />
         ) : (
           <div className="text-center py-16">
-            <p className="text-sm text-[#9CA3AF]">
+            <p className="text-sm text-[#6E6962]">
               아직 담긴 사진이 없어.
               <br />
               비전보드에 사진을 1개 이상 올리면 여기서 볼 수 있어.
@@ -83,7 +83,7 @@ export default function CollagePage() {
               <span className="font-semibold text-sm">미래의 하루 이야기</span>
               <button
                 onClick={() => router.push('/finish')}
-                className="text-xs text-[#9CA3AF] active:opacity-70"
+                className="text-xs text-[#6E6962] active:opacity-70"
               >
                 다시 쓰러 가기 →
               </button>
@@ -91,7 +91,7 @@ export default function CollagePage() {
             <StoryModal
               story={board.futureDayStory}
               color="#1C1B19"
-              label="📖 미래의 하루 읽기"
+              label="미래의 하루 읽기"
               title="미래의 하루 이야기"
               onSave={(s) => {
                 saveFutureDayStory(s);
@@ -107,7 +107,7 @@ export default function CollagePage() {
             >
               내 비전보드 완성하기 🐿️
             </button>
-            <p className="text-[11px] text-[#9CA3AF] text-center">
+            <p className="text-[11px] text-[#6E6962] text-center">
               완성하면 미래의 하루 이야기를 써줄게.
             </p>
           </div>

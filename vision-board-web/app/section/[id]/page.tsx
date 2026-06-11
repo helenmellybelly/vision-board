@@ -143,7 +143,8 @@ export default function SectionChatPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-lg text-[#9CA3AF] pr-1 leading-none"
+            aria-label="대시보드로 돌아가기"
+            className="text-lg text-[#6E6962] pr-1 leading-none"
           >
             ←
           </button>
@@ -152,11 +153,11 @@ export default function SectionChatPage() {
         </div>
         <div className="flex items-center gap-3">
           {savedIndicator && (
-            <span className="text-[11px] text-[#9CA3AF] animate-fadeIn">✓ 저장됨</span>
+            <span className="text-[11px] text-[#6E6962] animate-fadeIn">✓ 저장됨</span>
           )}
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-xs text-[#9CA3AF] py-1"
+            className="text-xs text-[#6E6962] py-1"
           >
             대시보드로
           </button>
@@ -193,7 +194,7 @@ export default function SectionChatPage() {
                       </button>
                       <button
                         onClick={() => setEditingKey(null)}
-                        className="text-xs text-[#9CA3AF]"
+                        className="text-xs text-[#6E6962]"
                       >
                         취소
                       </button>
@@ -207,7 +208,7 @@ export default function SectionChatPage() {
                   {phase === 'questions' && (
                     <button
                       onClick={() => { setEditingKey(msgKey); setEditValue(msg.text); }}
-                      className="text-[10px] text-[#C9C5BE] mt-0.5 pr-1 active:text-[#9CA3AF]"
+                      className="text-[10px] text-[#6E6962] mt-0.5 pr-1 active:text-[#1C1B19]"
                     >
                       수정
                     </button>
@@ -242,7 +243,7 @@ export default function SectionChatPage() {
                     return (
                       <div key={q.key} className="px-4 py-2.5">
                         <div className="flex gap-3">
-                          <p className="text-[11px] text-[#9CA3AF] w-20 shrink-0 pt-0.5 font-medium">
+                          <p className="text-[11px] text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">
                             {q.label}
                           </p>
                           {editingKey === q.key ? (
@@ -263,7 +264,7 @@ export default function SectionChatPage() {
                                 </button>
                                 <button
                                   onClick={() => setEditingKey(null)}
-                                  className="text-xs text-[#9CA3AF]"
+                                  className="text-xs text-[#6E6962]"
                                 >
                                   취소
                                 </button>
@@ -274,7 +275,7 @@ export default function SectionChatPage() {
                               <p className="text-sm leading-relaxed text-[#1C1B19]">{val}</p>
                               <button
                                 onClick={() => { setEditingKey(q.key); setEditValue(val); setShowDownstreamWarning(false); }}
-                                className="text-[10px] text-[#C9C5BE] shrink-0 pt-0.5 active:text-[#9CA3AF]"
+                                className="text-[10px] text-[#6E6962] shrink-0 pt-0.5 active:text-[#1C1B19]"
                               >
                                 수정
                               </button>
@@ -301,7 +302,7 @@ export default function SectionChatPage() {
                     </button>
                     <button
                       onClick={() => setShowDownstreamWarning(false)}
-                      className="text-xs text-[#9CA3AF]"
+                      className="text-xs text-[#6E6962]"
                     >
                       나중에
                     </button>
@@ -333,7 +334,7 @@ export default function SectionChatPage() {
         <div className="shrink-0 border-t border-[#F5F5F3] bg-[#FAF9F7] px-4 pt-3 pb-4">
           {showHelp && (
             <div className="mb-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">
+              <p className="text-[11px] font-semibold text-[#6E6962] uppercase tracking-wide mb-2">
                 이런 각도로 생각해봐
               </p>
               <div className="space-y-1.5">
@@ -345,7 +346,7 @@ export default function SectionChatPage() {
               </div>
               <button
                 onClick={() => setShowHelp(false)}
-                className="text-xs text-[#9CA3AF] mt-2.5 block"
+                className="text-xs text-[#6E6962] mt-2.5 block"
               >
                 닫기
               </button>

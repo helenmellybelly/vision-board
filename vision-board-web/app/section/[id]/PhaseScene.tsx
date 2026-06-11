@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { Section, Slot, SlotAnswer } from '@/lib/types';
 
 interface Props {
@@ -59,7 +60,7 @@ export default function PhaseScene({ section, slot, keyword, savedAnswer, onSave
             onClick={() => setShowHelp((v) => !v)}
             className="flex items-center gap-1.5 text-sm text-[#6B7280]"
           >
-            <span className="text-base">💬</span>
+            <MessageCircle size={16} strokeWidth={1.8} aria-hidden="true" />
             <span>{showHelp ? '닫기' : '도움이 필요해요'}</span>
           </button>
           {showHelp && (
