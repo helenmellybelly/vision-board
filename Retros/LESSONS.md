@@ -107,6 +107,12 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 ### 고정 높이 flex 부모 안의 `min-h-full + justify-center` 래퍼는 `flex-shrink-0`이 없으면 위아래가 잘린다 #coding #css
 스크롤 컨테이너(`flex-1 min-h-0 overflow-y-auto`) 안에 `min-h-full flex flex-col justify-center` 래퍼를 두면, 콘텐츠가 넘칠 때 래퍼가 기본 flex-shrink:1로 부모 높이까지 줄어들어 justify-center가 위아래 양방향으로 클리핑한다 — scrollTop이 0인데도 첫 요소에 도달 불가. 래퍼에 `flex-shrink-0`을 함께 줘야 "콘텐츠가 적으면 중앙 정렬, 넘치면 전체 스크롤"이 된다.
 
+### Tailwind v4에서 globals.css의 레이어 밖 규칙은 유틸리티를 항상 이긴다 #coding #css #tailwind
+Tailwind v4 유틸리티는 `@layer utilities` 안에 있어서, globals.css에 레이어 없이 쓴 전역 규칙(예: `:focus-visible { outline: 2px solid }`)이 특이도와 무관하게 `outline-none` 같은 유틸리티를 덮어쓴다 — autoFocus 입력칸에 보더+아웃라인 이중선이 생긴 원인. 전역 규칙을 추가할 때는 유틸리티로 끌 수 없다는 걸 전제로 예외 셀렉터를 함께 정의하거나 `@layer base`에 넣어라.
+
+### 뷰포트 맞춤은 고정 px 압축보다 이미지가 잔여 공간을 흡수하는 flex 구조가 안정적이다 #coding #css #ux
+콘텐츠가 화면을 넘칠 때 폰트·패딩을 px 단위로 깎는 방식은 뷰포트마다 다시 깨진다(667px 잡으면 720px이 깨지는 식). 텍스트·CTA는 고정하고 이미지에 `flex-1 min-h-[하한] max-h-[상한]`을 줘서 남는 공간을 흡수시키면 한 번의 구조 변경으로 모든 뷰포트가 맞는다 — 온보딩 Act 3·Act 4 공통 패턴.
+
 ## Next.js / React
 
 ### 부모 컴포넌트 안에 중첩 컴포넌트를 정의하면 매 렌더마다 remount된다 #coding #react
