@@ -1,5 +1,14 @@
 import type { Metadata, Viewport } from 'next';
+import { Gowun_Batang } from 'next/font/google';
 import './globals.css';
+
+// 디스플레이 서체 — 히어로·온보딩 핵심 문장·폴라로이드 캡션 등 "일지" 정서가 필요한 곳에만 사용
+const gowunBatang = Gowun_Batang({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-display',
+});
 
 export const metadata: Metadata = {
   title: '비전보드',
@@ -17,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full">
+    <html lang="ko" className={`h-full ${gowunBatang.variable}`}>
       <head>
         <link
           rel="stylesheet"

@@ -49,19 +49,19 @@ const VISION_CARDS: { icon: LucideIcon; title: string; desc: string; color: stri
     icon: Brain,
     title: '원하는 삶을 현실로 믿게 해줘',
     desc: '비전보드를 매일 보다 보면, 뇌는 그걸 이미 경험한 것처럼 받아들이기 시작해.',
-    color: '#8B5CF6',
+    color: '#7C6BAE',
   },
   {
     icon: Compass,
     title: '삶의 방향을 잡아줘',
     desc: '흔들릴 때마다 내가 원하는 방향으로 다시 돌아오게 해줘. 내 삶의 주도권을 내 손에 쥐게 해줘.',
-    color: '#10B981',
+    color: '#4F7A5F',
   },
   {
     icon: Sparkles,
     title: '되고 싶은 나를 그려줘',
     desc: '어떤 사람이 되고 싶은지 정의하고, 어떤 습관을 들이고 무엇을 멀리할지 살피며 살게 돼.',
-    color: '#F59E0B',
+    color: '#A8722A',
   },
 ];
 
@@ -194,12 +194,12 @@ function CompareSwipeCard() {
 }
 
 const SIX_AREAS = [
-  { label: '나', desc: '감정·성장·정체성', color: '#8B5CF6' },
-  { label: '건강', desc: '몸·마음·루틴', color: '#10B981' },
-  { label: '관계', desc: '사랑·우정·연결', color: '#F59E0B' },
-  { label: '일', desc: '일·배움·성취', color: '#3B82F6' },
-  { label: '돈', desc: '소비·저축·가치', color: '#F97316' },
-  { label: '공간', desc: '환경·물건·분위기', color: '#06B6D4' },
+  { label: '나', desc: '감정·성장·정체성', color: '#7C6BAE' },
+  { label: '건강', desc: '몸·마음·루틴', color: '#4F7A5F' },
+  { label: '관계', desc: '사랑·우정·연결', color: '#A8722A' },
+  { label: '일', desc: '일·배움·성취', color: '#5577A8' },
+  { label: '돈', desc: '소비·저축·가치', color: '#B05A36' },
+  { label: '공간', desc: '환경·물건·분위기', color: '#3E7E8A' },
 ];
 
 const TOTAL_ACTS = 5; // Act 1~5 진행 점 표시
@@ -430,7 +430,7 @@ export default function OnboardingPage() {
                         : 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 opacity-60'
                     }
                   >
-                    <p className="text-sm leading-relaxed whitespace-pre-line">
+                    <p className="font-display text-[15px] leading-[1.8] whitespace-pre-line">
                       {ACORN_MESSAGES[i](name)}
                     </p>
                   </div>
@@ -520,7 +520,7 @@ export default function OnboardingPage() {
           <div className="flex-1 flex flex-col justify-center space-y-6">
             <div className="space-y-1">
               <p className="text-xs text-[#6E6962] font-medium">이게 왜 효과 있는지 보여줄게.</p>
-              <p className="text-2xl font-bold text-[#1C1B19] leading-snug">막연함과 선명함의 차이</p>
+              <p className="font-display text-2xl font-bold text-[#1C1B19] leading-snug">막연함과 선명함의 차이</p>
             </div>
 
             <CompareSwipeCard />

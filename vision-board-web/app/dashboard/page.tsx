@@ -90,6 +90,10 @@ export default function DashboardPage() {
             const statusStyle = STATUS_STYLE[status];
             const isCompleted = status === 'completed';
             const isTextDone = status === 'text_complete' || status === 'completed';
+            // 완성된 섹션은 폴라로이드 썸네일로 콜라주의 룩을 미리 보여준다
+            const thumb = isCompleted
+              ? sectionData.uploadedImages?.find(Boolean) ?? sectionData.generatedImages?.find(Boolean)
+              : undefined;
 
             return (
               <button
@@ -104,12 +108,21 @@ export default function DashboardPage() {
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: isCompleted ? section.color + '20' : section.lightColor }}
-                      >
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: section.color }} />
-                      </div>
+                      {thumb ? (
+                        <div
+                          className="bg-white p-0.5 pb-1.5 rounded-sm shadow-sm flex-shrink-0 -rotate-2"
+                          style={{ border: '1px solid #E5E3DF' }}
+                        >
+                          <img src={thumb} alt="" className="w-8 h-8 object-cover" />
+                        </div>
+                      ) : (
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: isCompleted ? section.color + '20' : section.lightColor }}
+                        >
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: section.color }} />
+                        </div>
+                      )}
                       <div>
                         <p className="font-semibold text-sm">{section.shortTitle ?? section.title.split(' — ')[0]}</p>
                         {section.title.split(' — ')[1] && (

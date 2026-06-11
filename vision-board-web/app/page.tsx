@@ -4,8 +4,56 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard } from '@/lib/storage';
 
-const SECTION_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#3B82F6', '#F97316', '#06B6D4'];
+const SECTION_COLORS = ['#7C6BAE', '#4F7A5F', '#A8722A', '#5577A8', '#B05A36', '#3E7E8A'];
 const SECTION_NAMES = ['나', '건강', '관계', '일', '돈', '공간'];
+const SECTION_LIGHT_COLORS = ['#EFEDF5', '#EAEFEC', '#F5EFE5', '#EBEFF5', '#F5EBE7', '#E8F0F1'];
+
+// 콜라주와 동일한 폴라로이드 언어 — 완성본의 룩을 히어로에서 미리 보여준다
+const HERO_ROTATIONS = [-2.5, 1.5, -1.5, 2, -2, 2.5];
+
+function HeroBoard() {
+  return (
+    <div className="rounded-3xl px-4 py-5" style={{ backgroundColor: '#2D2B29' }}>
+      <div className="grid grid-cols-3 gap-3 items-center">
+        {SECTION_NAMES.slice(0, 3).map((name, i) => (
+          <HeroPolaroid key={name} name={name} index={i} />
+        ))}
+        <div className="col-span-3 flex flex-col items-center justify-center text-center py-2.5 select-none">
+          <p className="text-[10px] font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase">
+            Vision Board
+          </p>
+          <p className="font-display text-lg font-bold text-white tracking-widest mt-0.5">
+            나의 해
+          </p>
+        </div>
+        {SECTION_NAMES.slice(3).map((name, i) => (
+          <HeroPolaroid key={name} name={name} index={i + 3} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HeroPolaroid({ name, index }: { name: string; index: number }) {
+  return (
+    <div
+      className="bg-white p-1 pb-0.5 rounded-sm shadow-md animate-slideUp"
+      style={{
+        transform: `rotate(${HERO_ROTATIONS[index]}deg)`,
+        animationDelay: `${200 + index * 130}ms`,
+        animationFillMode: 'backwards',
+      }}
+    >
+      <div
+        className="w-full aspect-square flex items-center justify-center"
+        style={{ backgroundColor: SECTION_LIGHT_COLORS[index] }}
+      >
+        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SECTION_COLORS[index] }} />
+      </div>
+      <p className="font-display text-[10px] text-center text-[#57534E] py-1">{name}</p>
+    </div>
+  );
+}
 
 const CAROUSEL_IMAGES = [
   {
@@ -50,31 +98,32 @@ export default function LandingPage() {
   return (
     <main className="flex flex-col max-w-md md:max-w-xl mx-auto w-full">
 
-      {/* Hero */}
-      <section className="flex flex-col justify-center px-6 pt-16 pb-12 min-h-screen">
+      {/* Hero — 완성될 비전보드(폴라로이드 보드)를 첫 화면에서 미리 보여준다 */}
+      <section className="flex flex-col justify-center px-6 pt-14 pb-12 min-h-screen">
         <div className="animate-fadeIn">
-          <img
-            src="/tori-profile-bust.png"
-            alt="정원사 토리"
-            className="w-14 h-14 rounded-2xl object-cover mb-8"
-            style={{ boxShadow: '0 8px 24px rgba(28,27,25,0.18)' }}
-          />
-          <p className="text-sm text-[#6E6962] mb-3">정원사 토리</p>
-          <h1 className="text-3xl font-bold leading-tight mb-4">
+          <div className="flex items-center gap-3 mb-6">
+            <img
+              src="/tori-profile-bust.png"
+              alt="정원사 토리"
+              className="w-11 h-11 rounded-2xl object-cover"
+              style={{ boxShadow: '0 6px 18px rgba(28,27,25,0.16)' }}
+            />
+            <p className="text-sm text-[#6E6962]">정원사 토리</p>
+          </div>
+          <h1 className="font-display text-[32px] font-bold leading-snug mb-4">
             비전보드는<br />
             그리고 싶은 내 인생의<br />
             그림이에요.
           </h1>
-          <p className="text-[#6B7280] leading-relaxed mb-4 text-sm">
+          <p className="text-[#6B7280] leading-relaxed mb-6 text-sm">
             처음부터 이미지를 찾을 필요 없어요.<br />
             질문을 따라가다 보면, 어느새 완성됩니다.
           </p>
-          <div className="mb-10 p-3 rounded-xl" style={{ backgroundColor: '#F5F5F3' }}>
-            <p className="text-xs text-[#6E6962] font-semibold mb-1">예를 들면 이런 질문부터</p>
-            <p className="text-sm leading-relaxed text-[#6B7280]">
-              &ldquo;인생 버킷리스트, 떠오르는 대로 써봐.&rdquo;
-            </p>
+
+          <div className="mb-6">
+            <HeroBoard />
           </div>
+
           <button
             onClick={() => router.push('/onboarding')}
             className="w-full py-4 rounded-2xl text-base font-semibold text-white"
@@ -82,7 +131,7 @@ export default function LandingPage() {
           >
             나 발견하러 가기 →
           </button>
-          <p className="text-center text-xs text-[#C4C2BE] mt-3">무료 · 가입 없이 바로 시작</p>
+          <p className="text-center text-xs text-[#6E6962] mt-3">무료 · 가입 없이 바로 시작</p>
         </div>
       </section>
 
@@ -98,16 +147,21 @@ export default function LandingPage() {
             style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
           >
             {CAROUSEL_IMAGES.map((img, i) => (
-              <div key={i} className="min-w-full flex flex-col items-center gap-3">
-                <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
-                  <img
-                    src={img.src}
-                    alt={img.label}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
+              <div key={i} className="min-w-full flex justify-center px-2 py-3">
+                <div
+                  className="w-full bg-white p-2 pb-3 rounded-sm shadow-md"
+                  style={{ transform: `rotate(${i % 2 === 0 ? -1.5 : 1.5}deg)` }}
+                >
+                  <div className="w-full aspect-[4/3] overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
+                    <img
+                      src={img.src}
+                      alt={img.label}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <p className="font-display text-sm text-center text-[#57534E] pt-2.5">{img.label}</p>
                 </div>
-                <p className="text-sm font-semibold text-[#6B7280]">{img.label}</p>
               </div>
             ))}
           </div>
@@ -240,7 +294,7 @@ export default function LandingPage() {
           className="w-12 h-12 rounded-2xl object-cover mx-auto mb-6"
           style={{ boxShadow: '0 8px 24px rgba(28,27,25,0.12)' }}
         />
-        <h2 className="text-2xl font-bold mb-2">지금, 첫 질문 하나부터.</h2>
+        <h2 className="font-display text-2xl font-bold mb-2">지금, 첫 질문 하나부터.</h2>
         <p className="text-sm text-[#6B7280] mb-8">막연해도 괜찮아. 토리가 물어볼게.</p>
         <button
           onClick={() => router.push('/onboarding')}
@@ -249,7 +303,7 @@ export default function LandingPage() {
         >
           나 발견하러 가기 →
         </button>
-        <p className="text-xs text-[#C4C2BE] mt-3">무료 · 가입 없이 바로 시작</p>
+        <p className="text-xs text-[#6E6962] mt-3">무료 · 가입 없이 바로 시작</p>
       </section>
 
     </main>

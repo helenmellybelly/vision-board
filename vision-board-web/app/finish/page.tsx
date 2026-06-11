@@ -127,7 +127,7 @@ export default function FinishPage() {
         <div className="flex-1 flex flex-col justify-center space-y-6">
           <div>
             <p className="text-sm text-[#6E6962] mb-2">네 비전을 한 문장으로.</p>
-            <h2 className="text-2xl font-bold leading-snug">
+            <h2 className="font-display text-2xl font-bold leading-snug">
               3년 뒤 나는<br />어떤 사람으로 살고 있어?
             </h2>
           </div>

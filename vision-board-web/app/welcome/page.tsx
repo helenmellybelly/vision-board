@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard, markWelcomeSeen } from '@/lib/storage';
 
-const SECTION_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#3B82F6', '#F97316', '#06B6D4'];
+const SECTION_COLORS = ['#7C6BAE', '#4F7A5F', '#A8722A', '#5577A8', '#B05A36', '#3E7E8A'];
 
 const PHASES = [
   {

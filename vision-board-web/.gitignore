@@ -47,3 +47,6 @@ next-env.d.ts
 
 # QA screenshots
 /verify-shots/
+
+# UI review screenshots
+/.screenshots/

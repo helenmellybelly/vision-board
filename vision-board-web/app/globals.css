@@ -44,6 +44,12 @@ textarea {
   resize: none;
 }
 
+/* 디스플레이 서체 — 절제해서 사용: 히어로 헤드라인, 온보딩 핵심 문장, 폴라로이드 캡션, 마무리 한 문장 */
+.font-display {
+  font-family: var(--font-display), 'Gowun Batang', serif;
+  letter-spacing: -0.01em;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

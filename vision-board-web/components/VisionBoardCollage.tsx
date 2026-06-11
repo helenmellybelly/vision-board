@@ -75,14 +75,14 @@ export default function VisionBoardCollage({ images, year, onYearChange, compact
               onBlur={commitYear}
               onKeyDown={(e) => e.key === 'Enter' && commitYear()}
               autoFocus
-              className={`w-32 mt-1 bg-transparent text-center font-bold text-white outline-none border-b border-[#C4C2BE] ${
+              className={`font-display w-32 mt-1 bg-transparent text-center font-bold text-white outline-none border-b border-[#C4C2BE] ${
                 compact ? 'text-4xl' : 'text-4xl md:text-5xl'
               }`}
             />
           ) : (
             <button
               onClick={() => { setYearInput(year); setEditing(true); }}
-              className={`mt-1 font-bold text-white tracking-widest active:opacity-70 ${
+              className={`font-display mt-1 font-bold text-white tracking-widest active:opacity-70 ${
                 compact ? 'text-4xl' : 'text-4xl md:text-5xl'
               }`}
               title="연도 수정"
