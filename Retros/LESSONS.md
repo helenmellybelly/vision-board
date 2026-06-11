@@ -28,6 +28,9 @@
 
 ## Tooling / 미디어 처리
 
+### Canvas 레이아웃은 절대좌표 대신 rect(zone)+scale 파라미터로 짜야 비율 타깃 추가가 싸다 #coding #canvas
+배경화면 렌더에 y좌표를 하드코딩했더니 PC 가로형(1920×1080) 추가 시 전 함수 시그니처를 고쳐야 했다. 처음부터 그리기 헬퍼를 rect(x0,x1,y0,y1)+scale 인자로 일반화하면 기존 타깃 출력은 픽셀 동일하게 유지하면서 새 비율은 호출부 좌표 테이블만 추가하면 된다.
+
 ### MP4는 브라우저에서 투명 배경 불가 — ffmpeg colorkey로 WebM 변환이 표준 해결책 #coding #video
 ffmpeg `colorkey=white:similarity:blend` + `-pix_fmt yuva420p` + WebM VP9 조합이 웹 투명 영상의 실용적 경로. similarity 낮춤(0.15)으로 캐릭터 하이라이트 보존, blend 높임(0.25)으로 경계 부드럽게. `<source src=".webm">` 우선, MP4 fallback 구조로 크로스브라우저 대응.
 
@@ -100,6 +103,9 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 `addInitScript`로 localStorage를 시드하면 `reload()`·`goto()` 때마다 다시 실행되어 앱이 저장한 값을 시드로 덮어쓴다. "수정 후 새로고침 유지" 같은 영속성 검증이 앱 버그처럼 보이는 거짓 실패를 만든다. `if (!localStorage.getItem(key))` 가드를 넣어 최초 1회만 시드할 것. 같은 텍스트가 반응형 중복 렌더(모바일/웹 블록)로 2곳에 있으면 `getByText().isVisible()`이 strict mode 위반으로 false가 되므로 `.all()` 순회로 검사한다.
 
 ## Design System
+
+### 이름만 비슷한 토큰-서체 클래스 쌍은 grep 가드로 기계 검증해야 한다 #coding #css #design-tokens
+크기 토큰 `text-display`와 서체 클래스 `font-display`는 별개라 서체 쪽 누락이 8곳에서 반복됐고, 페이지마다 헤드라인 폰트가 달라 보이는 원인이 됐다. "반드시 페어링" 규칙을 문서에만 쓰면 재발한다 — 라인 단위 grep 가드 스크립트(`scripts/check-typography.js`)를 verify에 연결해 기계적으로 막아야 한다.
 
 ### 인라인 Tailwind hex는 팔레트 교체를 전수 치환 작업으로 만든다 #coding #css #design-tokens
 `text-[#9CA3AF]` 같은 arbitrary hex가 26개 파일 129곳에 퍼져 있어 대비 수정이 일괄 정규식 치환 + 예외 수작업이 됐고, 섹션 6색도 questions.ts 외 3개 파일에 하드코딩 중복이라 4곳 동기 수정이 필요했다. 색은 globals.css CSS 변수(Tailwind v4 `text-(--var)` 지원) 또는 단일 소스 모듈에서만 정의하고 컴포넌트는 참조만 하게 할 것.
