@@ -486,12 +486,13 @@ export default function OnboardingPage() {
         {act === 4 && (
           <div className="flex-1 min-h-0 overflow-y-auto scroll-soft flex flex-col">
           <div className="min-h-full flex-shrink-0 flex flex-col justify-center">
-            <p className="text-title font-bold text-[#1C1B19] leading-snug flex-shrink-0 mb-2">막연함과 선명함의 차이</p>
+            <p className="text-title font-bold text-[#1C1B19] leading-snug flex-shrink-0 mb-2 [@media(min-height:700px)]:mb-3">막연함과 선명함의 차이</p>
 
             <CompareAutoCard />
 
-            {/* 핵심 메시지 — 이미지의 결론이므로 카드에 바짝 붙인다 */}
-            <div className="text-center px-2 flex-shrink-0 mt-2">
+            {/* 핵심 메시지 — 카드와 한 호흡 띄운다 (v6.16 간격 피드백: 너무 붙어 보임)
+                667px급 단신 뷰포트는 이미지가 이미 최소 높이라 간격을 한 단계만 늘린다 */}
+            <div className="text-center px-2 flex-shrink-0 mt-3 [@media(min-height:700px)]:mt-5">
               <p className="text-body text-[#1C1B19] leading-snug">
                 원하는 것이 뚜렷해지는 순간, <span className="font-bold">뇌는 그쪽으로 움직이기 시작해.</span>
               </p>
@@ -499,13 +500,13 @@ export default function OnboardingPage() {
             </div>
 
             {/* 비전보드를 하면 좋은 이유 — 새 주제 블록이므로 위쪽에 더 큰 호흡 */}
-            <div className="space-y-1.5 flex-shrink-0 mt-3">
+            <div className="space-y-1.5 [@media(min-height:700px)]:space-y-2 flex-shrink-0 mt-4 [@media(min-height:700px)]:mt-6">
               <p className="text-body font-bold text-[#1C1B19]">비전보드를 하면 좋은 이유</p>
               <div className="space-y-1.5">
                 {VISION_CARDS.map((card) => (
                   <div
                     key={card.title}
-                    className="flex items-start gap-3 rounded-xl bg-white px-4 py-1.5 border border-[#E5E3DF]"
+                    className="flex items-start gap-3 rounded-xl bg-white px-4 py-1 [@media(min-height:700px)]:py-1.5 border border-[#E5E3DF]"
                     style={{ borderLeft: `3px solid ${card.color}` }}
                   >
                     <card.icon size={20} strokeWidth={1.8} className="flex-shrink-0 mt-0.5" style={{ color: card.color }} aria-hidden="true" />
@@ -520,7 +521,7 @@ export default function OnboardingPage() {
 
             <button
               onClick={() => goToAct(5)}
-              className="w-full py-3 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80 flex-shrink-0 mt-3"
+              className="w-full py-2.5 [@media(min-height:700px)]:py-3 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80 flex-shrink-0 mt-4 [@media(min-height:700px)]:mt-5"
               style={{ backgroundColor: '#1C1B19' }}
             >
               오, 그렇구나
