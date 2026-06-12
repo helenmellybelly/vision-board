@@ -16,11 +16,12 @@ const STATUS_LABEL: Record<SectionStatus, string> = {
   completed: '완성',
 };
 
+// 뉴트럴 단계 + 완성만 잉크 솔리드 — 색은 섹션 도트가 전담해 어떤 파스텔 카드 배경과도 충돌하지 않는다
 const STATUS_STYLE: Record<SectionStatus, { bg: string; text: string }> = {
   not_started: { bg: '#F3F4F6', text: '#6E6962' },
-  in_progress: { bg: '#FEF9C3', text: '#B45309' },
-  text_complete: { bg: '#DBEAFE', text: '#1D4ED8' },
-  completed: { bg: '#D1FAE5', text: '#047857' },
+  in_progress: { bg: '#F0EFEC', text: '#1C1B19' },
+  text_complete: { bg: '#E5E3DF', text: '#1C1B19' },
+  completed: { bg: '#1C1B19', text: '#FFFFFF' },
 };
 
 export default function DashboardPage() {

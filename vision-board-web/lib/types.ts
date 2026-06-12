@@ -57,6 +57,7 @@ export interface Section {
   phaseOneQuestions: SectionQuestion[];
   reviewTemplate: string;
   situationChips?: string[];
+  imageQuery?: string; // Unsplash 추천 검색어 — 영어가 검색 품질이 좋다 (v6.17)
 }
 
 export interface SlotAnswer {

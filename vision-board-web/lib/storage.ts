@@ -59,9 +59,19 @@ function migrateCollage(board: BoardData): void {
   if (dirty) saveBoard(board);
 }
 
+// 저장 성공 여부 반환 — base64 이미지 누적으로 localStorage 5MB 한도(QuotaExceededError)에 닿을 수 있다 (v6.17)
+export function trySaveBoard(data: BoardData): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function saveBoard(data: BoardData): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  trySaveBoard(data);
 }
 
 export function saveUserName(name: string): void {
@@ -233,14 +243,15 @@ export function saveImageDescriptions(sectionId: SectionId, descriptions: string
   saveBoard(board);
 }
 
-export function saveUploadedImage(sectionId: SectionId, index: number, dataUrl: string | null): void {
+// 성공 여부 반환 — false면 저장 공간 부족 (호출부에서 무시해도 무방)
+export function saveUploadedImage(sectionId: SectionId, index: number, dataUrl: string | null): boolean {
   const board = loadBoard();
   const sec = board.sections[sectionId];
   const current = sec.uploadedImages ?? [null, null, null, null, null];
   while (current.length < 5) current.push(null);
   current[index] = dataUrl;
   sec.uploadedImages = current;
-  saveBoard(board);
+  return trySaveBoard(board);
 }
 
 export function saveUploadedImages(sectionId: SectionId, images: (string | null)[]): void {

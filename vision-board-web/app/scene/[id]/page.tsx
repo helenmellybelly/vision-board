@@ -9,13 +9,6 @@ import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 import InlineInput from '@/components/InlineInput';
 
-function getEunga(word: string): string {
-  if (!word) return '이';
-  const code = word.charCodeAt(word.length - 1);
-  if (code < 0xAC00 || code > 0xD7A3) return '이';
-  return (code - 0xAC00) % 28 === 0 ? '가' : '이';
-}
-
 const SLOT_LABELS: Record<keyof ExtractedSlots, string> = {
   current: '지금',
   want: '원해',

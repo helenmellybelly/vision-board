@@ -8,6 +8,8 @@ import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 import InlineInput from '@/components/InlineInput';
+import ImageSuggestions from '@/components/ImageSuggestions';
+import { Fragment } from 'react';
 
 type Phase = 'questions' | 'review';
 
@@ -203,17 +205,30 @@ export default function SectionChatPage() {
                 );
               }
               return (
-                <div key={i} className="flex flex-col items-end mb-1">
-                  <ChatBubble role="user" content={msg.text} />
-                  {phase === 'questions' && (
-                    <button
-                      onClick={() => { setEditingKey(msgKey); setEditValue(msg.text); }}
-                      className="text-micro text-[#6E6962] mt-0.5 pr-1 active:text-[#1C1B19]"
-                    >
-                      수정
-                    </button>
+                <Fragment key={i}>
+                  <div className="flex flex-col items-end mb-1">
+                    <ChatBubble role="user" content={msg.text} />
+                    {phase === 'questions' && (
+                      <button
+                        onClick={() => { setEditingKey(msgKey); setEditValue(msg.text); }}
+                        className="text-micro text-[#6E6962] mt-0.5 pr-1 active:text-[#1C1B19]"
+                      >
+                        수정
+                      </button>
+                    )}
+                  </div>
+                  {/* 첫 답변 직후 — 토리의 추천 이미지 제안 (Unsplash, v6.17) */}
+                  {msg.qIndex === 0 && phase === 'questions' && section.imageQuery && (
+                    <ImageSuggestions
+                      sectionId={sectionId}
+                      query={section.imageQuery}
+                      onSaved={() => {
+                        setBoard(loadBoard());
+                        showSaved();
+                      }}
+                    />
                   )}
-                </div>
+                </Fragment>
               );
             }
             return (

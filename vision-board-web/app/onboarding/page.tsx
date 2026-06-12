@@ -10,14 +10,8 @@ import {
   loadBoard,
 } from '@/lib/storage';
 import { SECTION_COLORS } from '@/lib/colors';
+import { josa } from '@/lib/josa';
 type Act = 0 | 1 | 2 | 3 | 4 | 5;
-
-function getNameSuffix(name: string): string {
-  if (!name) return '';
-  const code = name.charCodeAt(name.length - 1);
-  if (code < 0xAC00 || code > 0xD7A3) return '야';
-  return (code - 0xAC00) % 28 === 0 ? '야' : '아';
-}
 
 // Act 0 CTA — swap to A/B/D to try other options
 // A: "나의 꿈을 위한 정원사구나!"
@@ -28,7 +22,7 @@ const ACT0_CTA = '내 이야기 들려줄게 →';
 
 const ACORN_MESSAGES = [
   (name: string) =>
-    `${name ? `${name}${getNameSuffix(name)}, ` : ''}토리가 좋아하는 이야기가 있어.\n들어봐.`,
+    `${name ? `${josa(name, '아/야')}, ` : ''}토리가 좋아하는 이야기가 있어.\n들어봐.`,
   () =>
     `도토리 있잖아, 그 2.5cm짜리 씨앗.\n땅에 심으면 최대 60m 참나무가 돼.`,
   () =>
@@ -40,29 +34,27 @@ const ACORN_MESSAGES = [
   () =>
     `비전보드를 만드는 것도\n너의 가능성이 펼쳐질 환경을 만드는 일이야.`,
   (name: string) =>
-    `${name ? `${name}라는` : '너라는'} 도토리를 땅에 심는 거야.\n참나무가 될 엄청난 잠재력을 가졌으니까.`,
+    `${name ? josa(name, '이라는/라는') : '너라는'} 도토리를 땅에 심는 거야.\n참나무가 될 엄청난 잠재력을 가졌으니까.`,
 ];
 
 const VISION_INTRO = `그 가능성이 펼쳐질 환경을 만드는 도구가 있어. 바로 '비전보드'야.`;
 
-const VISION_CARDS: { icon: LucideIcon; title: string; desc: string; color: string }[] = [
+// 효능 설명 카드 — 색은 정보가 아니므로 뉴트럴 (다색 동시 사용 시 촌스러움 피드백, v6.17)
+const VISION_CARDS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Brain,
     title: '원하는 삶을 현실로 믿게 해줘',
     desc: '비전보드를 매일 보다 보면, 뇌는 그걸 이미 경험한 것처럼 받아들이기 시작해.',
-    color: SECTION_COLORS[0],
   },
   {
     icon: Compass,
     title: '삶의 방향을 잡아줘',
     desc: '흔들려도 원하는 방향으로 갈 수 있도록 도와줘. 삶의 주도권을 놓지 않게 해주지.',
-    color: SECTION_COLORS[1],
   },
   {
     icon: Sparkles,
     title: '되고 싶은 나를 그려줘',
     desc: '어떤 사람이 되고 싶은지 정의하고, 어떤 습관을 들이고 무엇을 멀리할지 살피며 살게 돼.',
-    color: SECTION_COLORS[2],
   },
 ];
 
@@ -507,11 +499,10 @@ export default function OnboardingPage() {
                   <div
                     key={card.title}
                     className="flex items-start gap-3 rounded-xl bg-white px-4 py-1 [@media(min-height:700px)]:py-1.5 border border-[#E5E3DF]"
-                    style={{ borderLeft: `3px solid ${card.color}` }}
                   >
-                    <card.icon size={20} strokeWidth={1.8} className="flex-shrink-0 mt-0.5" style={{ color: card.color }} aria-hidden="true" />
+                    <card.icon size={20} strokeWidth={1.8} className="flex-shrink-0 mt-0.5 text-[#1C1B19]" aria-hidden="true" />
                     <div>
-                      <p className="text-body font-semibold leading-snug" style={{ color: card.color }}>{card.title}</p>
+                      <p className="text-body font-semibold leading-snug text-[#1C1B19]">{card.title}</p>
                       <p className="text-caption text-[#6B7280] leading-snug">{card.desc}</p>
                     </div>
                   </div>
@@ -545,7 +536,7 @@ export default function OnboardingPage() {
               </div>
               <div className="bg-[#1C1B19] text-white rounded-2xl rounded-tl-sm px-4 py-3">
                 <p className="text-body leading-relaxed">
-                  좋아{name ? `, ${name}${getNameSuffix(name)}` : ''}.<br />
+                  좋아{name ? `, ${josa(name, '아/야')}` : ''}.<br />
                   이제 진짜 시작이야.<br />
                   비전보드는 삶의 6가지 영역으로 이루어져 있어.<br />
                   하나씩 채워가다 보면 네 삶 전체가 그려지기 시작할 거야.
@@ -558,9 +549,12 @@ export default function OnboardingPage() {
                 <div
                   key={area.label}
                   className="rounded-xl bg-white px-3.5 py-3 text-left border border-[#E5E3DF]"
-                  style={{ borderLeft: `3px solid ${area.color}` }}
                 >
-                  <p className="text-body font-bold" style={{ color: area.color }}>{area.label}</p>
+                  {/* 색은 작은 도트로만 — /board 섹션 헤더와 같은 문법 (촌스러움 피드백, v6.17) */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: area.color }} />
+                    <p className="text-body font-bold text-[#1C1B19]">{area.label}</p>
+                  </div>
                   <p className="text-micro text-[#6B7280] mt-0.5">{area.desc}</p>
                 </div>
               ))}

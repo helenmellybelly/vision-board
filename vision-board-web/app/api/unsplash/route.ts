@@ -7,6 +7,21 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
+
+  // Unsplash 규정: 사진 사용 시 download_location 핑 필요 — 클라이언트가 선택 시 호출
+  const download = searchParams.get('download');
+  if (download) {
+    if (!download.startsWith('https://api.unsplash.com/')) {
+      return NextResponse.json({ error: 'invalid download location' }, { status: 400 });
+    }
+    try {
+      await fetch(download, { headers: { Authorization: `Client-ID ${accessKey}` } });
+    } catch {
+      // 핑 실패는 사용자 흐름에 영향 없음
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   const q = searchParams.get('q') || '라이프스타일';
   const page = searchParams.get('page') || '1';
 
@@ -29,13 +44,19 @@ export async function GET(req: NextRequest) {
     const data = await res.json();
     const photos = (data.results || []).map((photo: {
       id: string;
-      urls: { thumb: string; regular: string };
+      urls: { thumb: string; small: string; regular: string };
       alt_description?: string;
+      user?: { name?: string; links?: { html?: string } };
+      links?: { download_location?: string };
     }) => ({
       id: photo.id,
-      thumb: photo.urls.thumb,
+      thumb: photo.urls.small ?? photo.urls.thumb,
       regular: photo.urls.regular,
       alt: photo.alt_description || '',
+      // Unsplash 출처 표기·다운로드 핑용 (v6.17)
+      userName: photo.user?.name ?? '',
+      userLink: photo.user?.links?.html ?? '',
+      downloadLocation: photo.links?.download_location ?? '',
     }));
 
     return NextResponse.json({ photos });

@@ -353,6 +353,17 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
           </div>
         )}
 
+        {/* 상시 어포던스 칩 — 편집 가능함을 보드 위에서 바로 알린다 (v6.17 발견성 피드백) */}
+        {!editing && (
+          <div
+            className="absolute top-[2.5cqi] right-[2.5cqi] z-50 pointer-events-none rounded-full bg-black/45 text-white font-medium px-[3cqi] py-[1.5cqi] backdrop-blur-sm"
+            style={{ fontSize: '2.8cqi' }}
+            aria-hidden="true"
+          >
+            ✎ 탭해서 편집
+          </div>
+        )}
+
         {/* 편집 툴바 — 보드 상단 플로팅 */}
         {editing && (
           <div

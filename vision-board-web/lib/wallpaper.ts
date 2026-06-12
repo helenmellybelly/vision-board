@@ -16,6 +16,55 @@ export const WALLPAPER_SIZES: Record<WallpaperTarget, { w: number; h: number }> 
   desktop: { w: 1920, h: 1080 },
 };
 
+// ── 기기별 프리셋 (v6.17) ──────────────────────────────────────────
+// 렌더 함수들의 절대좌표 튜닝(1170×2532/1920×1080)은 건드리지 않고,
+// 캐논 캔버스로 그린 뒤 cover-crop 스케일로 프리셋 해상도에 맞춘다.
+export interface WallpaperPreset {
+  id: string;
+  label: string;
+  w: number;
+  h: number;
+  group: '휴대폰' | '태블릿' | 'PC';
+  note?: string; // 비율 차이로 인한 크롭 경고
+}
+
+export const WALLPAPER_PRESETS: WallpaperPreset[] = [
+  { id: 'phone', label: '기본 폰 (9:19.5)', w: 1170, h: 2532, group: '휴대폰' },
+  { id: 'iphone', label: 'iPhone 일반·Pro', w: 1179, h: 2556, group: '휴대폰' },
+  { id: 'iphone-max', label: 'iPhone Plus·Pro Max', w: 1290, h: 2796, group: '휴대폰' },
+  { id: 'galaxy-s', label: 'Galaxy S 시리즈', w: 1080, h: 2340, group: '휴대폰' },
+  { id: 'zflip-main', label: 'Galaxy Z Flip 메인', w: 1080, h: 2640, group: '휴대폰' },
+  { id: 'zflip-cover', label: 'Galaxy Z Flip 커버', w: 720, h: 748, group: '휴대폰', note: '커버 화면은 정사각에 가까워 위아래가 많이 잘려. 사진 위주로 보일 거야.' },
+  { id: 'tablet', label: 'iPad·갤럭시탭 세로', w: 1668, h: 2388, group: '태블릿', note: '폰보다 가로가 넓어 위아래가 조금 잘릴 수 있어.' },
+  { id: 'pc-fhd', label: 'PC FHD (16:9)', w: 1920, h: 1080, group: 'PC' },
+  { id: 'pc-qhd', label: 'PC QHD (16:9)', w: 2560, h: 1440, group: 'PC' },
+  { id: 'macbook', label: '맥북 (16:10)', w: 2560, h: 1664, group: 'PC' },
+  { id: 'ultrawide', label: '울트라와이드 (21:9)', w: 3440, h: 1440, group: 'PC', note: '좌우가 넓어 보드가 가운데에 놓이고 배경이 더 보여.' },
+];
+
+// 프리셋이 어느 캐논 캔버스(세로/가로) 기반인지
+export function presetTarget(preset: WallpaperPreset): WallpaperTarget {
+  return preset.w > preset.h ? 'desktop' : 'mobile';
+}
+
+// 캐논 캔버스 렌더 → 프리셋 해상도로 cover-crop 변환
+export async function renderForPreset(
+  render: (target: WallpaperTarget) => Promise<HTMLCanvasElement>,
+  preset: WallpaperPreset
+): Promise<HTMLCanvasElement> {
+  const src = await render(presetTarget(preset));
+  if (src.width === preset.w && src.height === preset.h) return src;
+  const out = document.createElement('canvas');
+  out.width = preset.w;
+  out.height = preset.h;
+  const ctx = out.getContext('2d')!;
+  const scale = Math.max(preset.w / src.width, preset.h / src.height);
+  const dw = src.width * scale;
+  const dh = src.height * scale;
+  ctx.drawImage(src, (preset.w - dw) / 2, (preset.h - dh) / 2, dw, dh);
+  return out;
+}
+
 // 디자인 2종: polaroid = 다크 무드 폴라로이드 산포 / minimal = 크림 배경 정렬 그리드
 export type WallpaperStyle = 'polaroid' | 'minimal';
 const BG_DARK = '#2D2B29'; // VisionBoardCollage와 동일한 배경

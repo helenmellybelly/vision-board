@@ -5,11 +5,13 @@ import useFocusTrap from './useFocusTrap';
 import { CollageLayout, CollageTemplate } from '@/lib/types';
 import { CollageItem } from '@/lib/collageTemplates';
 import {
-  WALLPAPER_SIZES,
+  WALLPAPER_PRESETS,
   WallpaperSectionGroup,
   WallpaperStyle,
   WallpaperTarget,
+  presetTarget,
   renderBoardLayout,
+  renderForPreset,
   renderSectionPair,
   saveCanvas,
 } from '@/lib/wallpaper';
@@ -31,9 +33,16 @@ export default function WallpaperSheet({ groups, year, target, board, onClose }:
   const [mode, setMode] = useState<Mode>('all');
   const [style, setStyle] = useState<WallpaperStyle>('polaroid');
   const [pairIdx, setPairIdx] = useState(0);
+  // 기기별 프리셋 (v6.17) — 진입 버튼(폰/PC)에 따라 기본 프리셋 선택
+  const [presetId, setPresetId] = useState(target === 'desktop' ? 'pc-fhd' : 'phone');
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const preset = WALLPAPER_PRESETS.find((p) => p.id === presetId) ?? WALLPAPER_PRESETS[0];
+  // 캐논 렌더 좌표(세로/가로)는 프리셋의 방향을 따른다
+  const effTarget = presetTarget(preset);
+  const presetGroups = ['휴대폰', '태블릿', 'PC'] as const;
 
   // 2섹션씩 묶기 — 사진이 하나라도 있는 묶음만 슬라이드로
   const pairs = useMemo(() => {
@@ -45,19 +54,27 @@ export default function WallpaperSheet({ groups, year, target, board, onClose }:
     return result;
   }, [groups]);
 
-  const key = mode === 'all' ? `all-${board.template}-${target}` : `pair-${pairIdx}-${style}-${target}`;
+  const key = mode === 'all' ? `all-${board.template}-${presetId}` : `pair-${pairIdx}-${style}-${presetId}`;
 
-  // 미리보기 생성 — 모드/스타일/슬라이드별 1회만.
+  // 캐논 캔버스 렌더 → 프리셋 해상도 cover-crop
+  function renderCurrent(): Promise<HTMLCanvasElement> {
+    return renderForPreset(
+      (t: WallpaperTarget) =>
+        mode === 'all'
+          ? renderBoardLayout(board.template, board.layout, board.items, year, t)
+          : renderSectionPair(pairs[pairIdx], year, style, t),
+      preset
+    );
+  }
+
+  // 미리보기 생성 — 모드/스타일/슬라이드/프리셋별 1회만.
   // '한 장 모아담기'는 화면 보드의 배치·스티커를 그대로 옮긴다(WYSIWYG)
   useEffect(() => {
     if (previews[key]) return;
     let cancelled = false;
     (async () => {
       try {
-        const canvas =
-          mode === 'all'
-            ? await renderBoardLayout(board.template, board.layout, board.items, year, target)
-            : await renderSectionPair(pairs[pairIdx], year, style, target);
+        const canvas = await renderCurrent();
         if (!cancelled) {
           setPreviews((p) => ({ ...p, [key]: canvas.toDataURL('image/jpeg', 0.82) }));
         }
@@ -75,15 +92,11 @@ export default function WallpaperSheet({ groups, year, target, board, onClose }:
     setSaving(true);
     setError('');
     try {
-      const canvas =
-        mode === 'all'
-          ? await renderBoardLayout(board.template, board.layout, board.items, year, target)
-          : await renderSectionPair(pairs[pairIdx], year, style, target);
+      const canvas = await renderCurrent();
       const suffix =
         mode === 'all' ? `-${board.template}` : `-${pairs[pairIdx].map((g) => g.label).join('-')}`;
       const styleSuffix = mode === 'pairs' && style === 'minimal' ? '-minimal' : '';
-      const targetSuffix = target === 'desktop' ? '-pc' : '';
-      await saveCanvas(canvas, `vision-board-${year}${suffix}${styleSuffix}${targetSuffix}.png`);
+      await saveCanvas(canvas, `vision-board-${year}${suffix}${styleSuffix}-${preset.id}.png`);
     } catch {
       setError('저장에 실패했어. 다시 시도해줘.');
     } finally {
@@ -111,11 +124,34 @@ export default function WallpaperSheet({ groups, year, target, board, onClose }:
         <h2 id="wallpaper-title" className="text-heading font-bold mb-1">
           {target === 'desktop' ? 'PC 배경화면 저장' : '폰 배경화면 저장'}
         </h2>
-        <p className="text-caption text-[#6E6962] mb-4">
+        <p className="text-caption text-[#6E6962] mb-3">
           {target === 'desktop'
             ? '저장한 이미지를 PC 바탕화면으로 설정해봐.'
             : '저장한 이미지를 휴대폰 배경화면으로 설정해봐.'}
         </p>
+
+        {/* 기기 프리셋 — 기종에 맞는 해상도로 저장 (v6.17) */}
+        <label className="block mb-4">
+          <span className="text-caption font-semibold text-[#1C1B19]">내 기기에 맞추기</span>
+          <select
+            value={presetId}
+            onChange={(e) => setPresetId(e.target.value)}
+            className="mt-1.5 w-full py-2.5 px-3 rounded-xl border border-[#E5E3DF] bg-white text-body text-[#1C1B19]"
+          >
+            {presetGroups.map((g) => (
+              <optgroup key={g} label={g}>
+                {WALLPAPER_PRESETS.filter((p) => p.group === g).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label} — {p.w}×{p.h}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          {preset.note && (
+            <span className="block mt-1.5 text-micro text-[#6E6962]">{preset.note}</span>
+          )}
+        </label>
 
         {/* 모드 탭 */}
         <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1">
@@ -171,18 +207,18 @@ export default function WallpaperSheet({ groups, year, target, board, onClose }:
               src={previews[key]}
               alt="배경화면 미리보기"
               className={
-                target === 'desktop'
+                effTarget === 'desktop'
                   ? 'w-full h-auto rounded-2xl border border-[#E5E3DF]'
-                  : 'h-[46vh] w-auto rounded-2xl border border-[#E5E3DF]'
+                  : 'max-h-[46vh] max-w-full w-auto rounded-2xl border border-[#E5E3DF]'
               }
             />
           ) : (
             <div
               className={`rounded-2xl bg-[#F5F5F3] flex items-center justify-center ${
-                target === 'desktop' ? 'w-full' : 'h-[46vh]'
+                effTarget === 'desktop' ? 'w-full' : 'h-[46vh]'
               }`}
               style={{
-                aspectRatio: `${WALLPAPER_SIZES[target].w} / ${WALLPAPER_SIZES[target].h}`,
+                aspectRatio: `${preset.w} / ${preset.h}`,
               }}
             >
               <span className="text-caption text-[#6E6962] animate-pulse">만드는 중...</span>
