@@ -255,7 +255,7 @@ export default function ScenesPage() {
             onClick={() => uploadRefs[i].current?.click()}
             className="w-full h-full flex flex-col items-center justify-center text-[#C9C5BE] active:opacity-70"
           >
-            <span className="font-display text-display leading-none mb-1">+</span>
+            <span className="text-display leading-none mb-1">+</span>
             <span className="text-micro">사진 추가</span>
           </button>
         )}

@@ -85,19 +85,33 @@ export interface SectionData {
   uploadedImages?: (string | null)[];   // 사용자 직접 업로드 이미지 (최대 3개 — 보드·콜라주와 동일)
 }
 
-// 콜라주(한눈에 보기) 템플릿 — custom = 사용자가 직접 배치한 보드
-export type CollageTemplate = 'polaroid' | 'mosaic' | 'minimal' | 'custom';
+// 콜라주(한눈에 보기) 템플릿 — v6.15: '내 배치' 탭 제거, 모든 템플릿이 자유 편집 가능
+export type CollageTemplate = 'polaroid' | 'mosaic' | 'minimal';
 
-// 커스텀 배치 항목 — 0..1 정규화 좌표 (4:5 보드 기준). 키는 `${sectionId}-${slotIdx}`
+// 배치 항목 — 0..1 정규화 좌표 (4:5 보드 기준).
+// 키는 사진 `${sectionId}-${slotIdx}` 또는 스티커 `sticker:${id}`
 export interface CollageLayoutItem {
   x: number; // 좌상단 x (컨테이너 폭 대비)
   y: number; // 좌상단 y (컨테이너 높이 대비)
-  w: number; // 폭 (컨테이너 폭 대비, 정사각 사진)
+  w: number; // 폭 (컨테이너 폭 대비)
   z: number; // 쌓임 순서 (클수록 앞)
+  rot?: number; // 회전(도) — 폴라로이드 산포·스티커용. 없으면 0
+  h?: number; // 정규화 높이 — 없으면 정사각(w × 보드 가로/세로비). 모자이크 스팬 셀용
+}
+
+// 문구 스티커 — 보드 위에 올리는 텍스트. 위치/크기는 CollageLayout.items에 `sticker:${id}` 키로 저장
+export type StickerStyle = 'script' | 'chip' | 'outline';
+
+export interface CollageSticker {
+  id: string;
+  text: string;
+  style: StickerStyle; // script = 손글씨(Enjoystories) / chip = 종이 라벨 / outline = 아웃라인 레터
+  color?: string; // script 스타일 글자색 (기본: 테마에 맞는 흑/백)
 }
 
 export interface CollageLayout {
   items: Record<string, CollageLayoutItem>;
+  stickers?: Record<string, CollageSticker>;
 }
 
 export interface BoardData {
@@ -112,7 +126,9 @@ export interface BoardData {
   futureDayStory?: string;
   boardYear?: string;                    // 비전보드 콜라주 중앙 연도
   collageTemplate?: CollageTemplate;     // 한눈에 보기 템플릿 선택값
-  collageLayout?: CollageLayout;         // 커스텀 배치 (custom 템플릿)
+  /** @deprecated v6.14 '내 배치' 레이아웃 — loadBoard()가 collageLayouts.polaroid로 이관 */
+  collageLayout?: CollageLayout;
+  collageLayouts?: Partial<Record<CollageTemplate, CollageLayout>>; // 템플릿별 편집 배치
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];

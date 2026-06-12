@@ -55,7 +55,7 @@ export default function DashboardPage() {
             </div>
             <ProcessGuide />
           </div>
-          <h1 className="font-display text-display font-bold">
+          <h1 className="text-display font-bold">
             {userName ? `${userName}의 비전보드` : '내 비전보드'}
           </h1>
         </div>

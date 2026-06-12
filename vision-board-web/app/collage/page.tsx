@@ -11,25 +11,22 @@ import {
 } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, CollageTemplate } from '@/lib/types';
+import { CollageItem, resolveLayout } from '@/lib/collageTemplates';
+import { WallpaperTarget } from '@/lib/wallpaper';
 import StoryModal from '@/components/StoryModal';
-import VisionBoardCollage from '@/components/VisionBoardCollage';
 import WallpaperSheet from '@/components/WallpaperSheet';
-import CollageMosaic from '@/components/collage/CollageMosaic';
-import CollageMinimal from '@/components/collage/CollageMinimal';
-import CollageCustom, { CollageItem, defaultLayout } from '@/components/collage/CollageCustom';
+import CollageBoard from '@/components/collage/CollageBoard';
 
 const TEMPLATES: { id: CollageTemplate; label: string }[] = [
   { id: 'polaroid', label: '폴라로이드' },
   { id: 'mosaic', label: '모자이크' },
   { id: 'minimal', label: '미니멀' },
-  { id: 'custom', label: '내 배치' },
 ];
 
 export default function CollagePage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
-  const [wallpaperOpen, setWallpaperOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [wallpaperTarget, setWallpaperTarget] = useState<WallpaperTarget | null>(null);
 
   useEffect(() => {
     setBoard(loadBoard());
@@ -53,7 +50,7 @@ export default function CollagePage() {
       .filter((img): img is string => !!img);
   });
 
-  // 커스텀 배치용 — 섹션·슬롯 키와 함께 (사진 교체·삭제에도 배치가 안정적)
+  // 보드 배치용 — 섹션·슬롯 키와 함께 (사진 교체·삭제에도 배치가 안정적)
   const keyedItems: CollageItem[] = SECTIONS.flatMap((section) => {
     const sec = board.sections[section.id];
     const uploaded = sec.uploadedImages ?? [];
@@ -79,19 +76,16 @@ export default function CollagePage() {
     };
   });
 
+  // 화면에 보이는 배치 그대로 — 배경화면 내보내기와 공유
+  const currentLayout = resolveLayout(template, keyedItems, board.collageLayouts?.[template]);
+
   function selectTemplate(id: CollageTemplate) {
     saveCollageTemplate(id);
     setBoard(loadBoard());
-    if (id !== 'custom') setEditing(false);
   }
 
   function handleYearChange(y: string) {
     saveBoardYear(y);
-    setBoard(loadBoard());
-  }
-
-  function resetCustomLayout() {
-    saveCollageLayout(defaultLayout(keyedItems));
     setBoard(loadBoard());
   }
 
@@ -131,67 +125,34 @@ export default function CollagePage() {
               ))}
             </div>
 
-            {template === 'polaroid' && (
-              <VisionBoardCollage
-                compact={false}
-                images={collageImages}
-                year={boardYear}
-                onYearChange={handleYearChange}
-              />
-            )}
-            {template === 'mosaic' && (
-              <CollageMosaic images={collageImages} year={boardYear} onYearChange={handleYearChange} />
-            )}
-            {template === 'minimal' && (
-              <CollageMinimal images={collageImages} year={boardYear} onYearChange={handleYearChange} />
-            )}
-            {template === 'custom' && (
-              <>
-                <CollageCustom
-                  items={keyedItems}
-                  layout={board.collageLayout}
-                  onLayoutChange={(l) => {
-                    saveCollageLayout(l);
-                    setBoard(loadBoard());
-                  }}
-                  editing={editing}
-                  year={boardYear}
-                  onYearChange={handleYearChange}
-                />
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={() => setEditing((e) => !e)}
-                    className={`flex-1 py-3 rounded-2xl text-body font-semibold transition-opacity active:opacity-70 ${
-                      editing
-                        ? 'bg-[#1C1B19] text-white'
-                        : 'bg-white border border-[#E5E3DF] text-[#1C1B19]'
-                    }`}
-                  >
-                    {editing ? '편집 완료' : '배치 편집'}
-                  </button>
-                  {editing && (
-                    <button
-                      onClick={resetCustomLayout}
-                      className="px-4 py-3 rounded-2xl text-caption text-[#6E6962] bg-white border border-[#E5E3DF] active:opacity-70"
-                    >
-                      기본 배치로
-                    </button>
-                  )}
-                </div>
-                {editing && (
-                  <p className="text-micro text-[#6E6962] text-center mt-2">
-                    사진을 끌어 옮기고, 오른쪽 아래 손잡이로 크기를 바꿔봐. 겹쳐도 좋아.
-                  </p>
-                )}
-              </>
-            )}
+            {/* 보드 — 탭하면 바로 편집 (모든 템플릿 공통) */}
+            <CollageBoard
+              template={template}
+              items={keyedItems}
+              layout={board.collageLayouts?.[template]}
+              onLayoutChange={(l) => {
+                saveCollageLayout(template, l);
+                setBoard(loadBoard());
+              }}
+              year={boardYear}
+              onYearChange={handleYearChange}
+            />
 
-            <button
-              onClick={() => setWallpaperOpen(true)}
-              className="mt-4 w-full py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
-            >
-              📱🖥️ 배경화면으로 저장
-            </button>
+            {/* 저장 — 폰/PC 2버튼으로 명확하게 */}
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setWallpaperTarget('mobile')}
+                className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
+              >
+                폰 배경화면 저장
+              </button>
+              <button
+                onClick={() => setWallpaperTarget('desktop')}
+                className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
+              >
+                PC 배경화면 저장
+              </button>
+            </div>
           </>
         ) : (
           <div className="text-center py-16">
@@ -247,11 +208,13 @@ export default function CollagePage() {
         ) : null}
       </div>
 
-      {wallpaperOpen && (
+      {wallpaperTarget && (
         <WallpaperSheet
           groups={sectionGroups}
           year={boardYear}
-          onClose={() => setWallpaperOpen(false)}
+          target={wallpaperTarget}
+          board={{ template, layout: currentLayout, items: keyedItems }}
+          onClose={() => setWallpaperTarget(null)}
         />
       )}
     </main>

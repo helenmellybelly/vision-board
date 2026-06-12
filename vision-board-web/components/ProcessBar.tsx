@@ -9,12 +9,13 @@ interface Props {
 
 type StepId = 1 | 2 | 3 | 4 | 5;
 
+// 라벨은 시스템 구조가 아니라 사용자의 행동 언어로 — v6.15 리네이밍 (구: 대화·하루·스토리·이미지·마무리)
 const STEPS: { id: StepId; short: string; route: string }[] = [
-  { id: 1, short: '대화', route: '/dashboard' },
-  { id: 2, short: '하루', route: '/review' },
-  { id: 3, short: '스토리', route: '/review' },
-  { id: 4, short: '이미지', route: '/board' },
-  { id: 5, short: '마무리', route: '/finish' },
+  { id: 1, short: '꿈 꺼내기', route: '/dashboard' },
+  { id: 2, short: '하루 그리기', route: '/review' },
+  { id: 3, short: '미래 스토리', route: '/review' },
+  { id: 4, short: '사진 담기', route: '/board' },
+  { id: 5, short: '완성', route: '/finish' },
 ];
 
 // 현재 경로가 가리키는 단계 (허브 페이지는 null → 상태 기반 fallback)

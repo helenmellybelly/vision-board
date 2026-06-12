@@ -60,7 +60,7 @@ export default function WelcomePage() {
           className="w-10 h-10 rounded-xl object-cover mb-6"
         />
         <p className="text-body text-[#6E6962] mb-1">토리</p>
-        <h1 className="font-display text-display font-bold leading-snug">
+        <h1 className="text-display font-bold leading-snug">
           {userName ? `${userName}아,` : ''} 함께 만들어갈<br />비전보드를 보여줄게.
         </h1>
       </div>

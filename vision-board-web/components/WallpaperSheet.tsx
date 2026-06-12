@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import useFocusTrap from './useFocusTrap';
+import { CollageLayout, CollageTemplate } from '@/lib/types';
+import { CollageItem } from '@/lib/collageTemplates';
 import {
   WALLPAPER_SIZES,
   WallpaperSectionGroup,
   WallpaperStyle,
   WallpaperTarget,
-  renderAllInOne,
+  renderBoardLayout,
   renderSectionPair,
   saveCanvas,
 } from '@/lib/wallpaper';
@@ -15,16 +17,19 @@ import {
 interface Props {
   groups: WallpaperSectionGroup[];
   year: string;
+  /** 저장 타깃 — 버튼 2분할로 진입 시점에 확정 (시트 안 토글 없음) */
+  target: WallpaperTarget;
+  /** 화면 보드 그대로 내보내기용 — 현재 템플릿·배치·사진 */
+  board: { template: CollageTemplate; layout: CollageLayout; items: CollageItem[] };
   onClose: () => void;
 }
 
 type Mode = 'all' | 'pairs';
 
-export default function WallpaperSheet({ groups, year, onClose }: Props) {
+export default function WallpaperSheet({ groups, year, target, board, onClose }: Props) {
   const trapRef = useFocusTrap<HTMLDivElement>(true, onClose);
   const [mode, setMode] = useState<Mode>('all');
   const [style, setStyle] = useState<WallpaperStyle>('polaroid');
-  const [target, setTarget] = useState<WallpaperTarget>('mobile');
   const [pairIdx, setPairIdx] = useState(0);
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -40,9 +45,10 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
     return result;
   }, [groups]);
 
-  const key = mode === 'all' ? `all-${style}-${target}` : `pair-${pairIdx}-${style}-${target}`;
+  const key = mode === 'all' ? `all-${board.template}-${target}` : `pair-${pairIdx}-${style}-${target}`;
 
-  // 미리보기 생성 — 모드/스타일/슬라이드별 1회만
+  // 미리보기 생성 — 모드/스타일/슬라이드별 1회만.
+  // '한 장 모아담기'는 화면 보드의 배치·스티커를 그대로 옮긴다(WYSIWYG)
   useEffect(() => {
     if (previews[key]) return;
     let cancelled = false;
@@ -50,7 +56,7 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
       try {
         const canvas =
           mode === 'all'
-            ? await renderAllInOne(groups, year, style, target)
+            ? await renderBoardLayout(board.template, board.layout, board.items, year, target)
             : await renderSectionPair(pairs[pairIdx], year, style, target);
         if (!cancelled) {
           setPreviews((p) => ({ ...p, [key]: canvas.toDataURL('image/jpeg', 0.82) }));
@@ -71,11 +77,11 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
     try {
       const canvas =
         mode === 'all'
-          ? await renderAllInOne(groups, year, style, target)
+          ? await renderBoardLayout(board.template, board.layout, board.items, year, target)
           : await renderSectionPair(pairs[pairIdx], year, style, target);
       const suffix =
-        mode === 'all' ? '' : `-${pairs[pairIdx].map((g) => g.label).join('-')}`;
-      const styleSuffix = style === 'minimal' ? '-minimal' : '';
+        mode === 'all' ? `-${board.template}` : `-${pairs[pairIdx].map((g) => g.label).join('-')}`;
+      const styleSuffix = mode === 'pairs' && style === 'minimal' ? '-minimal' : '';
       const targetSuffix = target === 'desktop' ? '-pc' : '';
       await saveCanvas(canvas, `vision-board-${year}${suffix}${styleSuffix}${targetSuffix}.png`);
     } catch {
@@ -103,37 +109,13 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
       >
         <div className="w-10 h-1 bg-[#E5E3DF] rounded-full mx-auto mb-5" />
         <h2 id="wallpaper-title" className="text-heading font-bold mb-1">
-          배경화면으로 저장
+          {target === 'desktop' ? 'PC 배경화면 저장' : '폰 배경화면 저장'}
         </h2>
         <p className="text-caption text-[#6E6962] mb-4">
           {target === 'desktop'
             ? '저장한 이미지를 PC 바탕화면으로 설정해봐.'
             : '저장한 이미지를 휴대폰 배경화면으로 설정해봐.'}
         </p>
-
-        {/* 타깃 선택 — 모바일 / PC */}
-        <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="배경화면 기기">
-          <button
-            role="radio"
-            aria-checked={target === 'mobile'}
-            onClick={() => setTarget('mobile')}
-            className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors ${
-              target === 'mobile' ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
-            }`}
-          >
-            📱 모바일 배경화면
-          </button>
-          <button
-            role="radio"
-            aria-checked={target === 'desktop'}
-            onClick={() => setTarget('desktop')}
-            className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors ${
-              target === 'desktop' ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
-            }`}
-          >
-            🖥️ PC 배경화면
-          </button>
-        </div>
 
         {/* 모드 탭 */}
         <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1">
@@ -156,7 +138,8 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
           </button>
         </div>
 
-        {/* 스타일 선택 — 디자인 2종 */}
+        {/* 스타일 선택 — 섹션 묶음 전용 (한 장 모아담기는 화면의 템플릿을 그대로 따른다) */}
+        {mode === 'pairs' && (
         <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="배경화면 스타일">
           <button
             role="radio"
@@ -179,6 +162,7 @@ export default function WallpaperSheet({ groups, year, onClose }: Props) {
             미니멀
           </button>
         </div>
+        )}
 
         {/* 미리보기 */}
         <div className="relative flex items-center justify-center">

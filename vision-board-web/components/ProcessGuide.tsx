@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import useFocusTrap from './useFocusTrap';
 
+// ProcessBar의 단계 라벨과 같은 어휘를 쓴다 (v6.15 리네이밍)
 const STEPS = [
-  { step: 1, label: '대화', description: '6가지 주제에 짧게 답해 — 지금 여기서' },
-  { step: 2, label: '미래의 하루', description: '각 답변을 3년 뒤의 구체적인 하루로 그려' },
-  { step: 3, label: '스토리', description: '그린 하루를 짧은 스토리로 다듬어' },
-  { step: 4, label: '이미지', description: '어울리는 사진 3장 고르기' },
-  { step: 5, label: '마무리', description: '내 비전보드 완성' },
+  { step: 1, label: '꿈 꺼내기', description: '6가지 주제에 짧게 답하며 원하는 모습을 꺼내' },
+  { step: 2, label: '하루 그리기', description: '답한 것들이 이뤄진 3년 뒤의 하루를 그려' },
+  { step: 3, label: '미래 스토리', description: '그린 하루를 짧은 스토리로 다듬어' },
+  { step: 4, label: '사진 담기', description: '어울리는 사진 3장을 담아' },
+  { step: 5, label: '완성', description: '내 비전보드 완성' },
 ];
 
 export default function ProcessGuide() {

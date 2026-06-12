@@ -21,7 +21,7 @@ function HeroBoard() {
           <p className="text-micro font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase">
             Vision Board
           </p>
-          <p className="font-display text-title font-bold text-white tracking-widest mt-0.5">
+          <p className="text-title font-bold text-white tracking-widest mt-0.5">
             나의 해
           </p>
         </div>
@@ -49,7 +49,7 @@ function HeroPolaroid({ name, index }: { name: string; index: number }) {
       >
         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SECTION_COLORS[index] }} />
       </div>
-      <p className="font-display text-micro text-center text-[#57534E] py-1">{name}</p>
+      <p className="text-micro text-center text-[#57534E] py-1">{name}</p>
     </div>
   );
 }
@@ -109,7 +109,7 @@ export default function LandingPage() {
             />
             <p className="text-body text-[#6E6962]">정원사 토리</p>
           </div>
-          <h1 className="font-display text-display-lg font-bold leading-snug mb-4">
+          <h1 className="text-display-lg font-bold leading-snug mb-4">
             비전보드는<br />
             그리고 싶은 내 인생의<br />
             그림이에요.
@@ -159,7 +159,7 @@ export default function LandingPage() {
                       loading="lazy"
                     />
                   </div>
-                  <p className="font-display text-body text-center text-[#57534E] pt-2.5">{img.label}</p>
+                  <p className="text-body text-center text-[#57534E] pt-2.5">{img.label}</p>
                 </div>
               </div>
             ))}
@@ -245,7 +245,7 @@ export default function LandingPage() {
           ].map((item) => (
             <div key={item.step} className="flex gap-5">
               <span
-                className="font-display text-display font-bold leading-none w-8 flex-shrink-0 mt-0.5"
+                className="text-display font-bold leading-none w-8 flex-shrink-0 mt-0.5"
                 style={{ color: '#E5E3DF' }}
               >
                 {item.step}
@@ -293,7 +293,7 @@ export default function LandingPage() {
           className="w-12 h-12 rounded-2xl object-cover mx-auto mb-6"
           style={{ boxShadow: '0 8px 24px rgba(28,27,25,0.12)' }}
         />
-        <h2 className="font-display text-display font-bold mb-2">지금, 첫 질문 하나부터.</h2>
+        <h2 className="text-display font-bold mb-2">지금, 첫 질문 하나부터.</h2>
         <p className="text-body text-[#6B7280] mb-8">막연해도 괜찮아. 토리가 물어볼게.</p>
         <button
           onClick={() => router.push('/onboarding')}

@@ -98,9 +98,10 @@ function CompareAutoCard() {
   const slide = COMPARE_SLIDES[idx];
 
   return (
-    // 이미지가 남는 공간만큼만 차지(Act 3과 같은 패턴) — 어떤 뷰포트에서도 CTA까지 스크롤 없이
-    <div className="flex-1 min-h-0 flex flex-col space-y-1.5">
-      <div className="relative rounded-2xl overflow-hidden select-none shadow-sm flex-1 min-h-[4.5rem] max-h-64">
+    // 이미지가 남는 공간만큼만 차지하되 카드 전체에 상한(max-h-72)을 둠 —
+    // 상한 없이는 flex-1이 잉여 높이를 흡수해 도트와 다음 문구 사이에 빈 공간이 생긴다(v6.15 간격 피드백)
+    <div className="flex-1 min-h-0 max-h-72 flex flex-col space-y-1.5">
+      <div className="relative rounded-2xl overflow-hidden select-none shadow-sm flex-1 min-h-16">
         <div className="relative h-full">
           {COMPARE_SLIDES.map((s, i) => (
             <img
@@ -484,21 +485,21 @@ export default function OnboardingPage() {
         {/* ══════════ ACT 4: 막연함과 선명함의 차이 ══════════ */}
         {act === 4 && (
           <div className="flex-1 min-h-0 overflow-y-auto scroll-soft flex flex-col">
-          <div className="min-h-full flex-shrink-0 flex flex-col justify-center space-y-2">
-            <p className="font-display text-title font-bold text-[#1C1B19] leading-snug flex-shrink-0">막연함과 선명함의 차이</p>
+          <div className="min-h-full flex-shrink-0 flex flex-col justify-center">
+            <p className="text-title font-bold text-[#1C1B19] leading-snug flex-shrink-0 mb-2">막연함과 선명함의 차이</p>
 
             <CompareAutoCard />
 
-            {/* 핵심 메시지 — 박스 없는 디스플레이 서체 인용구, CTA 버튼과 혼동되지 않게 */}
-            <div className="text-center px-2 flex-shrink-0">
-              <p className="font-display text-body text-[#1C1B19] leading-snug">
+            {/* 핵심 메시지 — 이미지의 결론이므로 카드에 바짝 붙인다 */}
+            <div className="text-center px-2 flex-shrink-0 mt-2">
+              <p className="text-body text-[#1C1B19] leading-snug">
                 원하는 것이 뚜렷해지는 순간, <span className="font-bold">뇌는 그쪽으로 움직이기 시작해.</span>
               </p>
-              <p className="font-display text-body font-bold text-[#1C1B19] leading-snug mt-1">그게 비전보드의 힘이야.</p>
+              <p className="text-body font-bold text-[#1C1B19] leading-snug mt-1">그게 비전보드의 힘이야.</p>
             </div>
 
-            {/* 비전보드를 하면 좋은 이유 — 3가지 효과 카드 */}
-            <div className="space-y-1.5 flex-shrink-0">
+            {/* 비전보드를 하면 좋은 이유 — 새 주제 블록이므로 위쪽에 더 큰 호흡 */}
+            <div className="space-y-1.5 flex-shrink-0 mt-3">
               <p className="text-body font-bold text-[#1C1B19]">비전보드를 하면 좋은 이유</p>
               <div className="space-y-1.5">
                 {VISION_CARDS.map((card) => (
@@ -519,7 +520,7 @@ export default function OnboardingPage() {
 
             <button
               onClick={() => goToAct(5)}
-              className="w-full py-3 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80 flex-shrink-0"
+              className="w-full py-3 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80 flex-shrink-0 mt-3"
               style={{ backgroundColor: '#1C1B19' }}
             >
               오, 그렇구나

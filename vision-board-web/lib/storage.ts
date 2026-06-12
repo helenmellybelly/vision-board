@@ -37,10 +37,26 @@ export function loadBoard(): BoardData {
     if (!raw) return createEmptyBoard();
     const parsed = JSON.parse(raw) as BoardData;
     if (parsed.userName === undefined) parsed.userName = '';
+    migrateCollage(parsed);
     return parsed;
   } catch {
     return createEmptyBoard();
   }
+}
+
+// v6.15 마이그레이션: '내 배치' 탭 제거 — custom 템플릿 선택값과 그 배치를 polaroid로 이관 (1회, 멱등)
+function migrateCollage(board: BoardData): void {
+  let dirty = false;
+  if ((board.collageTemplate as string) === 'custom') {
+    board.collageTemplate = 'polaroid';
+    dirty = true;
+  }
+  if (board.collageLayout && !board.collageLayouts) {
+    board.collageLayouts = { polaroid: board.collageLayout };
+    board.collageLayout = undefined;
+    dirty = true;
+  }
+  if (dirty) saveBoard(board);
 }
 
 export function saveBoard(data: BoardData): void {
@@ -181,9 +197,9 @@ export function saveCollageTemplate(template: CollageTemplate): void {
   saveBoard(board);
 }
 
-export function saveCollageLayout(layout: CollageLayout): void {
+export function saveCollageLayout(template: CollageTemplate, layout: CollageLayout): void {
   const board = loadBoard();
-  board.collageLayout = layout;
+  board.collageLayouts = { ...board.collageLayouts, [template]: layout };
   saveBoard(board);
 }
 

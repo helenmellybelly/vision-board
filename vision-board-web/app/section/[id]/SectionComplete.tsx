@@ -34,7 +34,7 @@ export default function SectionComplete({ section, sectionId, board, onDone, onD
         <Sprout size={28} strokeWidth={1.8} style={{ color: section.color }} aria-hidden="true" />
       </div>
 
-      <h2 className="font-display text-display font-bold mb-3">
+      <h2 className="text-display font-bold mb-3">
         {section.shortTitle ?? section.title.split(' — ')[0]} 이야기, 다 썼어.
       </h2>
       <p className="text-[#6B7280] text-heading leading-relaxed mb-1">

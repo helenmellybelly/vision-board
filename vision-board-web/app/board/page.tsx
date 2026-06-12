@@ -106,9 +106,9 @@ export default function BoardPage() {
             const keyword = sectionData.extractedSlots?.keyword ?? sectionData.slots[2 as SlotId]?.text;
 
             return (
-              <div key={section.id} className="flex flex-col min-h-0">
+              <div key={section.id} className="flex flex-col min-h-0 justify-center">
                 {/* 섹션 헤더 — 무스크롤 예산을 위해 한 줄에 압축, 스토리는 아이콘으로 */}
-                <div className="flex items-center gap-1.5 mb-1.5 flex-shrink-0">
+                <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
                   <span className="font-semibold text-caption md:text-body whitespace-nowrap">{section.title.split(' — ')[0]}</span>
                   {keyword && (
@@ -137,8 +137,8 @@ export default function BoardPage() {
                     onClick={() => router.push(getSectionRoute(sectionData, section.id))}
                     className={
                       shouldHighlightCta(sectionData)
-                        ? 'ml-auto text-caption font-semibold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 active:opacity-70'
-                        : 'ml-auto text-caption text-[#6E6962] whitespace-nowrap flex-shrink-0 active:opacity-70'
+                        ? 'ml-auto text-caption font-semibold px-2.5 py-1 rounded-full min-w-0 truncate active:opacity-70'
+                        : 'ml-auto text-caption text-[#6E6962] min-w-0 truncate active:opacity-70'
                     }
                     style={
                       shouldHighlightCta(sectionData)
@@ -150,10 +150,10 @@ export default function BoardPage() {
                   </button>
                 </div>
 
-                {/* 이미지 3칸 — 행 높이를 그대로 채움(높이 기반), 빈 칸은 탭해서 바로 사진 업로드 */}
-                <div className="flex-1 min-h-0 grid grid-cols-3 gap-1.5">
+                {/* 이미지 3칸 — 정사각형 고정(세로로 길어지는 문제 방지), 빈 칸은 탭해서 바로 사진 업로드 */}
+                <div className="grid grid-cols-3 gap-1.5 flex-shrink-0">
                   {images.map((img, imgIdx) => (
-                    <div key={imgIdx} className="relative min-h-0">
+                    <div key={imgIdx} className="relative aspect-square">
                       {img ? (
                         <>
                           <img

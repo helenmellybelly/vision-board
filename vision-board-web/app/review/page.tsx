@@ -111,7 +111,7 @@ export default function ReviewPage() {
       {/* 헤더 */}
       <div className="px-6 pt-4 pb-4">
         <p className="text-caption font-semibold text-[#6E6962] tracking-widest mb-2">REVIEW</p>
-        <h1 className="font-display text-display font-bold leading-snug mb-1">
+        <h1 className="text-display font-bold leading-snug mb-1">
           수고했어. 쓰다 보면 보이는 게 있어. 🐿️
         </h1>
         <p className="text-[#6B7280] text-body leading-relaxed">
@@ -126,6 +126,8 @@ export default function ReviewPage() {
       <div className="px-4 mb-6 space-y-3">
         {SECTIONS.map((section) => {
           const sectionData = board.sections[section.id];
+          // 작성된 답변이 하나도 없으면(사진만 올린 경우 포함) '수정'이 아니라 '작성'을 권해야 한다
+          const hasAnswers = SLOT_ORDER.some((slotId) => sectionData.slots[slotId]?.text?.trim());
           return (
             <div
               key={section.id}
@@ -144,10 +146,10 @@ export default function ReviewPage() {
                 </div>
                 <button
                   onClick={() => router.push(`/section/${section.id}`)}
-                  className="text-caption active:opacity-60"
+                  className={hasAnswers ? 'text-caption active:opacity-60' : 'text-caption font-semibold active:opacity-60'}
                   style={{ color: section.color }}
                 >
-                  수정하러 가기 →
+                  {hasAnswers ? '수정하러 가기 →' : '작성하기 →'}
                 </button>
               </div>
 
