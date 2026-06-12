@@ -2,15 +2,21 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.19 섹션 답변 검증(하이브리드) + 콜라주 사이즈 우선 플로우 재설계 완료
+- **상태:** v6.20 Unsplash 추천 /scenes 이동 + 온보딩·웰컴·moment 폴리시 — 프로덕션 배포 완료
 - **주요 기능:**
-  - /section: 답변 규칙 검증(자모만·반복·숫자만·너무 짧음 즉시 차단, 입력 유지) + 진행 시 AI 의미 검증(gpt-4o-mini, fail-open). 리뷰 카드가 질문 전문+답변+인라인 수정 구조, 차단 항목엔 경고+예시 표시
-  - /collage: 보드(4:5)가 기본 화면, 폰/PC 배경은 사이즈 선택(WALLPAPER_PRESETS) → 그 비율 그대로 편집 → 무크롭 정확 해상도 내보내기. 비율 ~2% 이내 변경은 배치 유지, 다르면 확인 후 리시드. v6.18 데이터는 aspect 스탬프 마이그레이션으로 보존
-  - /moment·/scenes: 하단 "더 수정하기" 토글 메뉴 제거 (storage reset 헬퍼 4종 삭제)
-- **알려진 이슈:** 없음 (UNSPLASH_ACCESS_KEY 미설정으로 이미지 추천만 비활성)
+  - /scenes: 장면 1·2·3 묘사에 어울리는 Unsplash 추천 행 (신규 /api/image/keywords가 묘사→영어 검색어 3개, imageKeywords 저장, 묘사 변경 시 재계산. 탭하면 장면 번호 슬롯 우선 저장). /section 채팅의 추천(v6.17 ImageSuggestions)은 제거
+  - /section: 답변 규칙 검증 + 진행 시 AI 의미 검증(gpt-4o-mini, fail-open). 리뷰 카드 질문 전문+답변+인라인 수정
+  - /collage: 보드(4:5) 기본, 폰/PC는 사이즈 선택 → 비율 그대로 편집 → 무크롭 정확 해상도 내보내기
+  - /welcome: 단계 4개 순차 등장 + 제목 17px·설명 15px. /moment CTA "비전보드 이미지 만들기"
+- **알려진 이슈:** UNSPLASH_ACCESS_KEY 미설정 → /scenes 추천 블록 숨김(설계된 fallback). hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-12 (v6.20 — Unsplash /scenes 이동 + 온보딩·웰컴·moment 폴리시)
+- Unsplash 추천을 /section 채팅에서 /scenes 장면별 추천으로 이동: /api/image/keywords(gpt-4o-mini)가 묘사 3개를 영어 검색어로 변환해 SectionData.imageKeywords에 저장, SceneImageSuggestions가 장면 1·2·3 행 렌더(키워드 없으면 imageQuery+page 분산 폴백)
+- 온보딩 Act4 효능 카드 간격 확대(제목-설명 mb-1, py-2.5, 카드 간 2.5), /welcome 단계 0.25s 순차 등장+텍스트 확대(17/15px), /moment CTA "비전보드 이미지 만들기"
+- Playwright 13건 검증 통과(.claude/verify-v620*.mjs) → 커밋 10fcf58 푸시 + 프로덕션 배포(dpl_3wSZwKS9h6AxLL7ichVDJo8xnaLf)
 
 ### 2026-06-12 (v6.19 — 답변 검증 + 콜라주 사이즈 우선 재설계)
 - /section 답변 하이브리드 검증: lib/answerValidation.ts(규칙) + /api/validate/answers(gpt-4o-mini 의미 검증, 실패 시 fail-open). InlineInput onSubmit이 false 반환 시 입력 유지, 리뷰 카드를 질문 전문+답변 구조로 재설계(차단 시 예시+인라인 수정 자동 오픈)
