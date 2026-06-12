@@ -117,6 +117,8 @@ export interface CollageSticker {
 export interface CollageLayout {
   items: Record<string, CollageLayoutItem>;
   stickers?: Record<string, CollageSticker>;
+  /** 이 배치가 만들어진 캔버스 비율(w/h) — 비율이 바뀌면 리시드 판단에 쓴다 (v6.19). 레거시 데이터엔 없음 → 마이그레이션이 채움 */
+  aspect?: number;
 }
 
 export interface BoardData {
@@ -134,10 +136,12 @@ export interface BoardData {
   /** @deprecated v6.14 '내 배치' 레이아웃 — loadBoard()가 collageLayouts.polaroid로 이관 */
   collageLayout?: CollageLayout;
   collageLayouts?: Partial<Record<CollageTemplate, CollageLayout>>; // 템플릿별 편집 배치 (board 타깃)
-  // 기기 타깃별 편집 배치 — 폰(9:19.5)/PC(16:9) 배경화면 전용 (v6.18)
+  // 기기 타깃별 편집 배치 — 폰/PC 배경화면 전용 (v6.18). 비율은 collageDevicePresets가 결정 (v6.19)
   collageDeviceLayouts?: Partial<
     Record<'phone' | 'desktop', Partial<Record<CollageTemplate, CollageLayout>>>
   >;
+  // 기기별 선택 사이즈 — lib/wallpaper.ts WALLPAPER_PRESETS의 id (v6.19 사이즈 우선 플로우)
+  collageDevicePresets?: { phone?: string; desktop?: string };
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];

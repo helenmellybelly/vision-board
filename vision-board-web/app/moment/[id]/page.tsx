@@ -5,8 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { getSection } from '@/lib/questions';
 import {
   loadBoard,
-  resetToAnswers,
-  resetToScene,
   saveMiniStory,
   saveSituationText,
 } from '@/lib/storage';
@@ -56,9 +54,6 @@ export default function MomentPage() {
   const [showAdditional, setShowAdditional] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [usedAdditional, setUsedAdditional] = useState(false);
-
-  const [editMenu, setEditMenu] = useState(false);
-  const [pendingConfirm, setPendingConfirm] = useState<'scene' | 'answers' | null>(null);
 
   const [editingStory, setEditingStory] = useState(false);
   const [storyDraft, setStoryDraft] = useState('');
@@ -130,16 +125,6 @@ export default function MomentPage() {
     setShowAdditional(false);
     setRegenerating(false);
     setUsedAdditional(true);
-  }
-
-  function handleEditScene() {
-    resetToScene(sectionId);
-    router.push(`/scene/${sectionId}`);
-  }
-
-  function handleEditAnswers() {
-    resetToAnswers(sectionId);
-    router.push(`/section/${sectionId}`);
   }
 
   if (!section) return null;
@@ -350,50 +335,6 @@ export default function MomentPage() {
                 >
                   이 스토리로 이미지 만들기 →
                 </button>
-
-                <button
-                  onClick={() => { setEditMenu(!editMenu); setPendingConfirm(null); }}
-                  className="w-full py-2 text-caption text-[#C9C5BE] text-center"
-                >
-                  {editMenu ? '닫기 ∧' : '더 수정하기 ∨'}
-                </button>
-
-                {editMenu && (
-                  <div className="mt-2 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
-                    <div className="px-4 py-3 border-b border-[#F5F5F3]">
-                      {pendingConfirm === 'scene' ? (
-                        <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                          <p className="text-caption text-[#92400E] mb-2">그린 하루·스토리가 삭제돼요. 계속할까?</p>
-                          <div className="flex gap-3">
-                            <button onClick={handleEditScene} className="text-caption font-medium text-[#92400E]">계속</button>
-                            <button onClick={() => setPendingConfirm(null)} className="text-caption text-[#6E6962]">취소</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button onClick={() => setPendingConfirm('scene')} className="w-full text-left">
-                          <p className="text-body text-[#374151]">미래의 하루부터 다시</p>
-                          <p className="text-caption text-[#6E6962]">스토리 삭제됨</p>
-                        </button>
-                      )}
-                    </div>
-                    <div className="px-4 py-3">
-                      {pendingConfirm === 'answers' ? (
-                        <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                          <p className="text-caption text-[#92400E] mb-2">모든 내용이 삭제돼요. 계속할까?</p>
-                          <div className="flex gap-3">
-                            <button onClick={handleEditAnswers} className="text-caption font-medium text-[#92400E]">계속</button>
-                            <button onClick={() => setPendingConfirm(null)} className="text-caption text-[#6E6962]">취소</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button onClick={() => setPendingConfirm('answers')} className="w-full text-left">
-                          <p className="text-body text-[#374151]">답변부터 다시</p>
-                          <p className="text-caption text-[#6E6962]">모든 내용 삭제됨</p>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
               </>
             ) : null}
           </>

@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { CollageLayout, CollageLayoutItem, CollageSticker, CollageTarget, CollageTemplate } from '@/lib/types';
+import { CollageLayout, CollageLayoutItem, CollageSticker, CollageTemplate } from '@/lib/types';
 import {
+  ASPECT,
   COLLAGE_THEMES,
   CollageItem,
   MAX_W,
   MIN_W,
   STICKER_FONT_RATIO,
   STICKER_MIN_W,
-  TARGET_ASPECT,
+  hasTopReserve,
+  isLandscape,
   newStickerLayoutItem,
   resolveLayout,
   seedLayout,
@@ -25,8 +27,8 @@ interface Props {
   onLayoutChange: (layout: CollageLayout) => void;
   year: string;
   onYearChange: (year: string) => void;
-  /** 편집 타깃 — 보드(4:5)/폰(9:19.5)/PC(16:9). 좌표 공간과 시드가 타깃별로 다르다 (v6.18) */
-  target?: CollageTarget;
+  /** 캔버스 비율(w/h) — 보드 4:5, 폰/PC는 선택한 기기 사이즈 비율. 좌표 공간과 시드가 비율별로 다르다 (v6.19) */
+  aspect?: number;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -93,15 +95,14 @@ function StickerView({
 
 // 통합 콜라주 보드 — 모든 템플릿이 같은 드래그 엔진을 쓴다.
 // 보드를 탭하면 편집 모드: 사진·스티커 이동/리사이즈, + 문구 추가, 변경 즉시 저장.
-export default function CollageBoard({ template, items, layout, onLayoutChange, year, onYearChange, target = 'board' }: Props) {
+export default function CollageBoard({ template, items, layout, onLayoutChange, year, onYearChange, aspect = ASPECT }: Props) {
   const theme = COLLAGE_THEMES[template];
-  const aspect = TARGET_ASPECT[target];
   const boardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const tapRef = useRef<{ x: number; y: number } | null>(null);
   const [editing, setEditing] = useState(false);
   const [sheet, setSheet] = useState<{ open: boolean; editId?: string }>({ open: false });
-  const [live, setLive] = useState<CollageLayout>(() => resolveLayout(template, items, layout, target));
+  const [live, setLive] = useState<CollageLayout>(() => resolveLayout(template, items, layout, aspect));
   const liveRef = useRef(live);
 
   function commitLive(updater: (prev: CollageLayout) => CollageLayout) {
@@ -119,9 +120,9 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
 
   // 외부 layout·사진 구성 변경 동기화 (드래그 중이 아닐 때)
   useEffect(() => {
-    if (!dragRef.current) commitLive(() => resolveLayout(template, items, layout, target));
+    if (!dragRef.current) commitLive(() => resolveLayout(template, items, layout, aspect));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, target, items.map((i) => i.key).join(','), layout]);
+  }, [template, aspect, items.map((i) => i.key).join(','), layout]);
 
   if (items.length === 0) return null;
 
@@ -206,7 +207,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
   }
 
   function resetLayout() {
-    save(seedLayout(template, items, target));
+    save(seedLayout(template, items, aspect));
   }
 
   function handleStickerConfirm(data: { text: string; style: CollageSticker['style']; color?: string }) {
@@ -217,7 +218,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     } else {
       const id = `s${Date.now()}`;
       save({
-        items: { ...prev.items, [stickerKey(id)]: newStickerLayoutItem(maxZ, target) },
+        items: { ...prev.items, [stickerKey(id)]: newStickerLayoutItem(maxZ, aspect) },
         stickers: { ...prev.stickers, [id]: { id, ...data } },
       });
     }
@@ -244,18 +245,15 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
         data-testid="collage-board"
         className="relative w-full mx-auto rounded-3xl overflow-hidden select-none"
         style={{
-          aspectRatio: target === 'board' ? '4 / 5' : target === 'phone' ? '1170 / 2532' : '1920 / 1080',
+          aspectRatio: String(aspect),
           backgroundColor: theme.bg,
           border: theme.dark ? 'none' : '1px solid #E5E3DF',
           containerType: 'size',
-          // 보드 + 탭 + 저장 버튼이 한 화면에 들어오게 — 세로가 짧은 기기에선 보드 폭이 줄어든다.
-          // 폰 타깃은 세로가 길어 더 좁게, PC 타깃(가로형)은 전폭
-          maxWidth:
-            target === 'board'
-              ? 'min(100%, calc((100dvh - 19rem) * 0.8))'
-              : target === 'phone'
-                ? 'min(100%, calc((100dvh - 19rem) * 0.462))'
-                : '100%',
+          // 보드 + 버튼이 한 화면에 들어오게 — 세로가 짧은 기기에선 보드 폭이 줄어든다.
+          // 세로형은 비율에 비례해 좁게, 가로형(PC)은 전폭
+          maxWidth: isLandscape(aspect)
+            ? '100%'
+            : `min(100%, calc((100dvh - 19rem) * ${aspect}))`,
           touchAction: editing ? 'none' : 'auto',
         }}
         onPointerDown={onBoardPointerDown}
@@ -267,8 +265,8 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
         {theme.titlePos === 'top' && (
           <div
             className="absolute inset-x-0 top-0 flex flex-col items-center text-center pointer-events-none z-30"
-            // 폰 타깃은 상단 시계·위젯 영역(~15%) 아래로 — lib/wallpaper.ts padCq와 동일 수치
-            style={{ paddingTop: target === 'phone' ? '32cqmin' : '4cqmin' }}
+            // 세로로 긴 화면은 상단 시계·위젯 영역(~15%) 아래로 — lib/wallpaper.ts padCq와 동일 수치
+            style={{ paddingTop: hasTopReserve(aspect) ? '32cqmin' : '4cqmin' }}
           >
             <p className="font-semibold tracking-[0.3em] uppercase" style={{ color: labelColor, fontSize: '2.6cqmin' }}>
               Vision Board

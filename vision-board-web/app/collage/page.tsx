@@ -3,26 +3,32 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  clearCollageDeviceLayouts,
   loadBoard,
   saveBoardYear,
   saveCollageDeviceLayout,
+  saveCollageDevicePreset,
   saveCollageLayout,
   saveCollageTemplate,
   saveFutureDayStory,
 } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
-import { BoardData, CollageTarget, CollageTemplate } from '@/lib/types';
-import { CollageItem, resolveLayout } from '@/lib/collageTemplates';
+import { BoardData, CollageLayout, CollageTemplate } from '@/lib/types';
+import { ASPECT, CollageItem, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
+import { WALLPAPER_PRESETS, WallpaperPreset } from '@/lib/wallpaper';
 import StoryModal from '@/components/StoryModal';
 import WallpaperSheet from '@/components/WallpaperSheet';
 import CollageBoard from '@/components/collage/CollageBoard';
+import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 
-// 편집 타깃 탭 — 세 탭 모두 같은 편집 엔진, 타깃별 배치는 따로 저장된다 (v6.18)
-const TARGET_TABS: { id: CollageTarget; label: string }[] = [
-  { id: 'board', label: '보드' },
-  { id: 'phone', label: '폰 배경' },
-  { id: 'desktop', label: 'PC 배경' },
-];
+// 화면 구조 (v6.19) — 보드가 기본, 폰/PC 배경은 사이즈를 먼저 고르고 그 비율 그대로 편집하는 별도 플로우
+type CollageView = 'board' | 'phone' | 'desktop';
+
+const VIEW_TITLES: Record<CollageView, string> = {
+  board: '한눈에 보기',
+  phone: '폰 배경 만들기',
+  desktop: 'PC 배경 만들기',
+};
 
 const TEMPLATES: { id: CollageTemplate; label: string }[] = [
   { id: 'polaroid', label: '폴라로이드' },
@@ -67,9 +73,11 @@ function TemplateSwatch({ id }: { id: CollageTemplate }) {
 export default function CollagePage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
-  const [sheetTarget, setSheetTarget] = useState<'phone' | 'desktop' | null>(null);
+  const [view, setView] = useState<CollageView>('board');
+  const [picking, setPicking] = useState(false); // 기기 플로우 1단계 — 사이즈 선택
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [confirmReseed, setConfirmReseed] = useState<WallpaperPreset | null>(null);
   const [showCoach, setShowCoach] = useState(false);
-  const [target, setTarget] = useState<CollageTarget>('board');
 
   useEffect(() => {
     setBoard(loadBoard());
@@ -111,23 +119,29 @@ export default function CollagePage() {
 
   const boardYear = board.boardYear ?? String(new Date().getFullYear());
 
-  // 타깃별 저장된 배치 — 보드는 collageLayouts, 폰/PC는 collageDeviceLayouts
+  // 기기 뷰의 선택 사이즈 — 편집·내보내기 비율을 이 프리셋이 결정한다 (v6.19)
+  const devicePresetId = view !== 'board' ? board.collageDevicePresets?.[view] : undefined;
+  const devicePreset = WALLPAPER_PRESETS.find((p) => p.id === devicePresetId);
+  const aspect = view === 'board' || !devicePreset ? ASPECT : devicePreset.w / devicePreset.h;
+
+  // 뷰별 저장된 배치 — 보드는 collageLayouts, 폰/PC는 collageDeviceLayouts
   const savedLayout =
-    target === 'board'
+    view === 'board'
       ? board.collageLayouts?.[template]
-      : board.collageDeviceLayouts?.[target]?.[template];
+      : board.collageDeviceLayouts?.[view]?.[template];
 
   // 화면에 보이는 배치 그대로 — 배경화면 내보내기와 공유
-  const currentLayout = resolveLayout(template, keyedItems, savedLayout, target);
+  const currentLayout = resolveLayout(template, keyedItems, savedLayout, aspect);
 
   function selectTemplate(id: CollageTemplate) {
     saveCollageTemplate(id);
     setBoard(loadBoard());
   }
 
-  function handleLayoutChange(l: Parameters<typeof saveCollageLayout>[1]) {
-    if (target === 'board') saveCollageLayout(template, l);
-    else saveCollageDeviceLayout(target, template, l);
+  function handleLayoutChange(l: CollageLayout) {
+    const stamped = { ...l, aspect };
+    if (view === 'board') saveCollageLayout(template, stamped);
+    else saveCollageDeviceLayout(view, template, stamped);
     setBoard(loadBoard());
   }
 
@@ -136,105 +150,97 @@ export default function CollagePage() {
     setBoard(loadBoard());
   }
 
+  // 기기 플로우 진입 — 사이즈 미선택이면 선택 단계부터, 선택돼 있으면 바로 편집
+  function enterDevice(t: 'phone' | 'desktop') {
+    setView(t);
+    setPicking(!board?.collageDevicePresets?.[t]);
+  }
+
+  function backToBoard() {
+    setView('board');
+    setPicking(false);
+    setConfirmReseed(null);
+  }
+
+  // 사이즈 선택 — 비율이 거의 같으면 배치 유지, 다르면 리시드 확인
+  function handleSelectPreset(preset: WallpaperPreset) {
+    if (view === 'board' || !board) return;
+    const hasLayouts =
+      Object.keys(board.collageDeviceLayouts?.[view] ?? {}).length > 0;
+    const newAspect = preset.w / preset.h;
+    if (devicePreset && hasLayouts && !aspectsEqual(devicePreset.w / devicePreset.h, newAspect)) {
+      setConfirmReseed(preset);
+      return;
+    }
+    saveCollageDevicePreset(view, preset.id);
+    setBoard(loadBoard());
+    setConfirmReseed(null);
+    setPicking(false);
+  }
+
+  function applyReseed() {
+    if (!confirmReseed || view === 'board') return;
+    clearCollageDeviceLayouts(view);
+    saveCollageDevicePreset(view, confirmReseed.id);
+    setBoard(loadBoard());
+    setConfirmReseed(null);
+    setPicking(false);
+  }
+
+  const templateSelector = (
+    <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="콜라주 템플릿">
+      {TEMPLATES.map((t) => (
+        <button
+          key={t.id}
+          role="radio"
+          aria-checked={template === t.id}
+          onClick={() => selectTemplate(t.id)}
+          className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+            template === t.id ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
+          }`}
+        >
+          <TemplateSwatch id={t.id} />
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-3xl mx-auto w-full pb-10">
-      {/* 헤더 */}
+      {/* 헤더 — 기기 플로우에선 보드로 돌아가는 단계 헤더가 된다 */}
       <div className="px-6 pt-4 pb-4">
         <div className="flex items-center gap-3 mb-1">
           <button
-            onClick={() => router.push('/board')}
+            onClick={() => (view === 'board' ? router.push('/board') : backToBoard())}
+            aria-label={view === 'board' ? '비전보드로 돌아가기' : '한눈에 보기로 돌아가기'}
             className="p-2 -ml-2 text-[#6B7280] active:opacity-60"
           >
             ‹
           </button>
-          <h1 className="text-title font-bold">한눈에 보기</h1>
+          <h1 className="text-title font-bold">{VIEW_TITLES[view]}</h1>
         </div>
-        <p className="text-caption text-[#6E6962] pl-8">내 비전보드를 하나로.</p>
+        {view === 'board' ? (
+          <p className="text-caption text-[#6E6962] pl-8">내 비전보드를 하나로.</p>
+        ) : devicePreset && !picking ? (
+          <div className="flex items-center gap-2 pl-8">
+            <p className="text-caption text-[#6E6962]">
+              {devicePreset.label} · {devicePreset.w}×{devicePreset.h}
+            </p>
+            <button
+              onClick={() => setPicking(true)}
+              className="text-caption text-[#1C1B19] underline active:opacity-70"
+            >
+              사이즈 바꾸기
+            </button>
+          </div>
+        ) : (
+          <p className="text-caption text-[#6E6962] pl-8">어떤 기기에 쓸지 사이즈부터 골라줘.</p>
+        )}
       </div>
 
       <div className="px-4 md:px-6 animate-fadeIn">
-        {collageImages.length > 0 ? (
-          <>
-            {/* 템플릿 선택 */}
-            <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="콜라주 템플릿">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.id}
-                  role="radio"
-                  aria-checked={template === t.id}
-                  onClick={() => selectTemplate(t.id)}
-                  className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-                    template === t.id ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
-                  }`}
-                >
-                  <TemplateSwatch id={t.id} />
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 편집 타깃 — 보드/폰/PC 모두 직접 편집 가능, 배치는 타깃별로 따로 저장 (v6.18) */}
-            <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="편집 타깃">
-              {TARGET_TABS.map((m) => (
-                <button
-                  key={m.id}
-                  role="radio"
-                  aria-checked={target === m.id}
-                  onClick={() => setTarget(m.id)}
-                  className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors ${
-                    target === m.id ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 보드 — 탭하면 바로 편집 (모든 템플릿·타깃 공통 엔진) */}
-            <CollageBoard
-              key={`${target}-${template}`}
-              template={template}
-              items={keyedItems}
-              layout={savedLayout}
-              target={target}
-              onLayoutChange={handleLayoutChange}
-              year={boardYear}
-              onYearChange={handleYearChange}
-            />
-
-            {target === 'board' ? (
-              /* 보드 탭 — 배경화면은 기기 탭에서 규격에 맞게 다듬은 뒤 저장 */
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => setTarget('phone')}
-                  className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
-                >
-                  폰 배경 만들기 →
-                </button>
-                <button
-                  onClick={() => setTarget('desktop')}
-                  className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
-                >
-                  PC 배경 만들기 →
-                </button>
-              </div>
-            ) : (
-              <>
-                <p className="text-micro text-[#6E6962] text-center mt-2">
-                  {target === 'phone'
-                    ? '실제 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
-                    : '실제 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
-                </p>
-                <button
-                  onClick={() => setSheetTarget(target as 'phone' | 'desktop')}
-                  className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
-                >
-                  {target === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
-                </button>
-              </>
-            )}
-          </>
-        ) : (
+        {collageImages.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-body text-[#6E6962]">
               아직 담긴 사진이 없어.
@@ -248,10 +254,107 @@ export default function CollagePage() {
               비전보드로 가기 →
             </button>
           </div>
+        ) : view === 'board' ? (
+          <>
+            {templateSelector}
+
+            {/* 보드 — 탭하면 바로 편집 */}
+            <CollageBoard
+              key={`board-${template}`}
+              template={template}
+              items={keyedItems}
+              layout={savedLayout}
+              aspect={ASPECT}
+              onLayoutChange={handleLayoutChange}
+              year={boardYear}
+              onYearChange={handleYearChange}
+            />
+
+            {/* 기기 배경 플로우 진입 — 사이즈 선택 → 그 비율로 편집 → 저장 */}
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => enterDevice('phone')}
+                className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
+              >
+                폰 배경 만들기 →
+              </button>
+              <button
+                onClick={() => enterDevice('desktop')}
+                className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
+              >
+                PC 배경 만들기 →
+              </button>
+            </div>
+          </>
+        ) : picking || !devicePreset ? (
+          <>
+            {/* 기기 플로우 1단계 — 사이즈 선택. PC도 FHD/맥북(16:10)/울트라와이드 등 비율이 다르다 */}
+            <DevicePresetPicker
+              groups={view === 'phone' ? ['휴대폰', '태블릿'] : ['PC']}
+              selectedId={devicePreset?.id}
+              onSelect={handleSelectPreset}
+            />
+
+            {confirmReseed && (
+              <div className="mt-4 rounded-xl bg-[#FEF9C3] px-4 py-3">
+                <p className="text-caption text-[#92400E] mb-2">
+                  비율이 달라져서 배치를 새로 짜야 해. 지금까지 꾸민 배치는 사라져. 계속할까?
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={applyReseed} className="text-caption font-semibold text-[#92400E]">
+                    계속
+                  </button>
+                  <button
+                    onClick={() => setConfirmReseed(null)}
+                    className="text-caption text-[#6E6962]"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {devicePreset && !confirmReseed && (
+              <button
+                onClick={() => setPicking(false)}
+                className="mt-4 w-full py-2 text-caption text-[#6E6962] text-center active:opacity-70"
+              >
+                그대로 둘게 (편집으로 돌아가기)
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            {/* 기기 플로우 2단계 — 선택한 비율 그대로 편집 */}
+            {templateSelector}
+
+            <CollageBoard
+              key={`${view}-${devicePreset.id}-${template}`}
+              template={template}
+              items={keyedItems}
+              layout={savedLayout}
+              aspect={aspect}
+              onLayoutChange={handleLayoutChange}
+              year={boardYear}
+              onYearChange={handleYearChange}
+            />
+
+            <p className="text-micro text-[#6E6962] text-center mt-2">
+              {view === 'phone'
+                ? '선택한 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
+                : '선택한 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
+            </p>
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
+            >
+              {view === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
+            </button>
+          </>
         )}
 
-        {/* 미래의 하루 이야기 — 있을 때 / 6개 영역 완성 시에만 노출 */}
-        {board.futureDayStory ? (
+        {/* 미래의 하루 이야기 — 보드 뷰에서만 / 6개 영역 완성 시에만 노출 */}
+        {view === 'board' && board.futureDayStory ? (
           <div className="mt-8 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-body">미래의 하루 이야기</span>
@@ -273,7 +376,7 @@ export default function CollagePage() {
               }}
             />
           </div>
-        ) : completedCount === 6 ? (
+        ) : view === 'board' && completedCount === 6 ? (
           <div className="mt-8 space-y-2">
             <button
               onClick={() => router.push('/finish')}
@@ -317,7 +420,7 @@ export default function CollagePage() {
               <div className="flex items-start gap-3">
                 <span className="w-8 h-8 rounded-xl bg-[#F5F5F3] flex items-center justify-center flex-shrink-0 text-body" aria-hidden="true">📱</span>
                 <p className="text-body text-[#1C1B19] leading-snug">
-                  <span className="font-semibold">폰 배경·PC 배경 탭</span>에선 실제 화면 비율로 따로 꾸며서 저장할 수 있어.
+                  아래 <span className="font-semibold">폰 배경·PC 배경 만들기</span>에선 기기 사이즈를 고르고, 그 비율 그대로 꾸며서 저장할 수 있어.
                 </p>
               </div>
             </div>
@@ -331,12 +434,12 @@ export default function CollagePage() {
         </div>
       )}
 
-      {sheetTarget && (
+      {sheetOpen && view !== 'board' && devicePreset && (
         <WallpaperSheet
           year={boardYear}
-          target={sheetTarget}
+          preset={devicePreset}
           board={{ template, layout: currentLayout, items: keyedItems }}
-          onClose={() => setSheetTarget(null)}
+          onClose={() => setSheetOpen(false)}
         />
       )}
     </main>

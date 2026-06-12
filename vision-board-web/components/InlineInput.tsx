@@ -3,15 +3,17 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface Props {
-  onSubmit: (text: string) => void;
+  // false 반환 시 입력을 비우지 않는다 (검증 실패 — 다시 쓸 수 있게 유지)
+  onSubmit: (text: string) => boolean | void;
   placeholder?: string;
   disabled?: boolean;
   onHelp?: () => void;
   example?: string;
   hint?: string;
+  error?: string | null;
 }
 
-export default function InlineInput({ onSubmit, placeholder = '여기에 써봐...', disabled = false, onHelp, example, hint }: Props) {
+export default function InlineInput({ onSubmit, placeholder = '여기에 써봐...', disabled = false, onHelp, example, hint, error }: Props) {
   const [text, setText] = useState('');
   const [visible, setVisible] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -31,7 +33,8 @@ export default function InlineInput({ onSubmit, placeholder = '여기에 써봐.
   function handleSend() {
     const trimmed = text.trim();
     if (!trimmed || disabled) return;
-    onSubmit(trimmed);
+    const ok = onSubmit(trimmed);
+    if (ok === false) return;
     setText('');
   }
 
@@ -74,6 +77,9 @@ export default function InlineInput({ onSubmit, placeholder = '여기에 써봐.
         className="w-full resize-none text-body md:text-body leading-relaxed px-4 pt-3 pb-2 outline-none max-h-40 overflow-y-auto bg-transparent placeholder:text-[#6E6962]"
         style={{ color: '#1C1B19' }}
       />
+      {error && (
+        <p className="text-caption text-[#B45309] px-4 pb-2">{error}</p>
+      )}
       <div className="flex items-center justify-between px-3 pb-3">
         {onHelp ? (
           <button

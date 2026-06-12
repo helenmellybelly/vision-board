@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
 import { loadBoard, saveExtractedSlots, markSectionTextComplete } from '@/lib/storage';
+import { validateAnswer, validateAll, AnswerKey } from '@/lib/answerValidation';
 import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
@@ -36,6 +37,12 @@ export default function SectionChatPage() {
   const [editingKey, setEditingKey] = useState<keyof ExtractedSlots | null>(null);
   const [editValue, setEditValue] = useState('');
   const [showDownstreamWarning, setShowDownstreamWarning] = useState(false);
+
+  // 답변 검증 (v6.19)
+  const [answerError, setAnswerError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [reviewErrors, setReviewErrors] = useState<Partial<Record<AnswerKey, string>>>({});
+  const [aiChecking, setAiChecking] = useState(false);
 
   const [savedIndicator, setSavedIndicator] = useState(false);
   const [chatHovered, setChatHovered] = useState(false);
@@ -73,10 +80,16 @@ export default function SectionChatPage() {
     setTimeout(() => setSavedIndicator(false), 2000);
   }
 
-  function handleAnswer(text: string) {
-    if (!section || qIdx >= 4) return;
-    setShowHelp(false);
+  function handleAnswer(text: string): boolean {
+    if (!section || qIdx >= 4) return false;
     const key = section.phaseOneQuestions[qIdx].key;
+    const result = validateAnswer(key, text);
+    if (!result.valid) {
+      setAnswerError(result.message ?? null);
+      return false;
+    }
+    setAnswerError(null);
+    setShowHelp(false);
     const newAnswers = { ...answers, [key]: text };
     setAnswers(newAnswers);
     saveExtractedSlots(sectionId, newAnswers);
@@ -85,10 +98,22 @@ export default function SectionChatPage() {
     if (nextIdx >= 4) setPhase('review');
     setQIdx(nextIdx);
     setBoard(loadBoard());
+    return true;
   }
 
   function handleSaveEdit(key: keyof ExtractedSlots) {
     if (!editValue.trim()) return;
+    const result = validateAnswer(key, editValue.trim());
+    if (!result.valid) {
+      setEditError(result.message ?? null);
+      return;
+    }
+    setEditError(null);
+    setReviewErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
     const updated = { ...answers, [key]: editValue.trim() };
     setAnswers(updated);
     saveExtractedSlots(sectionId, updated);
@@ -104,6 +129,74 @@ export default function SectionChatPage() {
   function handleComplete() {
     markSectionTextComplete(sectionId);
     router.push(`/scene/${sectionId}`);
+  }
+
+  function exampleFor(key: keyof ExtractedSlots): string {
+    return section?.slots.find((s) => s.id === KEY_TO_SLOT_ID[key])?.example ?? '';
+  }
+
+  function openFirstInvalidEdit(keys: AnswerKey[]) {
+    const first = Q_KEYS.find((k) => keys.includes(k));
+    if (first) {
+      setEditingKey(first);
+      setEditValue(answers[first] ?? '');
+      setEditError(null);
+      setShowDownstreamWarning(false);
+    }
+  }
+
+  // 하이브리드 게이트: ① 규칙 검증(무료) → ② AI 의미 검증(실패 시 fail-open)
+  async function handleProceed() {
+    const failures = validateAll(answers);
+    const failedKeys = Object.keys(failures) as AnswerKey[];
+    if (failedKeys.length > 0) {
+      const msgs: Partial<Record<AnswerKey, string>> = {};
+      failedKeys.forEach((k) => {
+        msgs[k] = failures[k]?.message ?? '다시 한번 써줄래?';
+      });
+      setReviewErrors(msgs);
+      openFirstInvalidEdit(failedKeys);
+      return;
+    }
+
+    setAiChecking(true);
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 10_000);
+      const res = await fetch('/api/validate/answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionTitle: section?.title.split(' — ')[0] ?? '',
+          items: Q_KEYS.map((k) => ({
+            key: k,
+            question: section?.phaseOneQuestions.find((q) => q.key === k)?.questionText ?? '',
+            answer: answers[k] ?? '',
+          })),
+        }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        const invalid = Q_KEYS.filter((k) => data.results?.[k]?.valid === false);
+        if (invalid.length > 0) {
+          const msgs: Partial<Record<AnswerKey, string>> = {};
+          invalid.forEach((k) => {
+            msgs[k] = data.results[k]?.reason || '이 답변은 내가 이해하기 어려워. 다시 써줄래?';
+          });
+          setReviewErrors(msgs);
+          openFirstInvalidEdit(invalid);
+          setAiChecking(false);
+          return;
+        }
+      }
+      // res.ok가 아니면 인프라 문제 — 진행을 막지 않는다
+    } catch {
+      // 네트워크 오류/타임아웃 — 진행을 막지 않는다
+    }
+    setAiChecking(false);
+    handleComplete();
   }
 
   if (!section || !board) return null;
@@ -187,6 +280,9 @@ export default function SectionChatPage() {
                       rows={2}
                       autoFocus
                     />
+                    {editError && (
+                      <p className="text-caption text-[#B45309] mt-1">{editError}</p>
+                    )}
                     <div className="flex gap-3 mt-1.5 justify-end">
                       <button
                         onClick={() => handleSaveEdit(msgKey)}
@@ -195,7 +291,7 @@ export default function SectionChatPage() {
                         저장
                       </button>
                       <button
-                        onClick={() => setEditingKey(null)}
+                        onClick={() => { setEditingKey(null); setEditError(null); }}
                         className="text-caption text-[#6E6962]"
                       >
                         취소
@@ -210,7 +306,7 @@ export default function SectionChatPage() {
                     <ChatBubble role="user" content={msg.text} />
                     {phase === 'questions' && (
                       <button
-                        onClick={() => { setEditingKey(msgKey); setEditValue(msg.text); }}
+                        onClick={() => { setEditingKey(msgKey); setEditValue(msg.text); setEditError(null); }}
                         className="text-micro text-[#6E6962] mt-0.5 pr-1 active:text-[#1C1B19]"
                       >
                         수정
@@ -256,47 +352,68 @@ export default function SectionChatPage() {
                     const val = answers[q.key];
                     if (!val) return null;
                     return (
-                      <div key={q.key} className="px-4 py-2.5">
-                        <div className="flex gap-3">
-                          <p className="text-micro text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">
-                            {q.label}
-                          </p>
-                          {editingKey === q.key ? (
-                            <div className="flex-1">
-                              <textarea
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                className="w-full text-body rounded-xl border border-[#E5E3DF] px-3 py-2 resize-none focus:outline-none focus:border-[#C9C5BE] leading-relaxed"
-                                rows={2}
-                                autoFocus
-                              />
-                              <div className="flex gap-3 mt-1.5">
-                                <button
-                                  onClick={() => handleSaveEdit(q.key)}
-                                  className="text-caption font-semibold text-[#1C1B19]"
-                                >
-                                  저장
-                                </button>
-                                <button
-                                  onClick={() => setEditingKey(null)}
-                                  className="text-caption text-[#6E6962]"
-                                >
-                                  취소
-                                </button>
-                              </div>
+                      <div key={q.key} className="px-4 py-3">
+                        <p className="text-micro font-medium" style={{ color: section.color }}>
+                          {q.label}
+                        </p>
+                        <p className="text-caption text-[#6E6962] mt-0.5 leading-relaxed">
+                          {q.questionText}
+                        </p>
+                        {editingKey === q.key ? (
+                          <div className="mt-1.5">
+                            <textarea
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="w-full text-body rounded-xl border border-[#E5E3DF] px-3 py-2 resize-none focus:outline-none focus:border-[#C9C5BE] leading-relaxed"
+                              rows={2}
+                              autoFocus
+                            />
+                            {editError && (
+                              <p className="text-caption text-[#B45309] mt-1">{editError}</p>
+                            )}
+                            {reviewErrors[q.key] && (
+                              <p className="text-micro text-[#6E6962] mt-1 leading-relaxed">
+                                예: {exampleFor(q.key)}
+                              </p>
+                            )}
+                            <div className="flex gap-3 mt-1.5">
+                              <button
+                                onClick={() => handleSaveEdit(q.key)}
+                                className="text-caption font-semibold text-[#1C1B19]"
+                              >
+                                저장
+                              </button>
+                              <button
+                                onClick={() => { setEditingKey(null); setEditError(null); }}
+                                className="text-caption text-[#6E6962]"
+                              >
+                                취소
+                              </button>
                             </div>
-                          ) : (
-                            <div className="flex-1 flex items-start justify-between gap-2">
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mt-1.5 flex items-start justify-between gap-2">
                               <p className="text-body leading-relaxed text-[#1C1B19]">{val}</p>
                               <button
-                                onClick={() => { setEditingKey(q.key); setEditValue(val); setShowDownstreamWarning(false); }}
+                                onClick={() => { setEditingKey(q.key); setEditValue(val); setEditError(null); setShowDownstreamWarning(false); }}
                                 className="text-micro text-[#6E6962] shrink-0 pt-0.5 active:text-[#1C1B19]"
                               >
                                 수정
                               </button>
                             </div>
-                          )}
-                        </div>
+                            {reviewErrors[q.key] && (
+                              <div className="mt-2 rounded-xl bg-[#FEF9C3] px-3 py-2.5">
+                                <p className="text-caption text-[#92400E]">{reviewErrors[q.key]}</p>
+                                {exampleFor(q.key) && (
+                                  <p className="text-micro text-[#92400E]/80 mt-1 leading-relaxed">
+                                    예: {exampleFor(q.key)}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     );
                   })}
@@ -326,10 +443,11 @@ export default function SectionChatPage() {
               )}
 
               <button
-                onClick={handleComplete}
-                className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80"
+                onClick={handleProceed}
+                disabled={aiChecking}
+                className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80 disabled:opacity-60"
               >
-                원하는 삶을 그려보자 →
+                {aiChecking ? '잠깐, 확인해볼게…' : '원하는 삶을 그려보자 →'}
               </button>
               <button
                 onClick={() => router.push('/dashboard')}
@@ -373,6 +491,7 @@ export default function SectionChatPage() {
             example={currentExample}
             hint={currentQ.key === 'want' ? '여러 개여도 좋아. 줄 바꿔서 써봐.' : undefined}
             onHelp={helpQs.length > 0 ? () => setShowHelp(true) : undefined}
+            error={answerError}
           />
         </div>
       )}

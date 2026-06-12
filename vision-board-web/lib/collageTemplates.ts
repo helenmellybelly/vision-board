@@ -4,7 +4,6 @@ import {
   CollageLayout,
   CollageLayoutItem,
   CollageSticker,
-  CollageTarget,
   CollageTemplate,
   StickerStyle,
 } from './types';
@@ -17,12 +16,13 @@ export interface CollageItem {
 // 4:5 보드 — 정규화 y는 (픽셀 y / 보드 높이)라서, 정사각 사진의 정규화 높이 = w × ASPECT
 export const ASPECT = 4 / 5;
 
-// 타깃별 보드 가로세로비 — 정사각 사진의 정규화 높이 = w × aspect (v6.18 기기별 편집)
-export const TARGET_ASPECT: Record<CollageTarget, number> = {
-  board: 4 / 5,
-  phone: 1170 / 2532, // lib/wallpaper.ts WALLPAPER_SIZES.mobile 캐논 캔버스와 동일
-  desktop: 1920 / 1080,
-};
+// 비율(w/h) 기반 분기 — 기기 사이즈가 프리셋마다 달라 타깃 enum 대신 비율로 판단 (v6.19)
+// 세로로 긴 화면(폰·태블릿)은 상단 ~15%를 시계·위젯 영역으로 비운다
+export const hasTopReserve = (aspect: number) => aspect < 0.75;
+export const isLandscape = (aspect: number) => aspect > 1;
+// 비율 차이 ~2% 이내면 같은 배치를 그대로 쓴다 (예: 기본 폰 9:19.5 ↔ iPhone 9:19.5)
+export const aspectsEqual = (a: number, b: number) => Math.abs(a - b) / b <= 0.02;
+
 export const MIN_W = 0.12;
 export const MAX_W = 0.7;
 export const STICKER_MIN_W = 0.18;
@@ -75,11 +75,10 @@ const POLAROID_SLOTS: [number, number][] = [
 const POLAROID_WIDTHS = [0.30, 0.27, 0.32, 0.26, 0.29, 0.31];
 const POLAROID_ROTS = [-7, 5, -4, 8, -6, 4, 7, -5];
 
-function seedPolaroid(items: CollageItem[], target: CollageTarget): CollageLayout {
-  const aspect = TARGET_ASPECT[target];
-  // 폰은 상단 ~15%를 시계·위젯 영역으로 비우고, 가로형(PC)은 폴라로이드 폭을 줄여 과대화를 막는다
-  const topReserve = target === 'phone' ? 0.15 : 0;
-  const wScale = aspect > 1 ? 0.42 : 1;
+function seedPolaroid(items: CollageItem[], aspect: number): CollageLayout {
+  // 세로로 긴 화면은 상단 ~15%를 시계·위젯 영역으로 비우고, 가로형(PC)은 폴라로이드 폭을 줄여 과대화를 막는다
+  const topReserve = hasTopReserve(aspect) ? 0.15 : 0;
+  const wScale = isLandscape(aspect) ? 0.42 : 1;
   // 폴라로이드 프레임은 사진보다 길다(턱 포함 ≈ 폭×1.115) — 가로형에선 하단 잘림이 커서 프레임 기준으로 클램프
   const frameH = (w: number) => w * (aspect > 1 ? 1.115 : 1) * aspect;
   const remapY = (y: number) => topReserve + y * (1 - topReserve);
@@ -95,7 +94,7 @@ function seedPolaroid(items: CollageItem[], target: CollageTarget): CollageLayou
       rot: POLAROID_ROTS[i % POLAROID_ROTS.length],
     };
   });
-  const layout: CollageLayout = { items: result };
+  const layout: CollageLayout = { items: result, aspect };
   // 스크랩북 무드 기본 스티커 — 사용자가 옮기거나 지울 수 있다
   layout.stickers = {
     'seed-script': { id: 'seed-script', text: "It's my year", style: 'script' },
@@ -116,17 +115,16 @@ const MOSAIC_SPANS: [number, number][] = [
   [2, 2], [1, 1], [1, 1], [1, 1], [1, 1], [2, 1], [1, 1], [1, 2],
 ];
 
-function seedMosaic(items: CollageItem[], target: CollageTarget): CollageLayout {
-  const aspect = TARGET_ASPECT[target];
+function seedMosaic(items: CollageItem[], aspect: number): CollageLayout {
   const n = items.length;
-  // 폰(세로로 긴 캔버스)은 컬럼을 줄여 사진을 키우고, PC(가로)는 늘려 폭을 채운다
+  // 세로로 긴 캔버스(폰·태블릿)는 컬럼을 줄여 사진을 키우고, 가로형(PC)은 늘려 폭을 채운다
   const baseCols = n <= 8 ? 4 : n <= 13 ? 5 : 6;
-  const cols = target === 'phone' ? (n <= 8 ? 3 : 4) : target === 'desktop' ? baseCols + 2 : baseCols;
+  const cols = hasTopReserve(aspect) ? (n <= 8 ? 3 : 4) : isLandscape(aspect) ? baseCols + 2 : baseCols;
   const gx = 0.015;
   const gy = gx * aspect;
   const margin = 0.03;
-  // 상단 타이틀 밴드(라벨+연도) 아래부터 그리드 — 폰은 시계 영역까지 고려해 더 내린다
-  const titleBottom = target === 'phone' ? 0.22 : target === 'desktop' ? 0.2 : 0.15;
+  // 상단 타이틀 밴드(라벨+연도) 아래부터 그리드 — 세로로 긴 화면은 시계 영역까지 고려해 더 내린다
+  const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.2 : 0.15;
   const availH = 0.97 - titleBottom;
 
   // 점유 그리드에 first-fit 패킹
@@ -185,19 +183,18 @@ function seedMosaic(items: CollageItem[], target: CollageTarget): CollageLayout 
       z: i + 1,
     };
   });
-  return { items: result };
+  return { items: result, aspect };
 }
 
 // ── 미니멀: 상단 타이틀 + 균일 정사각 그리드, 마지막 줄 가운데 정렬 ──
 
-function seedMinimal(items: CollageItem[], target: CollageTarget): CollageLayout {
-  const aspect = TARGET_ASPECT[target];
+function seedMinimal(items: CollageItem[], aspect: number): CollageLayout {
   const n = items.length;
   const baseCols = n <= 6 ? 3 : n <= 12 ? 4 : 5;
-  const cols = target === 'phone' ? (n <= 8 ? 2 : 3) : target === 'desktop' ? baseCols + 2 : baseCols;
+  const cols = hasTopReserve(aspect) ? (n <= 8 ? 2 : 3) : isLandscape(aspect) ? baseCols + 2 : baseCols;
   const g = 0.02;
   const margin = 0.05;
-  const titleBottom = target === 'phone' ? 0.22 : target === 'desktop' ? 0.2 : 0.17;
+  const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.2 : 0.17;
   const availH = 0.95 - titleBottom;
 
   let w = (1 - margin * 2 - (cols - 1) * g) / cols;
@@ -226,29 +223,31 @@ function seedMinimal(items: CollageItem[], target: CollageTarget): CollageLayout
       z: i + 1,
     };
   });
-  return { items: result };
+  return { items: result, aspect };
 }
 
 export function seedLayout(
   template: CollageTemplate,
   items: CollageItem[],
-  target: CollageTarget = 'board'
+  aspect: number = ASPECT
 ): CollageLayout {
-  if (template === 'polaroid') return seedPolaroid(items, target);
-  if (template === 'mosaic') return seedMosaic(items, target);
-  return seedMinimal(items, target);
+  if (template === 'polaroid') return seedPolaroid(items, aspect);
+  if (template === 'mosaic') return seedMosaic(items, aspect);
+  return seedMinimal(items, aspect);
 }
 
 // 저장된 배치 + 현재 사진 구성 동기화 — 새 사진은 시드 위치로, 사라진 키는 정리.
 // 스티커는 정의(stickers)와 배치 항목이 함께 유지된다.
+// 저장 당시 비율(saved.aspect)과 현재 비율이 다르면 배치가 왜곡되므로 시드로 새로 시작한다 (v6.19)
 export function resolveLayout(
   template: CollageTemplate,
   items: CollageItem[],
   saved: CollageLayout | undefined,
-  target: CollageTarget = 'board'
+  aspect: number = ASPECT
 ): CollageLayout {
-  const seed = seedLayout(template, items, target);
+  const seed = seedLayout(template, items, aspect);
   if (!saved) return seed;
+  if (saved.aspect !== undefined && !aspectsEqual(saved.aspect, aspect)) return seed;
 
   const result: Record<string, CollageLayoutItem> = {};
   for (const item of items) {
@@ -259,12 +258,12 @@ export function resolveLayout(
     const key = stickerKey(id);
     result[key] = saved.items[key] ?? { x: 0.3, y: 0.42, w: 0.4, z: 999 };
   }
-  return { items: result, stickers };
+  return { items: result, stickers, aspect };
 }
 
 // 새 스티커의 기본 배치 — 중앙 연도 카드(폴라로이드)에 가리지 않게 중앙 아래, 최상단.
 // 가로형(PC) 보드에서는 폭 비례 글자가 과대해지지 않게 줄인다
-export function newStickerLayoutItem(maxZ: number, target: CollageTarget = 'board'): CollageLayoutItem {
-  const w = TARGET_ASPECT[target] > 1 ? 0.26 : 0.44;
+export function newStickerLayoutItem(maxZ: number, aspect: number = ASPECT): CollageLayoutItem {
+  const w = isLandscape(aspect) ? 0.26 : 0.44;
   return { x: (1 - w) / 2, y: 0.62, w, z: maxZ + 1, rot: -2 };
 }

@@ -56,6 +56,29 @@ function migrateCollage(board: BoardData): void {
     board.collageLayout = undefined;
     dirty = true;
   }
+
+  // v6.19: 기존 배치에 제작 당시 비율 스탬프 — v6.18 배치는 보드 4:5 / 폰 1170×2532 / PC 1920×1080 고정이었다
+  const stampAspect = (
+    layouts: Partial<Record<CollageTemplate, CollageLayout>> | undefined,
+    aspect: number
+  ) => {
+    if (!layouts) return;
+    for (const layout of Object.values(layouts)) {
+      if (layout && layout.aspect === undefined) {
+        layout.aspect = aspect;
+        dirty = true;
+      }
+    }
+  };
+  stampAspect(board.collageLayouts, 4 / 5);
+  stampAspect(board.collageDeviceLayouts?.phone, 1170 / 2532);
+  stampAspect(board.collageDeviceLayouts?.desktop, 1920 / 1080);
+  // 기기 배치가 있는데 사이즈 미선택이면 v6.18 캐논 캔버스와 비율이 일치하는 기본 프리셋으로 — 기존 배치 무손실
+  if (!board.collageDevicePresets && board.collageDeviceLayouts) {
+    board.collageDevicePresets = { phone: 'phone', desktop: 'pc-fhd' };
+    dirty = true;
+  }
+
   if (dirty) saveBoard(board);
 }
 
@@ -227,6 +250,22 @@ export function saveCollageDeviceLayout(
   saveBoard(board);
 }
 
+// 기기별 선택 사이즈(WALLPAPER_PRESETS id) 저장 (v6.19)
+export function saveCollageDevicePreset(target: 'phone' | 'desktop', presetId: string): void {
+  const board = loadBoard();
+  board.collageDevicePresets = { ...board.collageDevicePresets, [target]: presetId };
+  saveBoard(board);
+}
+
+// 비율이 다른 사이즈로 변경 시 — 해당 기기의 모든 템플릿 배치를 비우고 새 비율로 리시드 (v6.19)
+export function clearCollageDeviceLayouts(target: 'phone' | 'desktop'): void {
+  const board = loadBoard();
+  if (board.collageDeviceLayouts?.[target]) {
+    delete board.collageDeviceLayouts[target];
+    saveBoard(board);
+  }
+}
+
 export function saveFutureDayStory(story: string): void {
   const board = loadBoard();
   board.futureDayStory = story;
@@ -294,60 +333,5 @@ export function resetImages(sectionId: SectionId): void {
   sec.uploadedImages = [null, null, null, null, null];
   sec.completedAt = undefined;
   sec.status = 'text_complete';
-  saveBoard(board);
-}
-
-export function resetToDescriptions(sectionId: SectionId): void {
-  const board = loadBoard();
-  const sec = board.sections[sectionId];
-  sec.imageDescriptions = undefined;
-  sec.generatedImages = undefined;
-  sec.uploadedImages = [null, null, null, null, null];
-  sec.completedAt = undefined;
-  sec.status = 'text_complete';
-  saveBoard(board);
-}
-
-export function resetToSituation(sectionId: SectionId): void {
-  const board = loadBoard();
-  const sec = board.sections[sectionId];
-  sec.miniStory = undefined;
-  sec.imageDescriptions = undefined;
-  sec.generatedImages = undefined;
-  sec.uploadedImages = [null, null, null, null, null];
-  sec.completedAt = undefined;
-  sec.status = 'text_complete';
-  saveBoard(board);
-}
-
-export function resetToScene(sectionId: SectionId): void {
-  const board = loadBoard();
-  const sec = board.sections[sectionId];
-  sec.status = 'text_complete';
-  sec.sceneText = undefined;
-  sec.sceneTexts = undefined;
-  sec.sceneMessages = undefined;
-  sec.situationText = undefined;
-  sec.miniStory = undefined;
-  sec.imageDescriptions = undefined;
-  sec.generatedImages = undefined;
-  sec.uploadedImages = [null, null, null, null, null];
-  sec.completedAt = undefined;
-  saveBoard(board);
-}
-
-export function resetToAnswers(sectionId: SectionId): void {
-  const board = loadBoard();
-  const sec = board.sections[sectionId];
-  sec.status = 'in_progress';
-  sec.sceneText = undefined;
-  sec.sceneTexts = undefined;
-  sec.sceneMessages = undefined;
-  sec.situationText = undefined;
-  sec.miniStory = undefined;
-  sec.imageDescriptions = undefined;
-  sec.generatedImages = undefined;
-  sec.uploadedImages = [null, null, null, null, null];
-  sec.completedAt = undefined;
   saveBoard(board);
 }

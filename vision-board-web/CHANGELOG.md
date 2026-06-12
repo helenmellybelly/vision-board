@@ -2,16 +2,21 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.18 콜라주 기기별 편집 재설계 + 온보딩 카드 컬러 + 보드 간격 조정 완료
+- **상태:** v6.19 섹션 답변 검증(하이브리드) + 콜라주 사이즈 우선 플로우 재설계 완료
 - **주요 기능:**
-  - /collage: 보드(4:5)/폰(9:19.5)/PC(16:9) 3탭 모두 직접 편집(드래그·리사이즈·스티커), 타깃별 배치 분리 저장(collageDeviceLayouts), 풀블리드 WYSIWYG 내보내기, 프리셋 타깃별 필터
-  - "섹션 묶음 N장" 출력 및 WallpaperPreview/renderSectionPair/renderAllInOne 제거
-  - 온보딩 Act 4 카드: 🧠🎯🌱 이모지 + 파스텔 팔레트(F2EDF7/8F5CF6, E9F4EF/10C6C1, F9F2E7/F59E0B)
-  - /dashboard: 완성 섹션 폴라로이드 썸네일 제거(컬러 도트 통일), /board: content-evenly 간격 재분배
+  - /section: 답변 규칙 검증(자모만·반복·숫자만·너무 짧음 즉시 차단, 입력 유지) + 진행 시 AI 의미 검증(gpt-4o-mini, fail-open). 리뷰 카드가 질문 전문+답변+인라인 수정 구조, 차단 항목엔 경고+예시 표시
+  - /collage: 보드(4:5)가 기본 화면, 폰/PC 배경은 사이즈 선택(WALLPAPER_PRESETS) → 그 비율 그대로 편집 → 무크롭 정확 해상도 내보내기. 비율 ~2% 이내 변경은 배치 유지, 다르면 확인 후 리시드. v6.18 데이터는 aspect 스탬프 마이그레이션으로 보존
+  - /moment·/scenes: 하단 "더 수정하기" 토글 메뉴 제거 (storage reset 헬퍼 4종 삭제)
 - **알려진 이슈:** 없음 (UNSPLASH_ACCESS_KEY 미설정으로 이미지 추천만 비활성)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-12 (v6.19 — 답변 검증 + 콜라주 사이즈 우선 재설계)
+- /section 답변 하이브리드 검증: lib/answerValidation.ts(규칙) + /api/validate/answers(gpt-4o-mini 의미 검증, 실패 시 fail-open). InlineInput onSubmit이 false 반환 시 입력 유지, 리뷰 카드를 질문 전문+답변 구조로 재설계(차단 시 예시+인라인 수정 자동 오픈)
+- /collage 사이즈 우선 플로우: 보드/폰/PC 3탭 제거 → 보드 기본 + 기기 플로우(사이즈 선택 → 비율 그대로 편집 → 무크롭 내보내기). collageTemplates를 aspect 파라미터화, renderBoardLayout이 선택 해상도로 직접 렌더(센터크롭 제거 — 맥북 16:10·울트라와이드 잘림 버그 해소), CollageLayout.aspect + collageDevicePresets 마이그레이션
+- /moment·/scenes "더 수정하기" 메뉴 제거, resetTo* 헬퍼 4종 삭제
+- Playwright 35건 검증 통과 (.claude/verify-v619.mjs)
 
 ### 2026-06-12 (v6.18 — 콜라주 기기별 편집 + 피드백 3건)
 - /collage 재설계: 폰/PC 미리보기(읽기 전용) → 기기 비율 그대로의 편집 보드로 전환. CollageTarget(board/phone/desktop)별 배치 분리 저장, 시드 생성기 aspect 파라미터화(폰 시계영역 예약, PC 폭 축소), renderBoardLayout 풀블리드화, 섹션 묶음 모드·WallpaperPreview 삭제

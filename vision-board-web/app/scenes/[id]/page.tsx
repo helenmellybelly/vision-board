@@ -7,8 +7,6 @@ import { getSection } from '@/lib/questions';
 import {
   loadBoard,
   markSectionComplete,
-  resetToDescriptions,
-  resetToSituation,
   saveGeneratedImages,
   saveImageDescriptions,
   saveUploadedImage,
@@ -56,8 +54,6 @@ export default function ScenesPage() {
   ];
 
   const [saving, setSaving] = useState(false);
-  const [editMenu, setEditMenu] = useState(false);
-  const [pendingConfirm, setPendingConfirm] = useState<'descriptions' | 'story' | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -193,21 +189,6 @@ export default function ScenesPage() {
     saveUploadedImages(sectionId, uploadedImages);
     markSectionComplete(sectionId);
     router.push('/dashboard');
-  }
-
-  async function handleEditDescriptions() {
-    resetToDescriptions(sectionId);
-    setDescriptions(['', '', '']);
-    setGeneratedImages([]);
-    setUploadedImages([null, null, null]);
-    setEditMenu(false);
-    setPendingConfirm(null);
-    await fetchDescriptions();
-  }
-
-  function handleEditStory() {
-    resetToSituation(sectionId);
-    router.push(`/moment/${sectionId}`);
   }
 
   function getSlotUrl(i: number): string | null {
@@ -449,51 +430,6 @@ export default function ScenesPage() {
         >
           {saving ? '저장 중...' : '저장'}
         </button>
-
-        {/* Edit menu */}
-        <button
-          onClick={() => { setEditMenu(!editMenu); setPendingConfirm(null); }}
-          className="w-full py-2 text-caption text-[#C9C5BE] text-center"
-        >
-          {editMenu ? '닫기 ∧' : '더 수정하기 ∨'}
-        </button>
-
-        {editMenu && (
-          <div className="mt-2 rounded-2xl border border-[#E5E3DF] bg-white overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#F5F5F3]">
-              {pendingConfirm === 'descriptions' ? (
-                <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                  <p className="text-caption text-[#92400E] mb-2">이미지가 삭제되고 묘사를 다시 받아. 계속할까?</p>
-                  <div className="flex gap-3">
-                    <button onClick={handleEditDescriptions} className="text-caption font-medium text-[#92400E]">계속</button>
-                    <button onClick={() => setPendingConfirm(null)} className="text-caption text-[#6E6962]">취소</button>
-                  </div>
-                </div>
-              ) : (
-                <button onClick={() => setPendingConfirm('descriptions')} className="w-full text-left">
-                  <p className="text-body text-[#374151]">묘사 전체 다시 받기</p>
-                  <p className="text-caption text-[#6E6962]">이미지 삭제됨</p>
-                </button>
-              )}
-            </div>
-            <div className="px-4 py-3">
-              {pendingConfirm === 'story' ? (
-                <div className="rounded-xl bg-[#FEF9C3] px-3 py-2.5">
-                  <p className="text-caption text-[#92400E] mb-2">스토리·묘사·이미지가 삭제돼. 계속할까?</p>
-                  <div className="flex gap-3">
-                    <button onClick={handleEditStory} className="text-caption font-medium text-[#92400E]">계속</button>
-                    <button onClick={() => setPendingConfirm(null)} className="text-caption text-[#6E6962]">취소</button>
-                  </div>
-                </div>
-              ) : (
-                <button onClick={() => setPendingConfirm('story')} className="w-full text-left">
-                  <p className="text-body text-[#374151]">스토리부터 다시</p>
-                  <p className="text-caption text-[#6E6962]">묘사·이미지 삭제됨</p>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
 
         <div ref={bottomRef} />
       </div>

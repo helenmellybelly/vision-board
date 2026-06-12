@@ -1,25 +1,17 @@
 // 배경화면 캔버스 렌더링 — /collage '배경화면으로 저장' 시트에서 사용
 // 외부 라이브러리 없이 Canvas API로 직접 그린다.
-// 타깃 2종: phone(9:19.5 세로) / desktop(16:9 가로) — 각 타깃 전용 편집 배치를 풀블리드로 옮긴다 (v6.18).
+// 사이즈를 먼저 고르고 그 비율 그대로 편집하므로, 선택한 해상도로 직접 그린다(무크롭 WYSIWYG, v6.19).
 import { CollageLayout, CollageSticker, CollageTemplate } from './types';
-import { COLLAGE_THEMES, CollageItem, STICKER_FONT_RATIO } from './collageTemplates';
+import { COLLAGE_THEMES, CollageItem, STICKER_FONT_RATIO, hasTopReserve } from './collageTemplates';
 
-export type WallpaperTarget = 'phone' | 'desktop';
-export const WALLPAPER_SIZES: Record<WallpaperTarget, { w: number; h: number }> = {
-  phone: { w: 1170, h: 2532 },
-  desktop: { w: 1920, h: 1080 },
-};
-
-// ── 기기별 프리셋 (v6.17) ──────────────────────────────────────────
-// 렌더 함수들의 절대좌표 튜닝(1170×2532/1920×1080)은 건드리지 않고,
-// 캐논 캔버스로 그린 뒤 cover-crop 스케일로 프리셋 해상도에 맞춘다.
+// ── 기기별 사이즈 프리셋 — 편집 진입 전에 고르고, 편집·내보내기 모두 이 비율을 쓴다 (v6.19) ──
 export interface WallpaperPreset {
   id: string;
   label: string;
   w: number;
   h: number;
   group: '휴대폰' | '태블릿' | 'PC';
-  note?: string; // 비율 차이로 인한 크롭 경고
+  note?: string; // 비율 특성 안내
 }
 
 export const WALLPAPER_PRESETS: WallpaperPreset[] = [
@@ -28,36 +20,13 @@ export const WALLPAPER_PRESETS: WallpaperPreset[] = [
   { id: 'iphone-max', label: 'iPhone Plus·Pro Max', w: 1290, h: 2796, group: '휴대폰' },
   { id: 'galaxy-s', label: 'Galaxy S 시리즈', w: 1080, h: 2340, group: '휴대폰' },
   { id: 'zflip-main', label: 'Galaxy Z Flip 메인', w: 1080, h: 2640, group: '휴대폰' },
-  { id: 'zflip-cover', label: 'Galaxy Z Flip 커버', w: 720, h: 748, group: '휴대폰', note: '커버 화면은 정사각에 가까워 위아래가 많이 잘려. 사진 위주로 보일 거야.' },
-  { id: 'tablet', label: 'iPad·갤럭시탭 세로', w: 1668, h: 2388, group: '태블릿', note: '폰보다 가로가 넓어 위아래가 조금 잘릴 수 있어.' },
+  { id: 'zflip-cover', label: 'Galaxy Z Flip 커버', w: 720, h: 748, group: '휴대폰', note: '커버 화면은 정사각에 가까워. 그 비율 그대로 꾸밀 수 있어.' },
+  { id: 'tablet', label: 'iPad·갤럭시탭 세로', w: 1668, h: 2388, group: '태블릿', note: '폰보다 가로가 넓은 비율이야.' },
   { id: 'pc-fhd', label: 'PC FHD (16:9)', w: 1920, h: 1080, group: 'PC' },
   { id: 'pc-qhd', label: 'PC QHD (16:9)', w: 2560, h: 1440, group: 'PC' },
   { id: 'macbook', label: '맥북 (16:10)', w: 2560, h: 1664, group: 'PC' },
-  { id: 'ultrawide', label: '울트라와이드 (21:9)', w: 3440, h: 1440, group: 'PC', note: '좌우가 넓어 보드가 가운데에 놓이고 배경이 더 보여.' },
+  { id: 'ultrawide', label: '울트라와이드 (21:9)', w: 3440, h: 1440, group: 'PC', note: '좌우로 아주 넓은 비율이야.' },
 ];
-
-// 프리셋이 어느 캐논 캔버스(세로/가로) 기반인지
-export function presetTarget(preset: WallpaperPreset): WallpaperTarget {
-  return preset.w > preset.h ? 'desktop' : 'phone';
-}
-
-// 캐논 캔버스 렌더 → 프리셋 해상도로 cover-crop 변환
-export async function renderForPreset(
-  render: (target: WallpaperTarget) => Promise<HTMLCanvasElement>,
-  preset: WallpaperPreset
-): Promise<HTMLCanvasElement> {
-  const src = await render(presetTarget(preset));
-  if (src.width === preset.w && src.height === preset.h) return src;
-  const out = document.createElement('canvas');
-  out.width = preset.w;
-  out.height = preset.h;
-  const ctx = out.getContext('2d')!;
-  const scale = Math.max(preset.w / src.width, preset.h / src.height);
-  const dw = src.width * scale;
-  const dh = src.height * scale;
-  ctx.drawImage(src, (preset.w - dw) / 2, (preset.h - dh) / 2, dw, dh);
-  return out;
-}
 
 const INK = '#1C1B19';
 const INK_SOFT = '#6E6962';
@@ -98,9 +67,9 @@ const SCRIPT_FONT = '"Enjoystories", cursive';
 
 function newCanvas(
   bg: string,
-  target: WallpaperTarget
+  w: number,
+  h: number
 ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; w: number; h: number } {
-  const { w, h } = WALLPAPER_SIZES[target];
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
@@ -278,18 +247,18 @@ function drawSticker(
   ctx.restore();
 }
 
-// 타깃 전용 편집 배치를 풀블리드로 캔버스에 옮긴다 — 사진 배치·회전·스티커 일치(WYSIWYG, v6.18).
+// 편집 배치를 선택한 해상도 그대로 캔버스에 옮긴다 — 사진 배치·회전·스티커 일치(무크롭 WYSIWYG, v6.19).
 // 좌표 공간이 캔버스와 동일(0..1 정규화)하므로 레터박스 없이 화면 전체를 쓴다.
 export async function renderBoardLayout(
   template: CollageTemplate,
   layout: CollageLayout,
   items: CollageItem[],
   year: string,
-  target: WallpaperTarget = 'phone'
+  size: { w: number; h: number }
 ): Promise<HTMLCanvasElement> {
   await ensureFonts();
   const theme = COLLAGE_THEMES[template];
-  const { canvas, ctx, w, h } = newCanvas(theme.bg, target);
+  const { canvas, ctx, w, h } = newCanvas(theme.bg, size.w, size.h);
 
   // 풀블리드 — 편집 보드가 곧 캔버스
   const bx = 0;
@@ -312,9 +281,9 @@ export async function renderBoardLayout(
   );
 
   // 상단 타이틀 밴드 (mosaic·minimal) — 사진보다 먼저.
-  // 폰은 상단 시계 영역 아래로 내린다 — DOM(CollageBoard)의 타깃별 padTop과 동일 수치
+  // 세로로 긴 화면은 상단 시계 영역 아래로 내린다 — DOM(CollageBoard)의 padTop과 동일 기준
   if (theme.titlePos === 'top') {
-    const padCq = target === 'phone' ? 0.32 : 0.04; // cqmin 단위(minDim 비례)
+    const padCq = hasTopReserve(w / h) ? 0.32 : 0.04; // cqmin 단위(minDim 비례)
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = theme.dark ? '#C4C2BE' : INK_SOFT;
