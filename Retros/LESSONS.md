@@ -121,6 +121,12 @@ Tailwind v4 유틸리티는 `@layer utilities` 안에 있어서, globals.css에 
 
 ## Next.js / React
 
+### 모드 state 리셋을 객체 prop 동기화 effect에 묶지 말 것 #coding #react
+CollageBoard의 `setEditing(false)`를 `[template, layout]` 의존 effect에 함께 넣었더니, 자동 저장(onLayoutChange)→부모 reload→새 `layout` 객체 identity로 effect가 매 저장마다 발화해 편집 모드가 즉시 풀렸다. 모드 전환 리셋은 의미 있는 키(template 등 primitive)만 의존하는 별도 effect로 분리해야 한다 — 객체 prop은 내용이 같아도 매번 새 참조다.
+
+### `next build`로 .next를 교체하면 구동 중인 `next start`는 반드시 재시작 #coding #next-js #testing
+서버가 떠 있는 상태에서 재빌드하면 구 프로세스가 새 청크와 불일치해 클라이언트 컴포넌트가 에러 페이지 없이 조용히 렌더되지 않는다 — Playwright에선 "요소 없음" 거짓 실패로만 보여 앱 버그로 오인하기 쉽다. 빌드 후 kill→start를 검증 루프에 포함할 것.
+
 ### 부모 컴포넌트 안에 중첩 컴포넌트를 정의하면 매 렌더마다 remount된다 #coding #react
 렌더 함수 내부에서 `function Pane() {...}`을 정의해 `<Pane />`으로 쓰면 React가 매 렌더마다 새 컴포넌트 타입으로 인식해 언마운트→재마운트되고, 자식 state(모달 open 등)가 초기화된다. 같은 JSX를 두 위치(모바일/웹)에 재사용할 때는 컴포넌트가 아니라 JSX를 반환하는 헬퍼 함수(`summaryPane(compact)`)로 작성하면 element 위치 기준으로 state가 안정적으로 유지된다.
 
