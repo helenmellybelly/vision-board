@@ -93,6 +93,9 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 
 ## Testing / QA
 
+### 누적된 verify 스크립트의 검사 기준은 디자인 결정과 함께 낡는다 #coding #testing #qa
+verify-v614의 "팔레트 대비 4.5:1" 정적 검사는 v6.16 비비드 팔레트 복원(사용자 의도) 이후 FAIL이 정상이다. 버전별 verify-v6XX 스크립트는 당시 디자인 결정의 스냅샷이므로, 과거 스크립트를 재실행해 FAIL이 나오면 회귀가 아니라 의도된 변경인지 먼저 구분하고, 바뀐 기준은 새 verify에 명시적으로 갱신한다.
+
 ### Playwright isVisible()은 뷰포트 교차를 검사하지 않는다 #coding #testing #playwright
 스크롤 폴드 아래에 있는 요소도 `isVisible()`이 true를 반환한다(DOM 차원의 가시성만 검사). "화면 안에 실제로 보이는가" 검증은 `boundingBox()`를 뷰포트 크기와 비교하거나 스크린샷 육안 확인으로 해야 한다. 이번 세션에서 CTA visible=true로 통과했지만 실제로는 폴드 아래에 있던 거짓 통과가 발생했다.
 
@@ -103,6 +106,9 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 `addInitScript`로 localStorage를 시드하면 `reload()`·`goto()` 때마다 다시 실행되어 앱이 저장한 값을 시드로 덮어쓴다. "수정 후 새로고침 유지" 같은 영속성 검증이 앱 버그처럼 보이는 거짓 실패를 만든다. `if (!localStorage.getItem(key))` 가드를 넣어 최초 1회만 시드할 것. 같은 텍스트가 반응형 중복 렌더(모바일/웹 블록)로 2곳에 있으면 `getByText().isVisible()`이 strict mode 위반으로 false가 되므로 `.all()` 순회로 검사한다.
 
 ## Design System
+
+### 무스크롤 화면의 간격 확대는 흡수 요소의 최소 높이부터 확인하고 높이 미디어쿼리로 분기한다 #coding #css #ux
+잔여 공간을 흡수하는 flex-1 이미지가 이미 최소 높이에 닿은 뷰포트(375×667)에서는 간격을 늘리면 그대로 오버플로된다(39px 내부 스크롤). 큰 화면만 `[@media(min-height:700px)]:mt-5` 같은 높이 분기로 넓히고, 작은 화면은 간격을 한 단계만 늘리되 카드/버튼 패딩에서 같은 양을 회수하면 무스크롤이 유지된다. Tailwind는 높이 기준 반응형 유틸리티가 없으므로 arbitrary variant를 쓴다.
 
 ### 이름만 비슷한 토큰-서체 클래스 쌍은 grep 가드로 기계 검증해야 한다 #coding #css #design-tokens
 크기 토큰 `text-display`와 서체 클래스 `font-display`는 별개라 서체 쪽 누락이 8곳에서 반복됐고, 페이지마다 헤드라인 폰트가 달라 보이는 원인이 됐다. "반드시 페어링" 규칙을 문서에만 쓰면 재발한다 — 라인 단위 grep 가드 스크립트(`scripts/check-typography.js`)를 verify에 연결해 기계적으로 막아야 한다.
