@@ -65,9 +65,14 @@ export default function WelcomePage() {
         </h1>
       </div>
 
-      <div className="flex-1 animate-slideUp">
+      {/* 단계가 하나씩 순차 등장 — 버튼까지의 여백을 채우도록 텍스트도 한 단계 키움 */}
+      <div className="flex-1">
         {PHASES.map((phase, idx) => (
-          <div key={phase.num} className="flex gap-4">
+          <div
+            key={phase.num}
+            className="flex gap-4 animate-slideUp"
+            style={{ animationDelay: `${0.15 + idx * 0.25}s`, animationFillMode: 'backwards' }}
+          >
             <div className="flex flex-col items-center">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold text-white flex-shrink-0"
@@ -80,8 +85,8 @@ export default function WelcomePage() {
               )}
             </div>
             <div className="pb-7 flex-1">
-              <p className="font-semibold text-body mb-1">{phase.title}</p>
-              <p className="text-caption text-[#6B7280] leading-relaxed">{phase.desc}</p>
+              <p className="font-semibold text-heading mb-1">{phase.title}</p>
+              <p className="text-body text-[#6B7280] leading-relaxed">{phase.desc}</p>
               {phase.extra === 'dots' && (
                 <div className="flex gap-1.5 mt-2.5">
                   {SECTION_COLORS.map((color, i) => (
@@ -100,8 +105,8 @@ export default function WelcomePage() {
 
       <button
         onClick={handleStart}
-        className="w-full py-4 rounded-2xl text-heading font-semibold text-white mt-2"
-        style={{ backgroundColor: '#1C1B19' }}
+        className="w-full py-4 rounded-2xl text-heading font-semibold text-white mt-2 animate-fadeIn"
+        style={{ backgroundColor: '#1C1B19', animationDelay: `${0.15 + PHASES.length * 0.25}s`, animationFillMode: 'backwards' }}
       >
         시작할게 →
       </button>

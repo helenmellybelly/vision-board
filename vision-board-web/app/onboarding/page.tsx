@@ -497,18 +497,19 @@ export default function OnboardingPage() {
             </div>
 
             {/* 비전보드를 하면 좋은 이유 — 새 주제 블록이므로 위쪽에 더 큰 호흡 */}
-            <div className="space-y-1.5 [@media(min-height:700px)]:space-y-2 flex-shrink-0 mt-4 [@media(min-height:700px)]:mt-6">
+            {/* 카드 제목·설명·카드 사이 간격 — 좁다는 피드백으로 한 단계씩 여유 (스크롤 허용) */}
+            <div className="space-y-2 [@media(min-height:700px)]:space-y-2.5 flex-shrink-0 mt-4 [@media(min-height:700px)]:mt-6">
               <p className="text-body font-bold text-[#1C1B19]">비전보드를 하면 좋은 이유</p>
-              <div className="space-y-1.5">
+              <div className="space-y-2.5">
                 {VISION_CARDS.map((card) => (
                   <div
                     key={card.title}
-                    className="flex items-start gap-3 rounded-xl px-4 py-1 [@media(min-height:700px)]:py-1.5"
+                    className="flex items-start gap-3 rounded-xl px-4 py-2.5 [@media(min-height:700px)]:py-3"
                     style={{ backgroundColor: card.bg }}
                   >
                     <span className="flex-shrink-0 text-heading leading-snug" aria-hidden="true">{card.emoji}</span>
                     <div>
-                      <p className="text-body font-semibold leading-snug" style={{ color: card.titleColor }}>{card.title}</p>
+                      <p className="text-body font-semibold leading-snug mb-1" style={{ color: card.titleColor }}>{card.title}</p>
                       <p className="text-caption text-[#6B7280] leading-snug">{card.desc}</p>
                     </div>
                   </div>

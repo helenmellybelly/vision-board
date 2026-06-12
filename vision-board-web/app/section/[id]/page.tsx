@@ -9,7 +9,6 @@ import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 import InlineInput from '@/components/InlineInput';
-import ImageSuggestions from '@/components/ImageSuggestions';
 import { Fragment } from 'react';
 
 type Phase = 'questions' | 'review';
@@ -313,17 +312,6 @@ export default function SectionChatPage() {
                       </button>
                     )}
                   </div>
-                  {/* 첫 답변 직후 — 토리의 추천 이미지 제안 (Unsplash, v6.17) */}
-                  {msg.qIndex === 0 && phase === 'questions' && section.imageQuery && (
-                    <ImageSuggestions
-                      sectionId={sectionId}
-                      query={section.imageQuery}
-                      onSaved={() => {
-                        setBoard(loadBoard());
-                        showSaved();
-                      }}
-                    />
-                  )}
                 </Fragment>
               );
             }

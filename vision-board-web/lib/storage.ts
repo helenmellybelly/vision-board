@@ -296,6 +296,12 @@ export function saveImageDescriptions(sectionId: SectionId, descriptions: string
   saveBoard(board);
 }
 
+export function saveImageKeywords(sectionId: SectionId, keywords: string[]): void {
+  const board = loadBoard();
+  board.sections[sectionId].imageKeywords = keywords;
+  saveBoard(board);
+}
+
 // 성공 여부 반환 — false면 저장 공간 부족 (호출부에서 무시해도 무방)
 export function saveUploadedImage(sectionId: SectionId, index: number, dataUrl: string | null): boolean {
   const board = loadBoard();
@@ -330,6 +336,7 @@ export function resetImages(sectionId: SectionId): void {
   const sec = board.sections[sectionId];
   sec.generatedImages = undefined;
   sec.imageDescriptions = undefined;
+  sec.imageKeywords = undefined;
   sec.uploadedImages = [null, null, null, null, null];
   sec.completedAt = undefined;
   sec.status = 'text_complete';

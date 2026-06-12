@@ -83,6 +83,7 @@ export interface SectionData {
   miniStory?: string;
   generatedImages?: string[];
   imageDescriptions?: string[];          // AI 제안 한국어 묘사 3개 (사용자 편집 가능)
+  imageKeywords?: string[];              // 장면별 Unsplash 영어 검색어 3개 — 묘사가 바뀌면 다시 계산 (v6.20)
   uploadedImages?: (string | null)[];   // 사용자 직접 업로드 이미지 (최대 3개 — 보드·콜라주와 동일)
 }
 

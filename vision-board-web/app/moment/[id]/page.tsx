@@ -333,7 +333,7 @@ export default function MomentPage() {
                   className="w-full py-3.5 rounded-xl text-body font-medium text-white mb-3"
                   style={{ backgroundColor: section.color }}
                 >
-                  이 스토리로 이미지 만들기 →
+                  비전보드 이미지 만들기 →
                 </button>
               </>
             ) : null}

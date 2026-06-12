@@ -9,12 +9,14 @@ import {
   markSectionComplete,
   saveGeneratedImages,
   saveImageDescriptions,
+  saveImageKeywords,
   saveUploadedImage,
   saveUploadedImages,
 } from '@/lib/storage';
 import { compressImage } from '@/lib/imageUtils';
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
+import SceneImageSuggestions from '@/components/SceneImageSuggestions';
 import StoryModal from '@/components/StoryModal';
 import useFocusTrap from '@/components/useFocusTrap';
 
@@ -40,6 +42,9 @@ export default function ScenesPage() {
   const [editingText, setEditingText] = useState('');
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
 
+  // 장면별 Unsplash 검색어 — 묘사가 만들어지거나 바뀔 때 다시 계산 (v6.20)
+  const [imageKeywords, setImageKeywords] = useState<string[]>([]);
+
   // images — 보드·콜라주와 동일하게 섹션당 3장으로 제한
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null]);
@@ -64,6 +69,11 @@ export default function ScenesPage() {
 
     if (sec.imageDescriptions && sec.imageDescriptions.length > 0) {
       setDescriptions(sec.imageDescriptions);
+      if (sec.imageKeywords && sec.imageKeywords.length > 0) {
+        setImageKeywords(sec.imageKeywords);
+      } else {
+        fetchKeywords(sec.imageDescriptions);
+      }
     } else {
       fetchDescriptions(b);
     }
@@ -81,6 +91,29 @@ export default function ScenesPage() {
 
   const sectionData = board.sections[sectionId];
   const story = sectionData?.miniStory ?? '';
+
+  // 묘사 3개 → 장면별 Unsplash 영어 검색어 3개. 실패해도 흐름엔 영향 없음(섹션 공통 검색어로 대체)
+  async function fetchKeywords(descs: string[]) {
+    if (!descs.some(Boolean)) return;
+    try {
+      const res = await fetch('/api/image/keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionTitle: section?.title.split(' — ')[0] ?? '',
+          descriptions: descs,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.keywords)) {
+        const kws = data.keywords.slice(0, 3).map(String);
+        setImageKeywords(kws);
+        saveImageKeywords(sectionId, kws);
+      }
+    } catch {
+      // 조용한 실패
+    }
+  }
 
   async function fetchDescriptions(boardData = board) {
     const sec = boardData.sections[sectionId];
@@ -105,6 +138,7 @@ export default function ScenesPage() {
       const descs: string[] = data.descriptions.slice(0, 3);
       setDescriptions(descs);
       saveImageDescriptions(sectionId, descs);
+      fetchKeywords(descs);
     } catch {
       setDescribeError(true);
     } finally {
@@ -133,6 +167,7 @@ export default function ScenesPage() {
         updated[index] = data.description;
         setDescriptions(updated);
         saveImageDescriptions(sectionId, updated);
+        fetchKeywords(updated);
       }
     } finally {
       setRegeneratingIdx(null);
@@ -361,6 +396,7 @@ export default function ScenesPage() {
                         updated[i] = editingText;
                         setDescriptions(updated);
                         saveImageDescriptions(sectionId, updated);
+                        fetchKeywords(updated);
                         setEditingIdx(null);
                       }}
                       className="mt-2 w-full py-1.5 rounded-lg text-caption font-semibold text-white"
@@ -400,6 +436,18 @@ export default function ScenesPage() {
             {[0, 1, 2].map((i) => renderSlot(i))}
           </div>
         </div>
+
+        {/* 장면별 Unsplash 추천 — 키 미설정이면 조용히 사라짐 (v6.20: 채팅에서 이동) */}
+        <SceneImageSuggestions
+          sectionId={sectionId}
+          keywords={imageKeywords}
+          fallbackQuery={section.imageQuery ?? ''}
+          color={section.color}
+          onSaved={() => {
+            const imgs = loadBoard().sections[sectionId].uploadedImages ?? [];
+            setUploadedImages([imgs[0] ?? null, imgs[1] ?? null, imgs[2] ?? null]);
+          }}
+        />
 
         {/* URL 입력 */}
         <div className="flex gap-2 mb-4">
