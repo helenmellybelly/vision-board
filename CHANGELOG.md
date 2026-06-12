@@ -2,19 +2,26 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.16 온보딩 Act 4 간격 확대 + 최초 비비드 팔레트 복원 — **푸시·프로덕션 배포 완료** (커밋 0574263, https://vision-board-web.vercel.app 3경로 200 확인)
+- **상태:** v6.17 피드백 4개 영역 개선(조사 처리·색상·간격·한눈에 보기 개편) — **푸시·프로덕션 배포 완료** (커밋 6639fbf, https://vision-board-web.vercel.app 4경로 200 + vercel inspect target=production 확인)
 - **주요 기능:**
   - 🐿️ 토리 캐릭터 (꿈의 정원사) — Acts 0-5 구조, 온보딩 전체 뷰포트 고정, 3뷰포트(375×667/390×844/1280×720) 무스크롤
+  - 한국어 조사: `lib/josa.ts` 단일 소스(아/야·이/가·은/는·을/를·으로/로 ㄹ특례·이라는/라는, 비한글 fallback 무받침형) — 온보딩 이름 보간 전부 적용
   - 디자인 시스템 (`docs/design-system.md`): 타입 스케일 7토큰 + 간격 스케일 + **UI Pretendard 단일 / 아트 Enjoystories(.font-script, collage 전용)** (`scripts/check-typography.js` 기계 검증)
-  - 팔레트: **최초 Stage 1 비비드 톤 복원** — `lib/colors.ts` 단일 소스(#8B5CF6/#10B981/#F59E0B/#3B82F6/#F97316/#06B6D4 + 원본 라이트 틴트). ⚠️ 앰버·오렌지는 흰 배경 텍스트 대비 4.5:1 미만(~2.2) — 사용자 의도적 선택
-  - 온보딩 Act 4: 이미지 카드↔메시지↔좋은 이유 간격 확대(20/24px), 높이 700px 미만은 `[@media(min-height:700px)]:` 분기로 무스크롤 유지
-  - 단계 라벨: 꿈 꺼내기 → 하루 그리기 → 미래 스토리 → 사진 담기 → 완성 (행동 언어)
-  - `/board`: 2열×3행 무스크롤, 사진 슬롯 정사각, CTA 말줄임. `/review`: 작성하기/수정하러 가기 상태 분기
-  - `/collage`: 템플릿 3종 모두 **보드 탭 → 즉시 드래그 편집**(템플릿별 배치 저장) + **문구 스티커**(프리셋/자유 입력, 3스타일) + 저장 폰/PC 2버튼, 화면 배치 1:1 캔버스 export(WYSIWYG)
-- **알려진 이슈:** 콜라주 템플릿 비주얼은 사용자 샘플 기준 추가 조정 여지(피드백 대기). public에 미사용 한글 파일명 에셋 잔존(정리 대상). verify-v614의 팔레트 대비 4.5:1 정적 검사는 비비드 복원으로 FAIL이 정상.
+  - 팔레트: 비비드 6색 `lib/colors.ts` 단일 소스 + **색 사용 문법 통일: 색은 작은 도트가 전담, 텍스트·보더는 뉴트럴** (온보딩 Act4 0색/Act5 도트, 대시보드 뱃지 뉴트럴+완성만 잉크 솔리드)
+  - `/board`: 2열×3행 무스크롤 — `auto-rows-min content-center`로 행은 콘텐츠 높이, 잉여 공간은 블록 상·하로
+  - `/collage`: 템플릿 3종 드래그 편집 + 문구 스티커 + **발견성**(1회 코치마크·"✎ 탭해서 편집" 칩·탭 스와치) + **보기 모드 토글**(보드 편집|폰 미리보기|PC 미리보기) + **기기 프리셋 11종**(iPhone/Galaxy/Z Flip/iPad/FHD~울트라와이드, 캐논 캔버스 cover-crop)
+  - 이미지 추천: 섹션 채팅 첫 답변 직후 Unsplash 추천 4장(`components/ImageSuggestions.tsx`) → 탭하면 압축(0.55/640) 슬롯 저장 → /board·/collage 즉시 반영. 출처 표기+다운로드 핑, localStorage quota 안전판(`trySaveBoard`)
+- **알려진 이슈:** ⚠️ `UNSPLASH_ACCESS_KEY` 값이 비어 있어 이미지 추천이 조용히 숨는 상태(키 발급 후 .env.local+Vercel env 등록 필요). public에 미사용 한글 파일명 에셋 잔존(정리 대상). verify-v614의 팔레트 대비 정적 검사는 비비드 복원으로 FAIL이 정상.
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-12 (v6.17 피드백 4개 영역 개선, 푸시·프로덕션 배포)
+- 조사 버그 수정: `lib/josa.ts` 통합 유틸 신규 — 온보딩 `${name}라는` 하드코딩("헬렌라는")을 이라는/라는 분기로, getNameSuffix 대체·getEunga 데드코드 삭제 (단위 16건+렌더 검증)
+- 색상: 대시보드 상태 뱃지 뉴트럴화+완성만 잉크 솔리드(보라 카드×초록 뱃지 충돌 해소), 온보딩 Act4 카드 0색·Act5 도트 문법(무지개화 제거, /board와 문법 통일)
+- /board 간격: grid-rows-3 stretch가 잉여 높이를 행 안에 분산시키던 원인 제거 — auto-rows-min content-center
+- /collage 개편: 1회 코치마크+편집 칩+탭 스와치, 폰/PC 미리보기 토글(WallpaperPreview+useWallpaperPreview), 기기 프리셋 11종(renderForPreset cover-crop), Unsplash 추천(ImageSuggestions, 모킹 E2E 검증·키 없으면 조용한 숨김)
+- Playwright 22건+조사 16건 ALL PASS → 커밋 6639fbf, `npx vercel --prod` 배포, 4경로 200
 
 ### 2026-06-12 (v6.16 Act 4 간격 확대 + 최초 비비드 팔레트 복원, 푸시·프로덕션 배포)
 - 온보딩 Act 4 간격 확대: 이미지 카드↔핵심 메시지 8→20px, 힘 메시지↔좋은 이유 12→24px — flex-1 이미지가 흡수해 무스크롤 유지, 375×667은 높이 미디어쿼리 분기(간격 한 단계+패딩 회수)
