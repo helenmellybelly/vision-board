@@ -94,9 +94,10 @@ export default function BoardPage() {
         <p className="text-caption text-[#6E6962] pl-8">막연했던 바람이, 생생한 장면이 되는 곳.</p>
       </div>
 
-      {/* 섹션별 이미지 그룹 — 2열, 행은 콘텐츠 높이(auto-rows-min)로 잡고 잉여 공간은 블록 상·하로 모음.
-          grid-rows-3 stretch는 화면이 길수록 행 안에 빈 공간이 분산돼 늘어진 느낌을 줬다(v6.17 간격 피드백) */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 auto-rows-min content-center gap-x-3 gap-y-3 [@media(min-height:800px)]:gap-y-5 px-4 md:px-6 animate-fadeIn">
+      {/* 섹션별 이미지 그룹 — 2열, 행은 콘텐츠 높이(auto-rows-min). 잉여 세로 공간은 content-evenly로
+          그리드 위·행 사이·아래에 균등 분배 — content-center는 잉여가 상·하단에만 몰려
+          부제목 아래/하단 버튼 위 간격이 과대해졌다(v6.18 간격 피드백) */}
+      <div className="flex-1 min-h-0 grid grid-cols-2 auto-rows-min content-evenly gap-x-3 gap-y-2 px-4 md:px-6 animate-fadeIn">
           {SECTIONS.map((section) => {
             const sectionData = board.sections[section.id];
             const uploaded = sectionData.uploadedImages ?? [];
@@ -109,7 +110,7 @@ export default function BoardPage() {
             return (
               <div key={section.id} className="flex flex-col">
                 {/* 섹션 헤더 — 무스크롤 예산을 위해 한 줄에 압축, 스토리는 아이콘으로 */}
-                <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
+                <div className="flex items-center gap-1.5 mb-2.5 flex-shrink-0">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
                   <span className="font-semibold text-caption md:text-body whitespace-nowrap">{section.title.split(' — ')[0]}</span>
                   {keyword && (

@@ -97,6 +97,14 @@ existingDescriptions 배열에서 해당 인덱스를 제외한 나머지를 프
 
 ## Testing / QA
 
+### Playwright addInitScript는 reload마다 재실행 — localStorage 시드는 "없을 때만" #coding #playwright
+`addInitScript`로 localStorage를 시드하면 `page.reload()` 때도 다시 실행돼 앱이 저장한 상태를 덮어쓴다(영속성 테스트가 거짓 FAIL).
+`if (!localStorage.getItem(key))` 가드를 넣어 최초 1회만 시드할 것.
+
+### 멀티스텝 플로우 QA는 버튼 클릭 루프보다 저장된 스텝 상태를 직접 시드 #coding #playwright
+온보딩처럼 Act가 많은 플로우를 "보이는 버튼 클릭" 루프로 진행시키면 탭 투 컨티뉴·영상·입력 단계에서 쉽게 막힌다.
+앱이 `onboardingStep` 같은 재개 상태를 저장한다면 그 값을 localStorage에 시드해 목표 화면으로 바로 진입하는 게 안정적이다.
+
 ### Playwright getByText()는 특수문자 포함 버튼에서 CSS selector 실패 #coding #playwright
 버튼 텍스트에 `→` 같은 특수문자가 포함되면 Playwright 접근성 스냅샷의 `target` 파라미터가 CSS selector 파싱 에러를 발생시킨다.
 `browser_run_code_unsafe`로 `page.getByText('다음').click()` 형태의 raw Playwright 코드를 실행하면 우회 가능하다.

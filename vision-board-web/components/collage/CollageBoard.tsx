@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { CollageLayout, CollageLayoutItem, CollageSticker, CollageTemplate } from '@/lib/types';
+import { CollageLayout, CollageLayoutItem, CollageSticker, CollageTarget, CollageTemplate } from '@/lib/types';
 import {
-  ASPECT,
   COLLAGE_THEMES,
   CollageItem,
   MAX_W,
   MIN_W,
   STICKER_FONT_RATIO,
   STICKER_MIN_W,
+  TARGET_ASPECT,
   newStickerLayoutItem,
   resolveLayout,
   seedLayout,
@@ -25,6 +25,8 @@ interface Props {
   onLayoutChange: (layout: CollageLayout) => void;
   year: string;
   onYearChange: (year: string) => void;
+  /** 편집 타깃 — 보드(4:5)/폰(9:19.5)/PC(16:9). 좌표 공간과 시드가 타깃별로 다르다 (v6.18) */
+  target?: CollageTarget;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -91,14 +93,15 @@ function StickerView({
 
 // 통합 콜라주 보드 — 모든 템플릿이 같은 드래그 엔진을 쓴다.
 // 보드를 탭하면 편집 모드: 사진·스티커 이동/리사이즈, + 문구 추가, 변경 즉시 저장.
-export default function CollageBoard({ template, items, layout, onLayoutChange, year, onYearChange }: Props) {
+export default function CollageBoard({ template, items, layout, onLayoutChange, year, onYearChange, target = 'board' }: Props) {
   const theme = COLLAGE_THEMES[template];
+  const aspect = TARGET_ASPECT[target];
   const boardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const tapRef = useRef<{ x: number; y: number } | null>(null);
   const [editing, setEditing] = useState(false);
   const [sheet, setSheet] = useState<{ open: boolean; editId?: string }>({ open: false });
-  const [live, setLive] = useState<CollageLayout>(() => resolveLayout(template, items, layout));
+  const [live, setLive] = useState<CollageLayout>(() => resolveLayout(template, items, layout, target));
   const liveRef = useRef(live);
 
   function commitLive(updater: (prev: CollageLayout) => CollageLayout) {
@@ -116,9 +119,9 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
 
   // 외부 layout·사진 구성 변경 동기화 (드래그 중이 아닐 때)
   useEffect(() => {
-    if (!dragRef.current) commitLive(() => resolveLayout(template, items, layout));
+    if (!dragRef.current) commitLive(() => resolveLayout(template, items, layout, target));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, items.map((i) => i.key).join(','), layout]);
+  }, [template, target, items.map((i) => i.key).join(','), layout]);
 
   if (items.length === 0) return null;
 
@@ -158,7 +161,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     const dy = dyPx / rect.height;
     const it = drag.item;
     const isSticker = drag.key.startsWith('sticker:');
-    const hNorm = it.h ?? it.w * ASPECT;
+    const hNorm = it.h ?? it.w * aspect;
     let next: CollageLayoutItem;
     if (drag.mode === 'move') {
       next = {
@@ -168,7 +171,9 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
       };
     } else {
       const minW = isSticker ? STICKER_MIN_W : MIN_W;
-      const w = clamp(it.w + dx, minW, Math.min(MAX_W, 1 - it.x));
+      // 가로 경계 + 세로 경계(가로형 보드에서 정사각 사진이 아래로 넘치지 않게) 동시 클램프
+      const vBound = it.h !== undefined ? (it.w * (1 - it.y)) / it.h : (1 - it.y) / aspect;
+      const w = clamp(it.w + dx, minW, Math.min(MAX_W, 1 - it.x, isSticker ? 1 - it.x : vBound));
       // 비정사각(h 지정) 항목은 비율을 유지하며 함께 스케일
       next = { ...it, w, h: it.h !== undefined ? it.h * (w / it.w) : undefined };
     }
@@ -201,7 +206,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
   }
 
   function resetLayout() {
-    save(seedLayout(template, items));
+    save(seedLayout(template, items, target));
   }
 
   function handleStickerConfirm(data: { text: string; style: CollageSticker['style']; color?: string }) {
@@ -212,7 +217,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     } else {
       const id = `s${Date.now()}`;
       save({
-        items: { ...prev.items, [stickerKey(id)]: newStickerLayoutItem(maxZ) },
+        items: { ...prev.items, [stickerKey(id)]: newStickerLayoutItem(maxZ, target) },
         stickers: { ...prev.stickers, [id]: { id, ...data } },
       });
     }
@@ -239,12 +244,18 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
         data-testid="collage-board"
         className="relative w-full mx-auto rounded-3xl overflow-hidden select-none"
         style={{
-          aspectRatio: '4 / 5',
+          aspectRatio: target === 'board' ? '4 / 5' : target === 'phone' ? '1170 / 2532' : '1920 / 1080',
           backgroundColor: theme.bg,
           border: theme.dark ? 'none' : '1px solid #E5E3DF',
-          containerType: 'inline-size',
-          // 보드 + 탭 + 저장 버튼이 한 화면에 들어오게 — 세로가 짧은 기기에선 보드 폭이 줄어든다
-          maxWidth: 'min(100%, calc((100dvh - 19rem) * 0.8))',
+          containerType: 'size',
+          // 보드 + 탭 + 저장 버튼이 한 화면에 들어오게 — 세로가 짧은 기기에선 보드 폭이 줄어든다.
+          // 폰 타깃은 세로가 길어 더 좁게, PC 타깃(가로형)은 전폭
+          maxWidth:
+            target === 'board'
+              ? 'min(100%, calc((100dvh - 19rem) * 0.8))'
+              : target === 'phone'
+                ? 'min(100%, calc((100dvh - 19rem) * 0.462))'
+                : '100%',
           touchAction: editing ? 'none' : 'auto',
         }}
         onPointerDown={onBoardPointerDown}
@@ -254,8 +265,12 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
       >
         {/* 상단 타이틀 밴드 — mosaic·minimal */}
         {theme.titlePos === 'top' && (
-          <div className="absolute inset-x-0 top-0 pt-[4cqi] flex flex-col items-center text-center pointer-events-none z-30">
-            <p className="font-semibold tracking-[0.3em] uppercase" style={{ color: labelColor, fontSize: '2.6cqi' }}>
+          <div
+            className="absolute inset-x-0 top-0 flex flex-col items-center text-center pointer-events-none z-30"
+            // 폰 타깃은 상단 시계·위젯 영역(~15%) 아래로 — lib/wallpaper.ts padCq와 동일 수치
+            style={{ paddingTop: target === 'phone' ? '32cqmin' : '4cqmin' }}
+          >
+            <p className="font-semibold tracking-[0.3em] uppercase" style={{ color: labelColor, fontSize: '2.6cqmin' }}>
               Vision Board
             </p>
             <div className="pointer-events-auto" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
@@ -263,7 +278,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
                 year={year}
                 onYearChange={onYearChange}
                 className="font-script font-bold tracking-widest"
-                style={{ color: titleColor, fontSize: '7cqi' }}
+                style={{ color: titleColor, fontSize: '7cqmin' }}
               />
             </div>
           </div>
@@ -335,10 +350,10 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
         {theme.titlePos === 'center' && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
             <div
-              className="rounded-xl px-[6cqi] py-[4cqi] text-center border border-white/10 shadow-xl"
+              className="rounded-xl px-[6cqmin] py-[4cqmin] text-center border border-white/10 shadow-xl"
               style={{ backgroundColor: '#3A3734' }}
             >
-              <p className="font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase" style={{ fontSize: '2.6cqi' }}>
+              <p className="font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase" style={{ fontSize: '2.6cqmin' }}>
                 Vision Board
               </p>
               <div className="pointer-events-auto" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
@@ -346,7 +361,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
                   year={year}
                   onYearChange={onYearChange}
                   className="font-script font-bold text-white tracking-widest"
-                  style={{ fontSize: '9cqi' }}
+                  style={{ fontSize: '9cqmin' }}
                 />
               </div>
             </div>
@@ -356,8 +371,8 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
         {/* 상시 어포던스 칩 — 편집 가능함을 보드 위에서 바로 알린다 (v6.17 발견성 피드백) */}
         {!editing && (
           <div
-            className="absolute top-[2.5cqi] right-[2.5cqi] z-50 pointer-events-none rounded-full bg-black/45 text-white font-medium px-[3cqi] py-[1.5cqi] backdrop-blur-sm"
-            style={{ fontSize: '2.8cqi' }}
+            className="absolute top-[2.5cqmin] right-[2.5cqmin] z-50 pointer-events-none rounded-full bg-black/45 text-white font-medium px-[3cqmin] py-[1.5cqmin] backdrop-blur-sm"
+            style={{ fontSize: '2.8cqmin' }}
             aria-hidden="true"
           >
             ✎ 탭해서 편집

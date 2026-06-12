@@ -2,16 +2,22 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.3 온보딩 Tori 스토리텔링 + 이미지/영상 최적화 완료
+- **상태:** v6.18 콜라주 기기별 편집 재설계 + 온보딩 카드 컬러 + 보드 간격 조정 완료
 - **주요 기능:**
-  - 온보딩 Act 0: 새 인사 영상(인사.mp4) 자동재생 + 새 텍스트 + "다음 →" 통일
-  - 온보딩 Act 1: 새 프로필 이미지(프로필상반신.png) + floating 효과 제거
-  - 온보딩 Act 2: 도토리 이야기 탭 투 컨티뉴 + 4초 auto-fallback
-  - 구 캐릭터/영상 리소스 완전 제거 (tori-hello.mp4, tori-profile.png)
-- **알려진 이슈:** 없음
+  - /collage: 보드(4:5)/폰(9:19.5)/PC(16:9) 3탭 모두 직접 편집(드래그·리사이즈·스티커), 타깃별 배치 분리 저장(collageDeviceLayouts), 풀블리드 WYSIWYG 내보내기, 프리셋 타깃별 필터
+  - "섹션 묶음 N장" 출력 및 WallpaperPreview/renderSectionPair/renderAllInOne 제거
+  - 온보딩 Act 4 카드: 🧠🎯🌱 이모지 + 파스텔 팔레트(F2EDF7/8F5CF6, E9F4EF/10C6C1, F9F2E7/F59E0B)
+  - /dashboard: 완성 섹션 폴라로이드 썸네일 제거(컬러 도트 통일), /board: content-evenly 간격 재분배
+- **알려진 이슈:** 없음 (UNSPLASH_ACCESS_KEY 미설정으로 이미지 추천만 비활성)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-06-12 (v6.18 — 콜라주 기기별 편집 + 피드백 3건)
+- /collage 재설계: 폰/PC 미리보기(읽기 전용) → 기기 비율 그대로의 편집 보드로 전환. CollageTarget(board/phone/desktop)별 배치 분리 저장, 시드 생성기 aspect 파라미터화(폰 시계영역 예약, PC 폭 축소), renderBoardLayout 풀블리드화, 섹션 묶음 모드·WallpaperPreview 삭제
+- 온보딩 Act 4 카드: Lucide 아이콘 → 🧠🎯🌱 + 사용자 지정 파스텔 팔레트 (6/9 시안)
+- /dashboard 완성 섹션 사진 썸네일 제거, /board 간격 content-center→content-evenly + 섹션 헤더 mb-2.5
+- Playwright 17건 검증 통과 (무스크롤 667/800/900, 타깃별 배치 독립성, 프리셋 필터)
 
 ### 2026-06-09 (v6.3 — 온보딩 스토리텔링 최종 QA + 배포)
 - 온보딩 Act 0: 인사 영상(인사.mp4) autoplay loop muted 적용, 재생 버튼 제거

@@ -4,6 +4,7 @@ import {
   CollageLayout,
   CollageLayoutItem,
   CollageSticker,
+  CollageTarget,
   CollageTemplate,
   StickerStyle,
 } from './types';
@@ -15,6 +16,13 @@ export interface CollageItem {
 
 // 4:5 보드 — 정규화 y는 (픽셀 y / 보드 높이)라서, 정사각 사진의 정규화 높이 = w × ASPECT
 export const ASPECT = 4 / 5;
+
+// 타깃별 보드 가로세로비 — 정사각 사진의 정규화 높이 = w × aspect (v6.18 기기별 편집)
+export const TARGET_ASPECT: Record<CollageTarget, number> = {
+  board: 4 / 5,
+  phone: 1170 / 2532, // lib/wallpaper.ts WALLPAPER_SIZES.mobile 캐논 캔버스와 동일
+  desktop: 1920 / 1080,
+};
 export const MIN_W = 0.12;
 export const MAX_W = 0.7;
 export const STICKER_MIN_W = 0.18;
@@ -67,14 +75,21 @@ const POLAROID_SLOTS: [number, number][] = [
 const POLAROID_WIDTHS = [0.30, 0.27, 0.32, 0.26, 0.29, 0.31];
 const POLAROID_ROTS = [-7, 5, -4, 8, -6, 4, 7, -5];
 
-function seedPolaroid(items: CollageItem[]): CollageLayout {
+function seedPolaroid(items: CollageItem[], target: CollageTarget): CollageLayout {
+  const aspect = TARGET_ASPECT[target];
+  // 폰은 상단 ~15%를 시계·위젯 영역으로 비우고, 가로형(PC)은 폴라로이드 폭을 줄여 과대화를 막는다
+  const topReserve = target === 'phone' ? 0.15 : 0;
+  const wScale = aspect > 1 ? 0.42 : 1;
+  // 폴라로이드 프레임은 사진보다 길다(턱 포함 ≈ 폭×1.115) — 가로형에선 하단 잘림이 커서 프레임 기준으로 클램프
+  const frameH = (w: number) => w * (aspect > 1 ? 1.115 : 1) * aspect;
+  const remapY = (y: number) => topReserve + y * (1 - topReserve);
   const result: Record<string, CollageLayoutItem> = {};
   items.forEach((item, i) => {
     const [x, y] = POLAROID_SLOTS[i % POLAROID_SLOTS.length];
-    const w = POLAROID_WIDTHS[i % POLAROID_WIDTHS.length];
+    const w = POLAROID_WIDTHS[i % POLAROID_WIDTHS.length] * wScale;
     result[item.key] = {
       x: clamp(x, 0, 1 - w),
-      y: clamp(y, 0, 1 - w * ASPECT),
+      y: clamp(remapY(y), topReserve, 1 - frameH(w)),
       w,
       z: i + 1,
       rot: POLAROID_ROTS[i % POLAROID_ROTS.length],
@@ -86,8 +101,12 @@ function seedPolaroid(items: CollageItem[]): CollageLayout {
     'seed-script': { id: 'seed-script', text: "It's my year", style: 'script' },
     'seed-chip': { id: 'seed-chip', text: '잘 될 거야', style: 'chip' },
   };
-  result[stickerKey('seed-script')] = { x: 0.28, y: 0.585, w: 0.44, z: items.length + 1, rot: -3 };
-  result[stickerKey('seed-chip')] = { x: 0.05, y: 0.46, w: 0.26, z: items.length + 2, rot: -5 };
+  result[stickerKey('seed-script')] = {
+    x: 0.28, y: remapY(0.585), w: 0.44 * wScale, z: items.length + 1, rot: -3,
+  };
+  result[stickerKey('seed-chip')] = {
+    x: 0.05, y: remapY(0.46), w: 0.26 * wScale, z: items.length + 2, rot: -5,
+  };
   return layout;
 }
 
@@ -97,13 +116,17 @@ const MOSAIC_SPANS: [number, number][] = [
   [2, 2], [1, 1], [1, 1], [1, 1], [1, 1], [2, 1], [1, 1], [1, 2],
 ];
 
-function seedMosaic(items: CollageItem[]): CollageLayout {
+function seedMosaic(items: CollageItem[], target: CollageTarget): CollageLayout {
+  const aspect = TARGET_ASPECT[target];
   const n = items.length;
-  const cols = n <= 8 ? 4 : n <= 13 ? 5 : 6;
+  // 폰(세로로 긴 캔버스)은 컬럼을 줄여 사진을 키우고, PC(가로)는 늘려 폭을 채운다
+  const baseCols = n <= 8 ? 4 : n <= 13 ? 5 : 6;
+  const cols = target === 'phone' ? (n <= 8 ? 3 : 4) : target === 'desktop' ? baseCols + 2 : baseCols;
   const gx = 0.015;
-  const gy = gx * ASPECT;
+  const gy = gx * aspect;
   const margin = 0.03;
-  const titleBottom = 0.15; // 상단 타이틀 밴드(라벨+연도) 아래부터 그리드 — 연도와 겹치지 않게
+  // 상단 타이틀 밴드(라벨+연도) 아래부터 그리드 — 폰은 시계 영역까지 고려해 더 내린다
+  const titleBottom = target === 'phone' ? 0.22 : target === 'desktop' ? 0.2 : 0.15;
   const availH = 0.97 - titleBottom;
 
   // 점유 그리드에 first-fit 패킹
@@ -141,7 +164,7 @@ function seedMosaic(items: CollageItem[]): CollageLayout {
 
   // 폭 기준 셀 크기 → 세로가 넘치면 축소 후 가운데 정렬
   let cellW = (1 - margin * 2 - (cols - 1) * gx) / cols;
-  let cellH = cellW * ASPECT;
+  let cellH = cellW * aspect;
   const neededH = usedRows * cellH + (usedRows - 1) * gy;
   if (neededH > availH) {
     const k = availH / neededH;
@@ -167,18 +190,20 @@ function seedMosaic(items: CollageItem[]): CollageLayout {
 
 // ── 미니멀: 상단 타이틀 + 균일 정사각 그리드, 마지막 줄 가운데 정렬 ──
 
-function seedMinimal(items: CollageItem[]): CollageLayout {
+function seedMinimal(items: CollageItem[], target: CollageTarget): CollageLayout {
+  const aspect = TARGET_ASPECT[target];
   const n = items.length;
-  const cols = n <= 6 ? 3 : n <= 12 ? 4 : 5;
+  const baseCols = n <= 6 ? 3 : n <= 12 ? 4 : 5;
+  const cols = target === 'phone' ? (n <= 8 ? 2 : 3) : target === 'desktop' ? baseCols + 2 : baseCols;
   const g = 0.02;
   const margin = 0.05;
-  const titleBottom = 0.17;
+  const titleBottom = target === 'phone' ? 0.22 : target === 'desktop' ? 0.2 : 0.17;
   const availH = 0.95 - titleBottom;
 
   let w = (1 - margin * 2 - (cols - 1) * g) / cols;
   const rows = Math.ceil(n / cols);
-  let hNorm = w * ASPECT;
-  const gy = g * ASPECT;
+  let hNorm = w * aspect;
+  const gy = g * aspect;
   const neededH = rows * hNorm + (rows - 1) * gy;
   if (neededH > availH) {
     const k = availH / neededH;
@@ -204,10 +229,14 @@ function seedMinimal(items: CollageItem[]): CollageLayout {
   return { items: result };
 }
 
-export function seedLayout(template: CollageTemplate, items: CollageItem[]): CollageLayout {
-  if (template === 'polaroid') return seedPolaroid(items);
-  if (template === 'mosaic') return seedMosaic(items);
-  return seedMinimal(items);
+export function seedLayout(
+  template: CollageTemplate,
+  items: CollageItem[],
+  target: CollageTarget = 'board'
+): CollageLayout {
+  if (template === 'polaroid') return seedPolaroid(items, target);
+  if (template === 'mosaic') return seedMosaic(items, target);
+  return seedMinimal(items, target);
 }
 
 // 저장된 배치 + 현재 사진 구성 동기화 — 새 사진은 시드 위치로, 사라진 키는 정리.
@@ -215,9 +244,10 @@ export function seedLayout(template: CollageTemplate, items: CollageItem[]): Col
 export function resolveLayout(
   template: CollageTemplate,
   items: CollageItem[],
-  saved: CollageLayout | undefined
+  saved: CollageLayout | undefined,
+  target: CollageTarget = 'board'
 ): CollageLayout {
-  const seed = seedLayout(template, items);
+  const seed = seedLayout(template, items, target);
   if (!saved) return seed;
 
   const result: Record<string, CollageLayoutItem> = {};
@@ -232,7 +262,9 @@ export function resolveLayout(
   return { items: result, stickers };
 }
 
-// 새 스티커의 기본 배치 — 중앙 연도 카드(폴라로이드)에 가리지 않게 중앙 아래, 최상단
-export function newStickerLayoutItem(maxZ: number): CollageLayoutItem {
-  return { x: 0.28, y: 0.62, w: 0.44, z: maxZ + 1, rot: -2 };
+// 새 스티커의 기본 배치 — 중앙 연도 카드(폴라로이드)에 가리지 않게 중앙 아래, 최상단.
+// 가로형(PC) 보드에서는 폭 비례 글자가 과대해지지 않게 줄인다
+export function newStickerLayoutItem(maxZ: number, target: CollageTarget = 'board'): CollageLayoutItem {
+  const w = TARGET_ASPECT[target] > 1 ? 0.26 : 0.44;
+  return { x: (1 - w) / 2, y: 0.62, w, z: maxZ + 1, rot: -2 };
 }

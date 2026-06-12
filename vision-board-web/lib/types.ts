@@ -89,6 +89,10 @@ export interface SectionData {
 // 콜라주(한눈에 보기) 템플릿 — v6.15: '내 배치' 탭 제거, 모든 템플릿이 자유 편집 가능
 export type CollageTemplate = 'polaroid' | 'mosaic' | 'minimal';
 
+// 편집 타깃 — board = 한눈에 보기(4:5), phone = 폰 배경(9:19.5), desktop = PC 배경(16:9).
+// 타깃마다 좌표 공간(가로세로비)이 달라 배치를 따로 저장한다 (v6.18)
+export type CollageTarget = 'board' | 'phone' | 'desktop';
+
 // 배치 항목 — 0..1 정규화 좌표 (4:5 보드 기준).
 // 키는 사진 `${sectionId}-${slotIdx}` 또는 스티커 `sticker:${id}`
 export interface CollageLayoutItem {
@@ -129,7 +133,11 @@ export interface BoardData {
   collageTemplate?: CollageTemplate;     // 한눈에 보기 템플릿 선택값
   /** @deprecated v6.14 '내 배치' 레이아웃 — loadBoard()가 collageLayouts.polaroid로 이관 */
   collageLayout?: CollageLayout;
-  collageLayouts?: Partial<Record<CollageTemplate, CollageLayout>>; // 템플릿별 편집 배치
+  collageLayouts?: Partial<Record<CollageTemplate, CollageLayout>>; // 템플릿별 편집 배치 (board 타깃)
+  // 기기 타깃별 편집 배치 — 폰(9:19.5)/PC(16:9) 배경화면 전용 (v6.18)
+  collageDeviceLayouts?: Partial<
+    Record<'phone' | 'desktop', Partial<Record<CollageTemplate, CollageLayout>>>
+  >;
 }
 
 export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];

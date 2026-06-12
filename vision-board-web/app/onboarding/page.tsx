@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Brain, Compass, Sparkles, type LucideIcon } from 'lucide-react';
 import {
   markOnboardingDone,
   saveUserName,
@@ -39,22 +38,28 @@ const ACORN_MESSAGES = [
 
 const VISION_INTRO = `그 가능성이 펼쳐질 환경을 만드는 도구가 있어. 바로 '비전보드'야.`;
 
-// 효능 설명 카드 — 색은 정보가 아니므로 뉴트럴 (다색 동시 사용 시 촌스러움 피드백, v6.17)
-const VISION_CARDS: { icon: LucideIcon; title: string; desc: string }[] = [
+// 효능 설명 카드 — 사용자 지정 파스텔 팔레트 + 이모지 (v6.18, 6월 9일 시안 기준)
+const VISION_CARDS: { emoji: string; title: string; desc: string; bg: string; titleColor: string }[] = [
   {
-    icon: Brain,
+    emoji: '🧠',
     title: '원하는 삶을 현실로 믿게 해줘',
     desc: '비전보드를 매일 보다 보면, 뇌는 그걸 이미 경험한 것처럼 받아들이기 시작해.',
+    bg: '#F2EDF7',
+    titleColor: '#8F5CF6',
   },
   {
-    icon: Compass,
+    emoji: '🎯',
     title: '삶의 방향을 잡아줘',
     desc: '흔들려도 원하는 방향으로 갈 수 있도록 도와줘. 삶의 주도권을 놓지 않게 해주지.',
+    bg: '#E9F4EF',
+    titleColor: '#10C6C1',
   },
   {
-    icon: Sparkles,
+    emoji: '🌱',
     title: '되고 싶은 나를 그려줘',
     desc: '어떤 사람이 되고 싶은지 정의하고, 어떤 습관을 들이고 무엇을 멀리할지 살피며 살게 돼.',
+    bg: '#F9F2E7',
+    titleColor: '#F59E0B',
   },
 ];
 
@@ -498,11 +503,12 @@ export default function OnboardingPage() {
                 {VISION_CARDS.map((card) => (
                   <div
                     key={card.title}
-                    className="flex items-start gap-3 rounded-xl bg-white px-4 py-1 [@media(min-height:700px)]:py-1.5 border border-[#E5E3DF]"
+                    className="flex items-start gap-3 rounded-xl px-4 py-1 [@media(min-height:700px)]:py-1.5"
+                    style={{ backgroundColor: card.bg }}
                   >
-                    <card.icon size={20} strokeWidth={1.8} className="flex-shrink-0 mt-0.5 text-[#1C1B19]" aria-hidden="true" />
+                    <span className="flex-shrink-0 text-heading leading-snug" aria-hidden="true">{card.emoji}</span>
                     <div>
-                      <p className="text-body font-semibold leading-snug text-[#1C1B19]">{card.title}</p>
+                      <p className="text-body font-semibold leading-snug" style={{ color: card.titleColor }}>{card.title}</p>
                       <p className="text-caption text-[#6B7280] leading-snug">{card.desc}</p>
                     </div>
                   </div>

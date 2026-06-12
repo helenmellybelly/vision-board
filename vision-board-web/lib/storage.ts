@@ -213,6 +213,20 @@ export function saveCollageLayout(template: CollageTemplate, layout: CollageLayo
   saveBoard(board);
 }
 
+// 기기 타깃별(폰/PC) 배치 — 보드(collageLayouts)와 분리 저장 (v6.18)
+export function saveCollageDeviceLayout(
+  target: 'phone' | 'desktop',
+  template: CollageTemplate,
+  layout: CollageLayout
+): void {
+  const board = loadBoard();
+  board.collageDeviceLayouts = {
+    ...board.collageDeviceLayouts,
+    [target]: { ...board.collageDeviceLayouts?.[target], [template]: layout },
+  };
+  saveBoard(board);
+}
+
 export function saveFutureDayStory(story: string): void {
   const board = loadBoard();
   board.futureDayStory = story;

@@ -5,25 +5,23 @@ import { useRouter } from 'next/navigation';
 import {
   loadBoard,
   saveBoardYear,
+  saveCollageDeviceLayout,
   saveCollageLayout,
   saveCollageTemplate,
   saveFutureDayStory,
 } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
-import { BoardData, CollageTemplate } from '@/lib/types';
+import { BoardData, CollageTarget, CollageTemplate } from '@/lib/types';
 import { CollageItem, resolveLayout } from '@/lib/collageTemplates';
-import { WallpaperTarget } from '@/lib/wallpaper';
 import StoryModal from '@/components/StoryModal';
 import WallpaperSheet from '@/components/WallpaperSheet';
 import CollageBoard from '@/components/collage/CollageBoard';
-import WallpaperPreview from '@/components/collage/WallpaperPreview';
 
-type ViewMode = 'edit' | 'mobile' | 'desktop';
-
-const VIEW_MODES: { id: ViewMode; label: string }[] = [
-  { id: 'edit', label: '보드 편집' },
-  { id: 'mobile', label: '폰 미리보기' },
-  { id: 'desktop', label: 'PC 미리보기' },
+// 편집 타깃 탭 — 세 탭 모두 같은 편집 엔진, 타깃별 배치는 따로 저장된다 (v6.18)
+const TARGET_TABS: { id: CollageTarget; label: string }[] = [
+  { id: 'board', label: '보드' },
+  { id: 'phone', label: '폰 배경' },
+  { id: 'desktop', label: 'PC 배경' },
 ];
 
 const TEMPLATES: { id: CollageTemplate; label: string }[] = [
@@ -69,9 +67,9 @@ function TemplateSwatch({ id }: { id: CollageTemplate }) {
 export default function CollagePage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
-  const [wallpaperTarget, setWallpaperTarget] = useState<WallpaperTarget | null>(null);
+  const [sheetTarget, setSheetTarget] = useState<'phone' | 'desktop' | null>(null);
   const [showCoach, setShowCoach] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('edit');
+  const [target, setTarget] = useState<CollageTarget>('board');
 
   useEffect(() => {
     setBoard(loadBoard());
@@ -113,25 +111,23 @@ export default function CollagePage() {
 
   const boardYear = board.boardYear ?? String(new Date().getFullYear());
 
-  // 배경화면 렌더용 — 섹션별 이미지 묶음 (업로드 우선, AI 생성 보조)
-  const sectionGroups = SECTIONS.map((section) => {
-    const sec = board.sections[section.id];
-    const uploaded = sec.uploadedImages ?? [];
-    const generated = sec.generatedImages ?? [];
-    return {
-      label: section.title.split(' — ')[0],
-      color: section.color,
-      images: [0, 1, 2]
-        .map((i) => uploaded[i] || generated[i] || null)
-        .filter((img): img is string => !!img),
-    };
-  });
+  // 타깃별 저장된 배치 — 보드는 collageLayouts, 폰/PC는 collageDeviceLayouts
+  const savedLayout =
+    target === 'board'
+      ? board.collageLayouts?.[template]
+      : board.collageDeviceLayouts?.[target]?.[template];
 
   // 화면에 보이는 배치 그대로 — 배경화면 내보내기와 공유
-  const currentLayout = resolveLayout(template, keyedItems, board.collageLayouts?.[template]);
+  const currentLayout = resolveLayout(template, keyedItems, savedLayout, target);
 
   function selectTemplate(id: CollageTemplate) {
     saveCollageTemplate(id);
+    setBoard(loadBoard());
+  }
+
+  function handleLayoutChange(l: Parameters<typeof saveCollageLayout>[1]) {
+    if (target === 'board') saveCollageLayout(template, l);
+    else saveCollageDeviceLayout(target, template, l);
     setBoard(loadBoard());
   }
 
@@ -177,16 +173,16 @@ export default function CollagePage() {
               ))}
             </div>
 
-            {/* 보기 모드 — 편집 보드 ↔ 폰/PC 배경화면 미리보기 전환 (v6.17) */}
-            <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="보기 모드">
-              {VIEW_MODES.map((m) => (
+            {/* 편집 타깃 — 보드/폰/PC 모두 직접 편집 가능, 배치는 타깃별로 따로 저장 (v6.18) */}
+            <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="편집 타깃">
+              {TARGET_TABS.map((m) => (
                 <button
                   key={m.id}
                   role="radio"
-                  aria-checked={viewMode === m.id}
-                  onClick={() => setViewMode(m.id)}
+                  aria-checked={target === m.id}
+                  onClick={() => setTarget(m.id)}
                   className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors ${
-                    viewMode === m.id ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
+                    target === m.id ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
                   }`}
                 >
                   {m.label}
@@ -194,52 +190,46 @@ export default function CollagePage() {
               ))}
             </div>
 
-            {viewMode === 'edit' ? (
-              <>
-                {/* 보드 — 탭하면 바로 편집 (모든 템플릿 공통) */}
-                <CollageBoard
-                  template={template}
-                  items={keyedItems}
-                  layout={board.collageLayouts?.[template]}
-                  onLayoutChange={(l) => {
-                    saveCollageLayout(template, l);
-                    setBoard(loadBoard());
-                  }}
-                  year={boardYear}
-                  onYearChange={handleYearChange}
-                />
+            {/* 보드 — 탭하면 바로 편집 (모든 템플릿·타깃 공통 엔진) */}
+            <CollageBoard
+              key={`${target}-${template}`}
+              template={template}
+              items={keyedItems}
+              layout={savedLayout}
+              target={target}
+              onLayoutChange={handleLayoutChange}
+              year={boardYear}
+              onYearChange={handleYearChange}
+            />
 
-                {/* 저장 — 폰/PC 2버튼으로 명확하게 */}
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => setWallpaperTarget('mobile')}
-                    className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
-                  >
-                    폰 배경화면 저장
-                  </button>
-                  <button
-                    onClick={() => setWallpaperTarget('desktop')}
-                    className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
-                  >
-                    PC 배경화면 저장
-                  </button>
-                </div>
-              </>
+            {target === 'board' ? (
+              /* 보드 탭 — 배경화면은 기기 탭에서 규격에 맞게 다듬은 뒤 저장 */
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => setTarget('phone')}
+                  className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
+                >
+                  폰 배경 만들기 →
+                </button>
+                <button
+                  onClick={() => setTarget('desktop')}
+                  className="flex-1 py-3.5 rounded-2xl text-body font-semibold bg-white border border-[#E5E3DF] text-[#1C1B19] active:opacity-70 transition-opacity"
+                >
+                  PC 배경 만들기 →
+                </button>
+              </div>
             ) : (
               <>
-                {/* 배경화면 미리보기 — 읽기 전용, 편집은 '보드 편집' 탭에서 */}
-                <WallpaperPreview
-                  template={template}
-                  layout={currentLayout}
-                  items={keyedItems}
-                  year={boardYear}
-                  target={viewMode}
-                />
+                <p className="text-micro text-[#6E6962] text-center mt-2">
+                  {target === 'phone'
+                    ? '실제 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
+                    : '실제 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
+                </p>
                 <button
-                  onClick={() => setWallpaperTarget(viewMode)}
-                  className="mt-4 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
+                  onClick={() => setSheetTarget(target as 'phone' | 'desktop')}
+                  className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
                 >
-                  이대로 저장하기
+                  {target === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
                 </button>
               </>
             )}
@@ -324,6 +314,12 @@ export default function CollagePage() {
                   위 탭에서 <span className="font-semibold">폴라로이드·모자이크·미니멀</span> 스타일을 바꿔봐.
                 </p>
               </div>
+              <div className="flex items-start gap-3">
+                <span className="w-8 h-8 rounded-xl bg-[#F5F5F3] flex items-center justify-center flex-shrink-0 text-body" aria-hidden="true">📱</span>
+                <p className="text-body text-[#1C1B19] leading-snug">
+                  <span className="font-semibold">폰 배경·PC 배경 탭</span>에선 실제 화면 비율로 따로 꾸며서 저장할 수 있어.
+                </p>
+              </div>
             </div>
             <button
               onClick={dismissCoach}
@@ -335,13 +331,12 @@ export default function CollagePage() {
         </div>
       )}
 
-      {wallpaperTarget && (
+      {sheetTarget && (
         <WallpaperSheet
-          groups={sectionGroups}
           year={boardYear}
-          target={wallpaperTarget}
+          target={sheetTarget}
           board={{ template, layout: currentLayout, items: keyedItems }}
-          onClose={() => setWallpaperTarget(null)}
+          onClose={() => setSheetTarget(null)}
         />
       )}
     </main>
