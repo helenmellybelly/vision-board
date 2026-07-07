@@ -10,7 +10,8 @@ interface SectionStoryRequest {
     keyword?: string;
   };
   sceneText: string;
-  situationText: string;
+  /** @deprecated v7.0-r2 — /scene 통합으로 별도 순간 입력 삭제. 레거시 클라이언트 호환용 */
+  situationText?: string;
   additionalInput?: string;
 }
 
@@ -118,13 +119,14 @@ export async function POST(req: NextRequest) {
 
   const { extractedSlots, sceneText, situationText, additionalInput } = body;
 
-  const momentText = additionalInput
-    ? `${situationText}\n${additionalInput}`
-    : situationText;
+  // v7.0-r2: 순간 별도 입력이 사라짐 — 목록이 없으면 하루 서술에서 AI가 직접 골라 배치
+  const momentText = [situationText, additionalInput]
+    .filter((t): t is string => !!t?.trim())
+    .join('\n');
 
   const momentLine = momentText.trim()
     ? `[보고 싶은 순간들]\n${momentText}`
-    : '';
+    : `[보고 싶은 순간들]\n별도 목록 없음 — [그려낸 장면] 안에서 인상적인 순간들을 스스로 골라 하루의 흐름에 배치할 것.`;
 
   const userPrompt = `[이 사람이 원하는 것들]
 ${extractedSlots.want || ''}

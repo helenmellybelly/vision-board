@@ -38,7 +38,6 @@ export default function FinishPage() {
         want: slots.want || sec.slots[3]?.text,
         feeling: slots.feeling || sec.slots[5]?.text,
         sceneText: sec.sceneText,
-        situationText: sec.situationText,
       };
     });
 

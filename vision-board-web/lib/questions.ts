@@ -4,6 +4,7 @@ import { SECTION_COLORS, SECTION_LIGHT_COLORS } from './colors';
 // 질문 정의 단일 소스 (v6.21)
 // - 질문 문구·예시·도움질문은 phaseOneQuestions에만 존재한다 (과거 slots[] 이중 정의 제거)
 // - 장면(미래의 하루) 단계 질문은 sceneStep에 존재한다
+// - situationChips는 /scene 통합 페이지의 '순간 보태기' 칩 — 탭하면 하루 서술 입력에 한 줄씩 추가 (v7.0-r2, 구 /moment 순간 입력)
 // - 화자 규칙: 토리의 질문은 '너/네', 사용자 답변 예시(example)는 '나' 시점
 export const SECTIONS: Section[] = [
   {

@@ -8,26 +8,25 @@ interface Props {
   board: BoardData;
 }
 
-type StepId = 1 | 2 | 3 | 4 | 5;
+type StepId = 1 | 2 | 3 | 4;
 
 // 라벨은 시스템 구조가 아니라 사용자의 행동 언어로 — v6.15 리네이밍 (구: 대화·하루·스토리·이미지·마무리)
 // 목적지는 정적 라우트가 아니라 getStepRoute()가 진행 상태 기반으로 결정 (v6.21)
+// v7.0-r2: 5→4단계 — '하루 그리기'가 스토리 생성까지 포함 (/scene 통합 페이지)
 const STEPS: { id: StepId; short: string }[] = [
   { id: 1, short: '꿈 꺼내기' },
   { id: 2, short: '하루 그리기' },
-  { id: 3, short: '미래 스토리' },
-  { id: 4, short: '사진 담기' },
-  { id: 5, short: '완성' },
+  { id: 3, short: '사진 담기' },
+  { id: 4, short: '완성' },
 ];
 
 // 현재 경로가 가리키는 단계 (허브 페이지는 null → 상태 기반 fallback)
 function getRouteStep(pathname: string): StepId | null {
   if (pathname.startsWith('/section')) return 1;
-  if (pathname.startsWith('/scenes')) return 4; // '/scene'보다 먼저 매칭해야 함
+  if (pathname.startsWith('/scenes')) return 3; // '/scene'보다 먼저 매칭해야 함
   if (pathname.startsWith('/scene')) return 2;
-  if (pathname.startsWith('/moment')) return 3;
-  if (pathname.startsWith('/board')) return 4;
-  if (pathname.startsWith('/finish')) return 5;
+  if (pathname.startsWith('/board')) return 3;
+  if (pathname.startsWith('/finish')) return 4;
   return null;
 }
 
@@ -38,24 +37,22 @@ function getStepInfo(board: BoardData, routeStep: StepId | null): {
 } {
   const sections = Object.values(board.sections);
   const textDone = sections.filter((s) => s.status === 'text_complete' || s.status === 'completed').length;
-  const sceneDone = sections.filter((s) => s.sceneText && s.sceneText.trim() !== '').length;
+  // 2단계(하루 그리기)의 완료 정의는 스토리까지 — 하루 서술과 스토리가 한 페이지가 됐다 (v7.0-r2)
   const storyDone = sections.filter((s) => s.miniStory && s.miniStory.trim() !== '').length;
   const imgDone = sections.filter((s) => s.status === 'completed').length;
 
-  let stateStep: StepId = 5;
+  let stateStep: StepId = 4;
   if (textDone < 6) stateStep = 1;
-  else if (sceneDone < 6) stateStep = 2;
-  else if (storyDone < 6) stateStep = 3;
-  else if (imgDone < 6) stateStep = 4;
+  else if (storyDone < 6) stateStep = 2;
+  else if (imgDone < 6) stateStep = 3;
 
   const currentStep = routeStep ?? stateStep;
   const maxStep = Math.max(stateStep, currentStep) as StepId;
   const subLabels: Record<StepId, string> = {
     1: `${textDone}/6`,
-    2: `${sceneDone}/6`,
-    3: `${storyDone}/6`,
-    4: `${imgDone}/6`,
-    5: '완성',
+    2: `${storyDone}/6`,
+    3: `${imgDone}/6`,
+    4: '완성',
   };
   return { currentStep, maxStep, subLabel: subLabels[currentStep] };
 }

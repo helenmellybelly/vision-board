@@ -60,7 +60,8 @@ const readBoard = (page) =>
   await page.waitForTimeout(1500);
   ok('R1-2a 레거시 step:4 → /onboarding/3 (v1 리맵)', new URL(page.url()).pathname === '/onboarding/3', page.url());
   const board = await readBoard(page);
-  ok('R1-2b schemaVersion:1 기록', board?.schemaVersion === 1, `schemaVersion=${board?.schemaVersion}`);
+  // 이후 라운드가 버전을 올리므로 >=1로 확인 (v1 리맵이 실행됐다는 사실은 R1-2c가 보장)
+  ok('R1-2b schemaVersion 기록(>=1)', (board?.schemaVersion ?? 0) >= 1, `schemaVersion=${board?.schemaVersion}`);
   ok('R1-2c onboardingStep 리맵값 3', board?.onboardingStep === 3, `step=${board?.onboardingStep}`);
   await ctx.close();
 }
@@ -171,7 +172,7 @@ const readBoard = (page) =>
   await page.reload();
   await page.waitForTimeout(1200);
   const board2 = await readBoard(page);
-  ok('R1-8c 재로드 후에도 값 불변', board2?.onboardingStep === 5 && board2?.schemaVersion === 1);
+  ok('R1-8c 재로드 후에도 값 불변', board2?.onboardingStep === 5 && (board2?.schemaVersion ?? 0) >= 1);
   await ctx.close();
 }
 

@@ -303,8 +303,8 @@ export default function ScenesPage() {
       <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push(`/moment/${sectionId}`)}
-            aria-label="순간 단계로 돌아가기"
+            onClick={() => router.push(`/scene/${sectionId}`)}
+            aria-label="미래의 하루 단계로 돌아가기"
             className="text-[#6E6962] text-caption mr-1 active:opacity-60"
           >
             ←

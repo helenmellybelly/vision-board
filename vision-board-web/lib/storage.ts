@@ -3,7 +3,7 @@ import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, Slot
 const STORAGE_KEY = 'vision-board-data';
 
 // 현재 스키마 버전 — 비멱등 마이그레이션(migrateBoard)의 게이트. 올릴 때 migrateBoard에 체인 추가
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 function createEmptySection(id: SectionId): SectionData {
   return {
@@ -101,6 +101,20 @@ function migrateBoard(board: BoardData): void {
     // 기존 완료 사용자는 구 Act5(6영역 안내)를 이미 봤다 — 대시보드 인트로 시트 재노출 방지
     if (board.onboardingDone) {
       board.dashboardIntroSeen = true;
+    }
+  }
+  if (from < 2) {
+    // v2: /scene+/moment 통합 (r2) — 스토리 생성 전이면 순간 입력을 하루 서술에 병합해 보존.
+    // 텍스트 병합은 재실행 시 중복되므로 반드시 이 게이트 안에서만 수행한다
+    for (const sec of Object.values(board.sections)) {
+      if (sec.situationText) {
+        if (!sec.miniStory) {
+          sec.sceneText = [sec.sceneText, sec.situationText]
+            .filter((t): t is string => !!t?.trim())
+            .join('\n');
+        }
+        sec.situationText = undefined;
+      }
     }
   }
   board.schemaVersion = SCHEMA_VERSION;
@@ -298,6 +312,7 @@ export function saveFutureDayStory(story: string): void {
   saveBoard(board);
 }
 
+/** @deprecated v7.0-r2 — /scene 통합으로 순간 별도 입력 삭제. 소비처 없음, R6에서 필드와 함께 제거 예정 */
 export function saveSituationText(sectionId: SectionId, text: string): void {
   const board = loadBoard();
   board.sections[sectionId].situationText = text;

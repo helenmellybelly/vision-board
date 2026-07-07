@@ -11,10 +11,17 @@ interface Props {
   example?: string;
   hint?: string;
   error?: string | null;
+  // controlled 모드 (v7.0-r2) — 칩 탭으로 외부에서 텍스트를 보태는 /scene 통합 페이지용.
+  // 둘 다 넘기면 내부 state 대신 부모 state를 쓴다
+  value?: string;
+  onChangeText?: (text: string) => void;
 }
 
-export default function InlineInput({ onSubmit, placeholder = '여기에 써봐...', disabled = false, onHelp, example, hint, error }: Props) {
-  const [text, setText] = useState('');
+export default function InlineInput({ onSubmit, placeholder = '여기에 써봐...', disabled = false, onHelp, example, hint, error, value, onChangeText }: Props) {
+  const [internalText, setInternalText] = useState('');
+  const isControlled = value !== undefined && onChangeText !== undefined;
+  const text = isControlled ? value : internalText;
+  const setText = isControlled ? onChangeText : setInternalText;
   const [visible, setVisible] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
