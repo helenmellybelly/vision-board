@@ -50,3 +50,8 @@ next-env.d.ts
 
 # UI review screenshots
 /.screenshots/
+
+# verify 스크립트 산출물·커밋메시지 임시 파일·도구 로컬 상태
+.claude/shots/
+.claude/commit-msg-*.txt
+.superpowers/

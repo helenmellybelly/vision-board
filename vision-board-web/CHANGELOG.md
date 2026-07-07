@@ -11,10 +11,15 @@
   - 용어 통일: 완성물=비전보드(이미지보드 제거), /scenes 표시명 '순간 N'·'사진 담기', 관계 섹션 일반화(연인·가족·친구, '남편' 제거), 온보딩 6영역 카드는 SECTIONS 파생
   - finish 피날레: 완성 확정 시에만 finishedAt 기록, 이름 헤드라인+한 문장 인용+키워드 칩+배경화면 CTA (peak-end)
   - /scenes: 순간 1·2·3 묘사에 어울리는 Unsplash 추천 행 (/api/image/keywords, imageKeywords 저장). /section: 규칙+AI 의미 검증(fail-open). /collage: 보드 기본+기기 사이즈 우선 플로우
-- **알려진 이슈:** 루트 미추적 임시 파일 정리 대기(스크린샷·mp4·filter.txt, 코드 미참조 public/tori-alpha.webm·tori-fallback.mp4). hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상)
+- **알려진 이슈:** hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-07-07 (임시 파일·미사용 에셋 정리)
+- 미참조 public 에셋 18개 git rm(인사*·프로필상반신·tori-final*·tori-hello·tori-gardener·tori-profile·기본 svg 5종 — 참조 5개만 잔존), untracked 미참조 tori-alpha.webm·tori-fallback.mp4 삭제
+- 루트 미디어 원본 8개는 삭제 대신 `_archive/`(gitignore)로 보존 이동, 재생성 가능 산출물(스크린샷·.playwright-mcp 로그·commit-msg 임시·shots/) 삭제
+- .gitignore 보강: _archive/·.omo/·.playwright-mcp/·.claude/skills/(루트), .claude/shots/·commit-msg-*.txt·.superpowers/(web) + verify-v618~620.mjs 커밋으로 status 청소
 
 ### 2026-07-07 (v6.21 프로덕션 배포 + UNSPLASH_ACCESS_KEY 등록)
 - `npx vercel --prod` 배포 → vercel inspect target=production 확인, 4경로 200 + /welcome 404(삭제 정상)
