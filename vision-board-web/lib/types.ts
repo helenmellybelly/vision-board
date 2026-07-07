@@ -51,7 +51,6 @@ export interface Section {
   introText: string;
   whyText: string;
   phaseOneQuestions: SectionQuestion[];
-  reviewTemplate: string;
   situationChips?: string[];
   imageQuery?: string; // Unsplash 추천 검색어 — 영어가 검색 품질이 좋다 (v6.17)
 }
@@ -67,14 +66,14 @@ export interface SectionData {
   status: SectionStatus;
   currentPhase: 1 | 2 | 3 | 4 | 5;
   currentSlotIndex: number;
+  /** @deprecated v7.0-r6 — 마이그레이션 v4가 extractedSlots로 백필. 읽기·쓰기 금지, 레거시 데이터 호환용 */
   slots: Record<SlotId, SlotAnswer | undefined>;
   chatMessages?: ChatMessage[];          // 섹션 채팅 기록
-  extractedSlots?: ExtractedSlots;      // 채팅에서 추출된 슬롯
-  sceneMessages?: ChatMessage[];         // 장면 대화 기록
+  extractedSlots?: ExtractedSlots;      // 질문 답변 단일 소스 (current/keyword/want/feeling)
   images: (string | null)[];
   sceneText?: string;
-  sceneTexts?: string[];
   completedAt?: number;
+  /** @deprecated v7.0-r2 — 마이그레이션 v2가 sceneText로 병합. 레거시 데이터 호환용 */
   situationText?: string;
   miniStory?: string;
   generatedImages?: string[];
@@ -130,8 +129,6 @@ export interface BoardData {
   onboardingStep?: number;
   /** 대시보드 첫 진입 6영역 안내 시트 표시 여부 — 구 온보딩 Act5 대체 (v7.0-r1) */
   dashboardIntroSeen?: boolean;
-  /** @deprecated v6.21 — /welcome 페이지 제거로 미사용. 기존 저장 데이터 호환용으로만 남김 */
-  welcomeSeen?: boolean;
   oneSentence?: string;
   futureDayStory?: string;
   /** 목표 날짜(ISO YYYY-MM-DD) — 섹션 일기 헤더·콜라주 연도의 단일 소스 (v7.0-r3). 기본 오늘+3년 */

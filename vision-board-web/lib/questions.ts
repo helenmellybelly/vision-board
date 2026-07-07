@@ -74,7 +74,6 @@ export const SECTIONS: Section[] = [
         ],
       },
     ],
-    reviewTemplate: '{name}{eun} 지금 {current}. 언젠가 {want}를 해보고 싶고, 그게 이뤄지면 {feeling}. 3년 뒤엔 \'{keyword}\'.',
     sceneStep: {
       question: '방금 쓴 단어가 이루어진 나의 하루야. 어디서 뭘 하고 있어?',
       placeholder: '구체적일수록 좋아. 시간, 장소, 감각까지 담아봐.',
@@ -152,7 +151,6 @@ export const SECTIONS: Section[] = [
         ],
       },
     ],
-    reviewTemplate: '지금 몸은 {current}. 언젠가 {want}를 해보고 싶고, 몸이 가벼워지면 {feeling}. 3년 뒤 몸과의 관계는 \'{keyword}\'.',
     sceneStep: {
       question: '방금 쓴 단어가 이루어진 하루야. 어디서 뭘 하고 있어?',
       placeholder: '아주 소소한 장면도 좋아.',
@@ -230,7 +228,6 @@ export const SECTIONS: Section[] = [
         ],
       },
     ],
-    reviewTemplate: '{name}{eun} 소중한 사람에게 {current}으로 기억되고 싶어. 그러면서 {want}를 이루고 싶고, {feeling}. 원하는 관계의 느낌은 \'{keyword}\'.',
     sceneStep: {
       question: '방금 쓴 단어가 이루어진 관계의 장면이야. 누구랑, 어디서?',
       placeholder: '특별한 날이 아니어도 괜찮아.',
@@ -308,7 +305,6 @@ export const SECTIONS: Section[] = [
         ],
       },
     ],
-    reviewTemplate: '지금 일에서 아쉬운 건 {current}. 언젠가 {want}를 해보고 싶고, {feeling}. 일하는 나를 표현하면 \'{keyword}\'.',
     sceneStep: {
       question: '방금 쓴 단어가 이루어진 날의 하루 마무리야. 어디야? 어떤 기분이야?',
       placeholder: '하루를 마치는 그 순간을 구체적으로 묘사해봐.',
@@ -386,7 +382,6 @@ export const SECTIONS: Section[] = [
         ],
       },
     ],
-    reviewTemplate: '지금 돈 때문에 {current}를 못 하고 있어. 언젠가 {want}를 하고 싶고, 여유가 생기면 {feeling}. 돈이 충분할 때 느끼고 싶은 건 \'{keyword}\'.',
     sceneStep: {
       question: '방금 쓴 단어가 이루어진 순간이야. 어떤 상황에 있어?',
       placeholder: '큰 이벤트가 아니어도 좋아. 작은 일상의 순간도.',
@@ -464,7 +459,6 @@ export const SECTIONS: Section[] = [
         ],
       },
     ],
-    reviewTemplate: '지금은 {current}. 언젠가 {want}를 이루고 싶고, 이상적인 공간에서는 {feeling}. 원하는 공간을 한 단어로 하면 \'{keyword}\'.',
     sceneStep: {
       question: '방금 쓴 단어가 이루어진 공간이야. 거기서 뭘 하고 있어?',
       placeholder: '구체적인 장면을 묘사해봐.',

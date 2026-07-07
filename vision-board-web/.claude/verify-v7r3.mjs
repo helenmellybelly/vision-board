@@ -83,7 +83,8 @@ const PIXEL =
   const board = await readBoard(page);
   ok('R3-2a targetDate 연도 승계', board?.targetDate?.startsWith('2028-'), `targetDate=${board?.targetDate}`);
   ok('R3-2b boardYear 제거', board?.boardYear === undefined || board?.boardYear === null);
-  ok('R3-2c schemaVersion 3', board?.schemaVersion === 3, `v=${board?.schemaVersion}`);
+  // 이후 라운드가 버전을 올리므로 >=3으로 확인 (v3 실행 여부는 R3-2a·b가 보장)
+  ok('R3-2c schemaVersion 기록(>=3)', (board?.schemaVersion ?? 0) >= 3, `v=${board?.schemaVersion}`);
   ok('R3-2d miniStory 원형 보존', board?.sections?.[1]?.miniStory === '원형 스토리.');
   await ctx.close();
 }

@@ -3,7 +3,7 @@ import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, Slot
 const STORAGE_KEY = 'vision-board-data';
 
 // 현재 스키마 버전 — 비멱등 마이그레이션(migrateBoard)의 게이트. 올릴 때 migrateBoard에 체인 추가
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function createEmptySection(id: SectionId): SectionData {
   return {
@@ -130,6 +130,19 @@ function migrateBoard(board: BoardData): void {
       board.boardYear = undefined;
     }
   }
+  if (from < 4) {
+    // v4: 레거시 slots[1|2|3|5] → extractedSlots 백필 (r6) — 이후 코드는 extractedSlots만 읽는다
+    for (const sec of Object.values(board.sections)) {
+      if (!sec.extractedSlots) {
+        const legacy: ExtractedSlots = {};
+        if (sec.slots?.[1]?.text) legacy.current = sec.slots[1].text;
+        if (sec.slots?.[2]?.text) legacy.keyword = sec.slots[2].text;
+        if (sec.slots?.[3]?.text) legacy.want = sec.slots[3].text;
+        if (sec.slots?.[5]?.text) legacy.feeling = sec.slots[5].text;
+        if (Object.keys(legacy).length > 0) sec.extractedSlots = legacy;
+      }
+    }
+  }
   board.schemaVersion = SCHEMA_VERSION;
   saveBoard(board);
 }
@@ -155,19 +168,6 @@ export function saveUserName(name: string): void {
   saveBoard(board);
 }
 
-export function saveSlotAnswer(
-  sectionId: SectionId,
-  slotId: SlotId,
-  answer: SlotAnswer
-): void {
-  const board = loadBoard();
-  board.sections[sectionId].slots[slotId] = answer;
-  if (board.sections[sectionId].status === 'not_started') {
-    board.sections[sectionId].status = 'in_progress';
-  }
-  saveBoard(board);
-}
-
 export function saveSectionImage(
   sectionId: SectionId,
   index: number,
@@ -181,12 +181,6 @@ export function saveSectionImage(
 export function saveSectionScene(sectionId: SectionId, text: string): void {
   const board = loadBoard();
   board.sections[sectionId].sceneText = text;
-  saveBoard(board);
-}
-
-export function saveSectionSceneTexts(sectionId: SectionId, texts: string[]): void {
-  const board = loadBoard();
-  board.sections[sectionId].sceneTexts = texts;
   saveBoard(board);
 }
 
@@ -251,30 +245,13 @@ export function saveExtractedSlots(sectionId: SectionId, slots: ExtractedSlots):
   if (board.sections[sectionId].status === 'not_started') {
     board.sections[sectionId].status = 'in_progress';
   }
-  // 하위 호환: 기존 SlotAnswer 형식으로도 저장
-  if (slots.current) board.sections[sectionId].slots[1] = { text: slots.current, isDeferred: false };
-  if (slots.keyword) board.sections[sectionId].slots[2] = { text: slots.keyword, isDeferred: false };
-  if (slots.want) board.sections[sectionId].slots[3] = { text: slots.want, isDeferred: false };
-  if (slots.feeling) board.sections[sectionId].slots[5] = { text: slots.feeling, isDeferred: false };
-  saveBoard(board);
-}
-
-export function saveSceneChat(sectionId: SectionId, messages: ChatMessage[]): void {
-  const board = loadBoard();
-  board.sections[sectionId].sceneMessages = messages;
+  // 구 slots[1|2|3|5] 이중 쓰기 제거 (v7.0-r6) — 레거시 데이터는 마이그레이션 v4가 백필
   saveBoard(board);
 }
 
 export function saveOneSentence(sentence: string): void {
   const board = loadBoard();
   board.oneSentence = sentence;
-  saveBoard(board);
-}
-
-/** @deprecated v7.0-r3 — saveTargetDate로 통일. 소비처 없음, R6에서 제거 예정 */
-export function saveBoardYear(year: string): void {
-  const board = loadBoard();
-  board.boardYear = year;
   saveBoard(board);
 }
 
@@ -330,13 +307,6 @@ export function clearCollageDeviceLayouts(target: 'phone' | 'desktop'): void {
 export function saveFutureDayStory(story: string): void {
   const board = loadBoard();
   board.futureDayStory = story;
-  saveBoard(board);
-}
-
-/** @deprecated v7.0-r2 — /scene 통합으로 순간 별도 입력 삭제. 소비처 없음, R6에서 필드와 함께 제거 예정 */
-export function saveSituationText(sectionId: SectionId, text: string): void {
-  const board = loadBoard();
-  board.sections[sectionId].situationText = text;
   saveBoard(board);
 }
 

@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { loadBoard } from '@/lib/storage';
 import { getNextIncompleteRoute, getNextIncompleteCtaLabel } from '@/lib/sectionRoute';
 import { SECTIONS } from '@/lib/questions';
-import { BoardData, SlotId } from '@/lib/types';
-import { SLOT_LABELS, SLOT_ORDER } from '@/lib/slotLabels';
+import { BoardData } from '@/lib/types';
+import { SLOT_KEY_LABELS, SLOT_KEY_ORDER } from '@/lib/slotLabels';
 import ProcessBar from '@/components/ProcessBar';
 
 function AISummaryCard({ board }: { board: BoardData }) {
@@ -19,13 +19,13 @@ function AISummaryCard({ board }: { board: BoardData }) {
     setError(false);
     try {
       const sections = SECTIONS.map((sec) => {
-        const data = board.sections[sec.id];
+        const slots = board.sections[sec.id].extractedSlots ?? {};
         return {
           title: sec.title.split(' — ')[0],
-          current: data.slots[1 as SlotId]?.text || '',
-          keyword: data.slots[2 as SlotId]?.text || '',
-          bucketList: data.slots[3 as SlotId]?.text || '',
-          feeling: data.slots[5 as SlotId]?.text || '',
+          current: slots.current || '',
+          keyword: slots.keyword || '',
+          bucketList: slots.want || '',
+          feeling: slots.feeling || '',
         };
       });
       const res = await fetch('/api/summarize', {
@@ -118,9 +118,9 @@ export default function ReviewPage() {
       {/* 섹션별 답변 — 1열 전체너비 */}
       <div className="px-4 mb-6 space-y-3">
         {SECTIONS.map((section) => {
-          const sectionData = board.sections[section.id];
+          const slots = board.sections[section.id].extractedSlots ?? {};
           // 작성된 답변이 하나도 없으면(사진만 올린 경우 포함) '수정'이 아니라 '작성'을 권해야 한다
-          const hasAnswers = SLOT_ORDER.some((slotId) => sectionData.slots[slotId]?.text?.trim());
+          const hasAnswers = SLOT_KEY_ORDER.some((key) => slots[key]?.trim());
           return (
             <div
               key={section.id}
@@ -148,13 +148,11 @@ export default function ReviewPage() {
 
               {/* 4개 슬롯 */}
               <div className="bg-white divide-y divide-[#F3F4F6]">
-                {SLOT_ORDER.map((slotId) => {
-                  const answer = sectionData.slots[slotId];
-                  const label = SLOT_LABELS[slotId];
-                  const text = answer?.text?.trim();
+                {SLOT_KEY_ORDER.map((key) => {
+                  const text = slots[key]?.trim();
                   return (
-                    <div key={slotId} className="px-4 py-2.5 flex gap-3">
-                      <p className="text-micro text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">{label}</p>
+                    <div key={key} className="px-4 py-2.5 flex gap-3">
+                      <p className="text-micro text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">{SLOT_KEY_LABELS[key]}</p>
                       <p className={`text-body leading-relaxed flex-1 ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
                         {text || '—'}
                       </p>

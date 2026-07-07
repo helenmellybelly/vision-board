@@ -35,9 +35,9 @@ export default function FinishPage() {
       const slots = sec.extractedSlots || {};
       return {
         title: s.title.split(' — ')[0],
-        keyword: slots.keyword || sec.slots[2]?.text,
-        want: slots.want || sec.slots[3]?.text,
-        feeling: slots.feeling || sec.slots[5]?.text,
+        keyword: slots.keyword,
+        want: slots.want,
+        feeling: slots.feeling,
         sceneText: sec.sceneText,
       };
     });
@@ -74,9 +74,8 @@ export default function FinishPage() {
   if (!board) return null;
 
   const keywords = SECTIONS.map((s) => {
-    const sec = board.sections[s.id];
-    const kw = sec.extractedSlots?.keyword || sec.slots[2]?.text;
-    return { section: s, kw: kw && !sec.slots[2]?.isDeferred ? kw : null };
+    const kw = board.sections[s.id].extractedSlots?.keyword;
+    return { section: s, kw: kw || null };
   }).filter((x) => x.kw);
 
   return (
