@@ -44,17 +44,18 @@ export default function Step1Name({
 
         <div className="space-y-1 text-center px-2">
           <p className="text-body text-[#1C1B19] leading-relaxed font-medium">
-            안녕, 나는 토리(Tory)야.
+            안녕! 나는 토리(Tory)야 🌰
           </p>
           <p className="text-body text-[#6B7280] leading-relaxed">
-            네가 원하는 삶을 발견할 수 있도록<br />
-            돕는 꿈의 정원사지.
+            네가 원하는 삶을 발견하도록 돕는 꿈의 정원사지.
+            <br />
+            그다음엔 우리 같이 비전보드를 만들 거야.
           </p>
         </div>
 
         <div className="space-y-3">
           <p className="text-body font-semibold text-center text-[#1C1B19]">
-            앞으로 나는 너를 뭐라고 불러줄까? 🌱
+            그 전에 — 앞으로 나는 너를 뭐라고 불러줄까? 🌱
           </p>
           <input
             type="text"
