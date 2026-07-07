@@ -174,7 +174,7 @@ const doneBoard = (overrides) => ({
   }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  await page.getByText('나 자신').click();
+  await page.locator('button[aria-label="나 — 글 완료"]').click(); // v7.1-r3: 카드 → 미니보드 셀
   await page.waitForTimeout(1500);
   ok('R2-6a 스토리 있는 카드 → /scenes/1', new URL(page.url()).pathname === '/scenes/1', page.url());
   await ctx.close();
@@ -183,7 +183,7 @@ const doneBoard = (overrides) => ({
   const { ctx, page } = await newPage(doneBoard({ 1: textComplete() }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  await page.getByText('나 자신').click();
+  await page.locator('button[aria-label="나 — 글 완료"]').click(); // v7.1-r3: 카드 → 미니보드 셀
   await page.waitForTimeout(1500);
   ok('R2-6b 스토리 없는 text_complete 카드 → /scene/1', new URL(page.url()).pathname === '/scene/1', page.url());
   await ctx.close();

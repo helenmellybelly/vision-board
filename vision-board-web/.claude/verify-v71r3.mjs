@@ -87,8 +87,11 @@ async function newPage(seed) {
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
   await page.locator('button[aria-label="나 — 시작 전"]').click();
+  await page.waitForTimeout(600);
+  // v7.1-r4: 미시작 셀은 양경로 시트로 인터셉트 → 질문 경로 선택 시 /section/1
+  await page.getByText('✍️ 질문에 답하며 시작').click();
   await page.waitForTimeout(1200);
-  ok('R3-2c not_started 셀 → /section/1', new URL(page.url()).pathname === '/section/1', page.url());
+  ok('R3-2c not_started 셀 → 시트 → /section/1', new URL(page.url()).pathname === '/section/1', page.url());
   await ctx.close();
 }
 
@@ -99,8 +102,11 @@ async function newPage(seed) {
   await page.waitForTimeout(1500);
   ok('R3-3a 추천 카드 노출', await page.getByText('다음 할 일').isVisible().catch(() => false));
   await page.getByText('다음 할 일').click();
+  await page.waitForTimeout(600);
+  // v7.1-r4: 추천 타깃이 미시작이면 양경로 시트 경유
+  await page.getByText('✍️ 질문에 답하며 시작').click();
   await page.waitForTimeout(1200);
-  ok('R3-3b 추천 카드 → /section/2', new URL(page.url()).pathname === '/section/2', page.url());
+  ok('R3-3b 추천 카드 → 시트 → /section/2', new URL(page.url()).pathname === '/section/2', page.url());
   await ctx.close();
 }
 

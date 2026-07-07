@@ -475,6 +475,13 @@ export default function SectionChatPage() {
             onHelp={helpQs.length > 0 ? () => setShowHelp(true) : undefined}
             error={answerError}
           />
+          {/* 사진 먼저 경로 (v7.1-r4) — 답변은 도구일 뿐, 강제하지 않는다. 시각적으론 부차적(EAST) */}
+          <button
+            onClick={() => router.push(`/scenes/${sectionId}`)}
+            className="w-full mt-2.5 py-1 text-caption text-[#C9C5BE] text-center active:opacity-70"
+          >
+            사진부터 고르고 싶어? 사진 먼저 담기 →
+          </button>
         </div>
       )}
     </div>

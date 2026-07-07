@@ -224,6 +224,31 @@ export function markBoardFinished(): void {
   saveBoard(board);
 }
 
+// ── 사진 먼저 플로우 (v7.1-r4) ──
+
+// 답변 없이 사진부터 담은 섹션 — in_progress로만 승격 (completed는 답변+사진의 의미 불변)
+export function markSectionPhotoStarted(sectionId: SectionId): void {
+  const board = loadBoard();
+  if (board.sections[sectionId].status === 'not_started') {
+    board.sections[sectionId].status = 'in_progress';
+    saveBoard(board);
+  }
+}
+
+// '사진 먼저' 넛지 배너 닫기 — 한 번 닫으면 재노출 없음
+export function dismissPhotoFirstNudge(sectionId: SectionId): void {
+  const board = loadBoard();
+  board.sections[sectionId].photoFirstNudgeDismissed = true;
+  saveBoard(board);
+}
+
+// 복귀 인사 갭 판정용 마지막 방문 시각
+export function saveLastVisit(): void {
+  const board = loadBoard();
+  board.lastVisitAt = Date.now();
+  saveBoard(board);
+}
+
 export function resetBoard(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);

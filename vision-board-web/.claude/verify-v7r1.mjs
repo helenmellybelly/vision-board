@@ -103,12 +103,12 @@ const readBoard = (page) =>
   await page.waitForTimeout(1200);
 
   // 스텝2: 도토리 메시지 3개 — 탭 2회로 전부 공개
-  ok('R1-5a 도토리 첫 메시지(조사 처리)', await page.getByText('헬렌아, 도토리 있잖아').isVisible().catch(() => false));
+  ok('R1-5a 도토리 첫 메시지(조사 처리)', await page.getByText('헬렌아, 너 그거 아니?').isVisible().catch(() => false));
   await page.getByText('계속하려면 탭').click();
   await page.waitForTimeout(500);
   await page.getByText('계속하려면 탭').click();
   await page.waitForTimeout(500);
-  ok('R1-5b 탭 2회 → 마지막 메시지(심을 땅)', await page.getByText('도토리를 심을 땅이야').isVisible().catch(() => false));
+  ok('R1-5b 탭 2회 → 마지막 메시지(심을 땅)', await page.getByText('너를 심을 땅이야').isVisible().catch(() => false));
   const cta2 = page.getByText('그 가능성, 꺼내볼게');
   ok('R1-5c 탭 2회 → CTA 노출', await cta2.isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r1-step2.png`, fullPage: true });
@@ -117,8 +117,8 @@ const readBoard = (page) =>
 
   // 스텝3: 비교 카드 + 정의 + CTA
   ok('R1-6a /onboarding/3 진입', new URL(page.url()).pathname === '/onboarding/3', page.url());
-  ok('R1-6b 막연함과 선명함 타이틀', await page.getByText('막연함과 선명함의 차이').isVisible().catch(() => false));
-  ok('R1-6c 비전보드 정의 통합', await page.getByText('나만의 지도').isVisible().catch(() => false));
+  ok('R1-6b 막연함과 선명함 타이틀', await page.getByText('막연함과 선명함, 뭐가 다를까?').isVisible().catch(() => false));
+  ok('R1-6c 비전보드 정의 통합', await page.getByText('너만의 지도').isVisible().catch(() => false));
   ok('R1-6d VISION_CARDS 삭제 확인', !(await page.getByText('비전보드를 하면 좋은 이유').isVisible().catch(() => false)));
   await page.screenshot({ path: `${OUT}/v7r1-step3.png`, fullPage: true });
 

@@ -9,8 +9,20 @@ export function sectionHasPhoto(sec: SectionData): boolean {
   return [0, 1, 2].some((i) => !!(uploaded[i] ?? generated[i]));
 }
 
-// 대시보드 추천 카드의 '다음 할 일' 섹션 (v7.1-r3) — 없으면 null(전부 완성)
+// 답변(text_complete 이상) 없이 사진만 담긴 섹션 — Zeigarnik 열린 고리 (v7.1-r4)
+export function isPhotoOnlySection(sec: SectionData): boolean {
+  return sectionHasPhoto(sec) && sec.status !== 'text_complete' && sec.status !== 'completed';
+}
+
+// 대시보드 추천 카드의 '다음 할 일' 섹션 — 없으면 null(전부 완성)
+// v7.1-r4 우선순위: ① 사진有·답변無(열린 고리부터 닫기) ② in_progress ③ 첫 not_started ④ text_complete 잔여
 export function getRecommendedSection(board: BoardData): SectionId | null {
+  const openLoop = SECTION_IDS.find((id) => isPhotoOnlySection(board.sections[id]));
+  if (openLoop) return openLoop;
+  const inProgress = SECTION_IDS.find((id) => board.sections[id].status === 'in_progress');
+  if (inProgress) return inProgress;
+  const notStarted = SECTION_IDS.find((id) => board.sections[id].status === 'not_started');
+  if (notStarted) return notStarted;
   return SECTION_IDS.find((id) => board.sections[id].status !== 'completed') ?? null;
 }
 

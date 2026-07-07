@@ -6,8 +6,10 @@ import Image from 'next/image';
 import { getSection, SECTIONS } from '@/lib/questions';
 import { getSectionRoute } from '@/lib/sectionRoute';
 import {
+  dismissPhotoFirstNudge,
   loadBoard,
   markSectionComplete,
+  markSectionPhotoStarted,
   saveGeneratedImages,
   saveImageDescriptions,
   saveImageKeywords,
@@ -69,6 +71,10 @@ export default function ScenesPage() {
   // 저장 후 다음 행동을 잇는 완료 시트 (v6.21) — 대시보드 왕복 없이 다음 섹션으로
   const [showComplete, setShowComplete] = useState(false);
   const completeTrapRef = useFocusTrap<HTMLDivElement>(showComplete, () => setShowComplete(false));
+  // 사진 먼저 플로우 (v7.1-r4) — 답변 없이 저장하면 완성 대신 이야기 넛지 시트
+  const [showPhotoNudge, setShowPhotoNudge] = useState(false);
+  const photoNudgeTrapRef = useFocusTrap<HTMLDivElement>(showPhotoNudge, () => setShowPhotoNudge(false));
+  const [nudgeBannerClosed, setNudgeBannerClosed] = useState(false);
 
   useEffect(() => {
     const b = loadBoard();
@@ -97,6 +103,9 @@ export default function ScenesPage() {
 
   const sectionData = board.sections[sectionId];
   const story = sectionData?.miniStory ?? '';
+  // 답변 여부 — 사진 먼저 경로의 분기 기준 (v7.1-r4). completed 의미(답변+사진)는 불변
+  const hasAnswers =
+    sectionData?.status === 'text_complete' || sectionData?.status === 'completed';
 
   // 묘사 3개 → 장면별 Unsplash 영어 검색어 3개. 실패해도 흐름엔 영향 없음(섹션 공통 검색어로 대체)
   async function fetchKeywords(descs: string[]) {
@@ -228,10 +237,18 @@ export default function ScenesPage() {
       saveGeneratedImages(sectionId, compressed);
     }
     saveUploadedImages(sectionId, uploadedImages);
-    markSectionComplete(sectionId);
+    if (hasAnswers) {
+      markSectionComplete(sectionId);
+      setBoard(loadBoard());
+      setSaving(false);
+      setShowComplete(true);
+      return;
+    }
+    // 답변 없는 사진 먼저 저장 (v7.1-r4) — in_progress 승격만, 고동기 시점에 이야기 넛지
+    markSectionPhotoStarted(sectionId);
     setBoard(loadBoard());
     setSaving(false);
-    setShowComplete(true);
+    setShowPhotoNudge(true);
   }
 
   function getSlotUrl(i: number): string | null {
@@ -303,8 +320,8 @@ export default function ScenesPage() {
       <header className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-[#F5F5F3]">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push(`/scene/${sectionId}`)}
-            aria-label="미래의 하루 단계로 돌아가기"
+            onClick={() => router.push(hasAnswers ? `/scene/${sectionId}` : `/section/${sectionId}`)}
+            aria-label={hasAnswers ? '미래의 하루 단계로 돌아가기' : '질문 단계로 돌아가기'}
             className="text-[#6E6962] text-caption mr-1 active:opacity-60"
           >
             ←
@@ -324,6 +341,34 @@ export default function ScenesPage() {
           <p className="text-body font-semibold text-[#1C1B19] mb-1">이 하루에 어울리는 사진 3장을 담아봐</p>
           <p className="text-caption text-[#6E6962]">3장을 담으면 이 영역이 완성돼.</p>
         </div>
+
+        {/* 사진 먼저 넛지 배너 (v7.1-r4) — 답변 없이 들어온 경우, 한 번 닫으면 재노출 없음 */}
+        {!hasAnswers && !sectionData?.photoFirstNudgeDismissed && !nudgeBannerClosed && (
+          <div className="mb-3 rounded-2xl border border-[#E5E3DF] bg-[#FAFAF8] px-4 py-3 flex items-start gap-2 animate-fadeIn">
+            <div className="flex-1">
+              <p className="text-caption text-[#1C1B19] leading-relaxed">
+                사진 먼저 골라도 돼. 근데 네 이야기를 들려주면 이 사진들이 일기가 돼 🌰
+              </p>
+              <button
+                onClick={() => router.push(`/section/${sectionId}`)}
+                className="text-caption font-semibold underline mt-1"
+                style={{ color: section.color }}
+              >
+                내 이야기 들려주기 →
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                dismissPhotoFirstNudge(sectionId);
+                setNudgeBannerClosed(true);
+              }}
+              aria-label="안내 닫기"
+              className="text-[#C9C5BE] text-caption px-1 active:opacity-60"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {story && (
           <StoryModal
@@ -369,7 +414,17 @@ export default function ScenesPage() {
               <p className="text-caption font-semibold text-[#1C1B19] mb-1">
                 어떤 사진을 찾으면 좋을지 모르겠어?
               </p>
-              {descriptions.length === 0 && !describeLoading && !describeError && (
+              {/* AI 힌트 게이트 (v7.1-r4) — 답변이 힌트의 재료라, 없으면 빈 컨텍스트 호출 대신 답변 유도 */}
+              {!hasAnswers && (
+                <button
+                  onClick={() => router.push(`/section/${sectionId}`)}
+                  className="text-caption underline"
+                  style={{ color: section.color }}
+                >
+                  네 이야기를 들려주면 어울리는 사진 힌트를 줄 수 있어 →
+                </button>
+              )}
+              {hasAnswers && descriptions.length === 0 && !describeLoading && !describeError && (
                 <button
                   onClick={fetchDescriptions}
                   className="text-caption underline"
@@ -518,6 +573,44 @@ export default function ScenesPage() {
           </div>
         );
       })()}
+
+      {/* 사진 먼저 저장 직후 넛지 시트 (v7.1-r4) — 방금 성공한 고동기 시점에 이야기로 초대 */}
+      {showPhotoNudge && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center"
+          onClick={() => setShowPhotoNudge(false)}
+        >
+          <div
+            ref={photoNudgeTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="사진 저장 완료"
+            className="w-full max-w-md bg-white rounded-t-3xl px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slideUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-title font-bold mb-1">🌰 사진 담았어!</p>
+            <p className="text-body text-[#6B7280] leading-relaxed mb-3">
+              근데 이 칸이 진짜 &apos;완성&apos;이 되려면 네 이야기가 필요해.
+            </p>
+            <div className="mb-4">
+              <MiniBoardPreview board={board} compact />
+            </div>
+            <button
+              onClick={() => router.push(`/section/${sectionId}`)}
+              className="w-full py-3.5 rounded-xl text-body font-semibold text-white active:opacity-80"
+              style={{ backgroundColor: section.color }}
+            >
+              내 이야기 들려주기 →
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full mt-3 py-2 text-caption text-[#6E6962] text-center active:opacity-70"
+            >
+              대시보드로
+            </button>
+          </div>
+        </div>
+      )}
 
       {lightboxSrc && (
         <div

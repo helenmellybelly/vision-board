@@ -122,8 +122,8 @@ const withPhoto = (extra = {}) =>
   ok('R5-5c goal-gradient 카피', await page.getByText('이제 5칸 남았어').isVisible().catch(() => false));
   const photoCount = await page.locator('img[alt="나"]').count();
   ok('R5-5d 완료 섹션 칸에 사진', photoCount >= 1, `imgs=${photoCount}`);
-  // 사진 있으면 미니보드 탭 → /collage
-  await page.getByLabel('완성 보드 보러 가기').click();
+  // v7.1-r3: 미니보드 전체 탭 제거 → '그냥 보드로 볼래?' 링크가 /collage 진입
+  await page.getByText('그냥 보드로 볼래?').click();
   await page.waitForTimeout(1500);
   ok('R5-5e 미니보드 탭 → /collage', new URL(page.url()).pathname === '/collage', page.url());
   await ctx.close();

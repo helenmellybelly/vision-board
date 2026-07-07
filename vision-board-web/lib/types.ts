@@ -73,6 +73,8 @@ export interface SectionData {
   /** 슬롯별 출처 사진 id (uploadedImages와 인덱스 정렬, v7.1-r2) — 큐레이션/Unsplash photo.id, 수동 업로드·URL은 null.
    *  갤러리 '담기 해제' 토글의 진실 원천: 슬롯은 압축 base64라 역매핑이 불가능하다 */
   uploadedImageSources?: (string | null)[];
+  /** '사진 먼저' 넛지 배너 닫음 여부 (v7.1-r4) — 한 번 닫으면 재노출 없음 */
+  photoFirstNudgeDismissed?: boolean;
 }
 
 // 콜라주(한눈에 보기) 템플릿 — v6.15: '내 배치' 탭 제거, 모든 템플릿이 자유 편집 가능
@@ -122,6 +124,8 @@ export interface BoardData {
   onboardingStep?: number;
   /** 대시보드 첫 진입 6영역 안내 시트 표시 여부 — 구 온보딩 Act5 대체 (v7.0-r1) */
   dashboardIntroSeen?: boolean;
+  /** 마지막 대시보드 방문 시각(ms) — 복귀 인사 갭 판정 (v7.1-r4) */
+  lastVisitAt?: number;
   oneSentence?: string;
   futureDayStory?: string;
   /** 목표 날짜(ISO YYYY-MM-DD) — 섹션 일기 헤더·콜라주 연도의 단일 소스 (v7.0-r3). 기본 오늘+3년 */
