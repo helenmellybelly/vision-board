@@ -336,19 +336,37 @@ export function saveImageKeywords(sectionId: SectionId, keywords: string[]): voi
 }
 
 // 성공 여부 반환 — false면 저장 공간 부족 (호출부에서 무시해도 무방)
-export function saveUploadedImage(sectionId: SectionId, index: number, dataUrl: string | null): boolean {
+// sourceId(v7.1-r2): 원격 픽(큐레이션·Unsplash)의 photo.id. 비우기(null)·수동 업로드가
+// 자동으로 출처를 소거하도록 항상 함께 기록한다 — 별도 클린업 경로 없음
+export function saveUploadedImage(
+  sectionId: SectionId,
+  index: number,
+  dataUrl: string | null,
+  sourceId?: string | null
+): boolean {
   const board = loadBoard();
   const sec = board.sections[sectionId];
   const current = sec.uploadedImages ?? [null, null, null, null, null];
   while (current.length < 5) current.push(null);
   current[index] = dataUrl;
   sec.uploadedImages = current;
+  const sources = sec.uploadedImageSources ?? [null, null, null, null, null];
+  while (sources.length < 5) sources.push(null);
+  sources[index] = dataUrl ? sourceId ?? null : null;
+  sec.uploadedImageSources = sources;
   return trySaveBoard(board);
 }
 
 export function saveUploadedImages(sectionId: SectionId, images: (string | null)[]): void {
   const board = loadBoard();
-  board.sections[sectionId].uploadedImages = images;
+  const sec = board.sections[sectionId];
+  // 벌크 저장 시 출처 정합(v7.1-r2): 인덱스별로 이미지가 그대로면 출처 보존, 바뀌었으면 소거
+  const prev = sec.uploadedImages ?? [];
+  const sources = sec.uploadedImageSources ?? [];
+  sec.uploadedImageSources = images.map((img, i) =>
+    img && img === prev[i] ? sources[i] ?? null : null
+  );
+  sec.uploadedImages = images;
   saveBoard(board);
 }
 
@@ -371,6 +389,7 @@ export function resetImages(sectionId: SectionId): void {
   sec.imageDescriptions = undefined;
   sec.imageKeywords = undefined;
   sec.uploadedImages = [null, null, null, null, null];
+  sec.uploadedImageSources = [null, null, null, null, null];
   sec.completedAt = undefined;
   sec.status = 'text_complete';
   saveBoard(board);

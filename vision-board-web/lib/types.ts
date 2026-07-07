@@ -70,6 +70,9 @@ export interface SectionData {
   imageDescriptions?: string[];          // AI 제안 한국어 묘사 3개 (사용자 편집 가능)
   imageKeywords?: string[];              // 장면별 Unsplash 영어 검색어 3개 — 묘사가 바뀌면 다시 계산 (v6.20)
   uploadedImages?: (string | null)[];   // 사용자 직접 업로드 이미지 (최대 3개 — 보드·콜라주와 동일)
+  /** 슬롯별 출처 사진 id (uploadedImages와 인덱스 정렬, v7.1-r2) — 큐레이션/Unsplash photo.id, 수동 업로드·URL은 null.
+   *  갤러리 '담기 해제' 토글의 진실 원천: 슬롯은 압축 base64라 역매핑이 불가능하다 */
+  uploadedImageSources?: (string | null)[];
 }
 
 // 콜라주(한눈에 보기) 템플릿 — v6.15: '내 배치' 탭 제거, 모든 템플릿이 자유 편집 가능

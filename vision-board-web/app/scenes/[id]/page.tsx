@@ -15,6 +15,7 @@ import {
   saveUploadedImages,
 } from '@/lib/storage';
 import { compressImage } from '@/lib/imageUtils';
+import { getPickedPhotoIds } from '@/lib/imagePick';
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import CuratedGallery from '@/components/CuratedGallery';
@@ -51,6 +52,8 @@ export default function ScenesPage() {
   // images — 보드·콜라주와 동일하게 섹션당 3장으로 제한
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null]);
+  // 갤러리 '담았어' 표시의 진실 원천 — 보드의 uploadedImageSources 파생 (v7.1-r2)
+  const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const lightboxTrapRef = useFocusTrap<HTMLDivElement>(!!lightboxSrc, () => setLightboxSrc(null));
   const [urlInput, setUrlInput] = useState('');
@@ -88,6 +91,7 @@ export default function ScenesPage() {
       const imgs = sec.uploadedImages;
       setUploadedImages([imgs[0] ?? null, imgs[1] ?? null, imgs[2] ?? null]);
     }
+    setPickedIds(getPickedPhotoIds(sectionId));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionId]);
 
@@ -199,6 +203,8 @@ export default function ScenesPage() {
       updated[index] = null;
       setUploadedImages(updated);
       saveUploadedImage(sectionId, index, null);
+      // 슬롯을 비우면 갤러리 '담았어' 오버레이도 해제 (v7.1-r2)
+      setPickedIds(getPickedPhotoIds(sectionId));
     } else if (index < 3 && generatedImages[index]?.url) {
       const updated = generatedImages.map((img, i) =>
         i === index ? { ...img, url: '' } : img
@@ -211,6 +217,7 @@ export default function ScenesPage() {
   function refreshSlots() {
     const imgs = loadBoard().sections[sectionId].uploadedImages ?? [];
     setUploadedImages([imgs[0] ?? null, imgs[1] ?? null, imgs[2] ?? null]);
+    setPickedIds(getPickedPhotoIds(sectionId));
   }
 
   async function handleSave() {
@@ -343,7 +350,7 @@ export default function ScenesPage() {
         </div>
 
         {/* ② 큐레이션 샘플 갤러리 */}
-        <CuratedGallery sectionId={sectionId} color={section.color} onSaved={refreshSlots} />
+        <CuratedGallery sectionId={sectionId} color={section.color} pickedIds={pickedIds} onChanged={refreshSlots} />
 
         {/* ③ 더 찾아보기 — AI 힌트 + Unsplash 검색 + URL (접힘) */}
         <button
@@ -418,7 +425,8 @@ export default function ScenesPage() {
               color={section.color}
               defaultQuery={imageKeywords[0] ?? section.imageQuery ?? ''}
               requestedQuery={requestedQuery}
-              onSaved={refreshSlots}
+              pickedIds={pickedIds}
+              onChanged={refreshSlots}
             />
 
             {/* URL 입력 */}

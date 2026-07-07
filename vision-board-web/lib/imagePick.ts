@@ -6,6 +6,8 @@ import { compressImage } from './imageUtils';
 // proxy → base64 → 압축(0.55/640, 업로드보다 강하게 — localStorage 용량 보호) → 저장 → 다운로드 핑
 
 export interface RemotePhoto {
+  /** Unsplash photo id — 슬롯 출처 기록(uploadedImageSources)·담기 해제 토글의 키 (v7.1-r2) */
+  id: string;
   regular: string;
   downloadLocation?: string;
 }
@@ -43,7 +45,7 @@ export async function pickRemotePhoto(
       reader.readAsDataURL(blob);
     });
     const compressed = await compressImage(dataUrl, 0.55, 640);
-    const ok = saveUploadedImage(sectionId, slot, compressed);
+    const ok = saveUploadedImage(sectionId, slot, compressed, photo.id);
     if (!ok) return 'quota';
     // Unsplash 다운로드 핑 — 실패해도 무시 (가이드라인 준수)
     if (photo.downloadLocation) {
@@ -53,6 +55,24 @@ export async function pickRemotePhoto(
   } catch {
     return 'error';
   }
+}
+
+// 담기 해제 (v7.1-r2) — 출처가 photoId인 슬롯을 비운다. 찾으면 true
+export function unpickRemotePhoto(sectionId: SectionId, photoId: string): boolean {
+  const sec = loadBoard().sections[sectionId];
+  const sources = sec.uploadedImageSources ?? [];
+  const i = sources.findIndex((s) => s === photoId);
+  if (i === -1) return false;
+  saveUploadedImage(sectionId, i, null);
+  return true;
+}
+
+// 현재 슬롯에 담겨 있는 원격 사진 id들 — 갤러리 picked 상태의 파생 원천 (v7.1-r2)
+export function getPickedPhotoIds(sectionId: SectionId): string[] {
+  const sec = loadBoard().sections[sectionId];
+  const uploaded = sec.uploadedImages ?? [];
+  const sources = sec.uploadedImageSources ?? [];
+  return sources.filter((s, i): s is string => !!s && !!uploaded[i]);
 }
 
 export const PICK_NOTICES: Record<Exclude<PickResult, 'saved'>, string> = {

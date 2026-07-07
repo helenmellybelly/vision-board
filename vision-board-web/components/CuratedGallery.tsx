@@ -3,22 +3,23 @@
 import { useState } from 'react';
 import { SectionId } from '@/lib/types';
 import { CURATED_CATEGORIES, defaultCategoryFor, CuratedPhoto } from '@/lib/curatedImages';
-import { pickRemotePhoto, PICK_NOTICES } from '@/lib/imagePick';
+import { pickRemotePhoto, unpickRemotePhoto, PICK_NOTICES } from '@/lib/imagePick';
 
 interface Props {
   sectionId: SectionId;
   color: string;
-  /** 저장 성공 시 부모가 슬롯 상태를 새로고침하도록 */
-  onSaved: () => void;
+  /** 현재 슬롯에 담겨 있는 원격 사진 id들 — picked 표시의 진실 원천 (v7.1-r2) */
+  pickedIds: string[];
+  /** 담기/해제 성공 시 부모가 슬롯·pickedIds를 새로고침하도록 */
+  onChanged: () => void;
 }
-
-type SaveState = 'idle' | 'saving' | 'saved';
 
 // 카테고리별 선별 샘플 갤러리 (v7.0-r4) — Unsplash 검색 대신 미리 고른 사진에서 탭해서 담는다.
 // 매니페스트는 lib/curatedImages.ts (정적 — API 키·런타임 비용 없음, 이미지는 CDN 핫링크)
-export default function CuratedGallery({ sectionId, color, onSaved }: Props) {
+// v7.1-r2: 담긴 사진 재탭 = 해제. picked는 보드(uploadedImageSources) 파생 — 로컬 saved 상태 제거
+export default function CuratedGallery({ sectionId, color, pickedIds, onChanged }: Props) {
   const [catId, setCatId] = useState(defaultCategoryFor(sectionId).id);
-  const [saveStates, setSaveStates] = useState<Record<string, SaveState>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [broken, setBroken] = useState<Record<string, boolean>>({});
 
@@ -26,15 +27,19 @@ export default function CuratedGallery({ sectionId, color, onSaved }: Props) {
   const photos = category.photos.filter((p) => !broken[p.id]);
 
   async function handlePick(photo: CuratedPhoto) {
-    if (saveStates[photo.id] === 'saving' || saveStates[photo.id] === 'saved') return;
+    if (savingId) return;
     setNotice('');
-    setSaveStates((s) => ({ ...s, [photo.id]: 'saving' }));
+    if (pickedIds.includes(photo.id)) {
+      unpickRemotePhoto(sectionId, photo.id);
+      onChanged();
+      return;
+    }
+    setSavingId(photo.id);
     const result = await pickRemotePhoto(sectionId, photo);
+    setSavingId(null);
     if (result === 'saved') {
-      setSaveStates((s) => ({ ...s, [photo.id]: 'saved' }));
-      onSaved();
+      onChanged();
     } else {
-      setSaveStates((s) => ({ ...s, [photo.id]: 'idle' }));
       setNotice(PICK_NOTICES[result]);
     }
   }
@@ -71,14 +76,19 @@ export default function CuratedGallery({ sectionId, color, onSaved }: Props) {
       {/* 사진 가로 스크롤 */}
       <div className="flex gap-2 overflow-x-auto scroll-hide pb-1 -mx-1 px-1">
         {photos.map((photo) => {
-          const state = saveStates[photo.id] ?? 'idle';
+          const picked = pickedIds.includes(photo.id);
+          const saving = savingId === photo.id;
           return (
             <button
               key={photo.id}
               onClick={() => handlePick(photo)}
-              disabled={state !== 'idle'}
+              disabled={saving}
               className="relative flex-shrink-0 w-28 h-28 rounded-xl overflow-hidden border border-[#E5E3DF] active:opacity-80"
-              aria-label={photo.alt ? `${photo.alt} — 비전보드에 담기` : '샘플 사진 담기'}
+              aria-label={
+                picked
+                  ? `${photo.alt || '샘플 사진'} — 보드에서 빼기`
+                  : photo.alt ? `${photo.alt} — 비전보드에 담기` : '샘플 사진 담기'
+              }
               title={photo.author ? `Photo by ${photo.author} on Unsplash` : undefined}
             >
               <img
@@ -89,14 +99,19 @@ export default function CuratedGallery({ sectionId, color, onSaved }: Props) {
                 onError={() => setBroken((b) => ({ ...b, [photo.id]: true }))}
               />
               {/* 작가 어트리뷰션 — 하단 그라데이션 위 micro 텍스트 */}
-              {photo.author && state === 'idle' && (
+              {photo.author && !picked && !saving && (
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent pt-4 pb-1 px-1.5 text-left">
                   <span className="text-micro text-white/85 leading-none">{photo.author}</span>
                 </span>
               )}
-              {state !== 'idle' && (
-                <span className="absolute inset-0 bg-black/45 flex items-center justify-center text-white text-caption font-semibold">
-                  {state === 'saving' ? '담는 중...' : '✓ 담았어'}
+              {(picked || saving) && (
+                <span className="absolute inset-0 bg-black/45 flex flex-col items-center justify-center text-white text-caption font-semibold">
+                  {saving ? '담는 중...' : (
+                    <>
+                      ✓ 담았어
+                      <span className="text-micro font-normal text-white/80 mt-0.5">탭해서 빼기</span>
+                    </>
+                  )}
                 </span>
               )}
             </button>

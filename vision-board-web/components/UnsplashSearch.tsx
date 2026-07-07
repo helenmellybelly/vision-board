@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { SectionId } from '@/lib/types';
-import { pickRemotePhoto, PICK_NOTICES } from '@/lib/imagePick';
+import { pickRemotePhoto, unpickRemotePhoto, PICK_NOTICES } from '@/lib/imagePick';
 
 interface Photo {
   id: string;
@@ -21,20 +21,20 @@ interface Props {
   defaultQuery: string;
   /** AI 힌트의 '이 키워드로 검색' — 값이 바뀌면 인풋을 채우고 즉시 검색 */
   requestedQuery?: string;
-  /** 저장 성공 시 부모가 슬롯 상태를 새로고침하도록 */
-  onSaved: () => void;
+  /** 현재 슬롯에 담겨 있는 원격 사진 id들 — picked 표시의 진실 원천 (v7.1-r2) */
+  pickedIds: string[];
+  /** 담기/해제 성공 시 부모가 슬롯·pickedIds를 새로고침하도록 */
+  onChanged: () => void;
 }
 
-type SaveState = 'idle' | 'saving' | 'saved';
-
 // Unsplash 직접 검색 (v7.0-r4) — '더 찾아보기' 보조 수단. 구 SceneImageSuggestions(자동 추천) 대체.
-// API 키 미설정·검색 실패 시 안내만 남긴다.
-export default function UnsplashSearch({ sectionId, color, defaultQuery, requestedQuery, onSaved }: Props) {
+// API 키 미설정·검색 실패 시 안내만 남긴다. v7.1-r2: 담긴 사진 재탭 = 해제 (CuratedGallery와 동일 토글)
+export default function UnsplashSearch({ sectionId, color, defaultQuery, requestedQuery, pickedIds, onChanged }: Props) {
   const [query, setQuery] = useState(defaultQuery);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [saveStates, setSaveStates] = useState<Record<string, SaveState>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
 
   async function search(q: string) {
@@ -64,15 +64,19 @@ export default function UnsplashSearch({ sectionId, color, defaultQuery, request
   }, [requestedQuery]);
 
   async function handlePick(photo: Photo) {
-    if (saveStates[photo.id] === 'saving' || saveStates[photo.id] === 'saved') return;
+    if (savingId) return;
     setNotice('');
-    setSaveStates((s) => ({ ...s, [photo.id]: 'saving' }));
+    if (pickedIds.includes(photo.id)) {
+      unpickRemotePhoto(sectionId, photo.id);
+      onChanged();
+      return;
+    }
+    setSavingId(photo.id);
     const result = await pickRemotePhoto(sectionId, photo);
+    setSavingId(null);
     if (result === 'saved') {
-      setSaveStates((s) => ({ ...s, [photo.id]: 'saved' }));
-      onSaved();
+      onChanged();
     } else {
-      setSaveStates((s) => ({ ...s, [photo.id]: 'idle' }));
       setNotice(PICK_NOTICES[result]);
     }
   }
@@ -108,20 +112,26 @@ export default function UnsplashSearch({ sectionId, color, defaultQuery, request
         <>
           <div className="grid grid-cols-3 gap-2 mb-1">
             {photos.map((photo) => {
-              const state = saveStates[photo.id] ?? 'idle';
+              const picked = pickedIds.includes(photo.id);
+              const saving = savingId === photo.id;
               return (
                 <button
                   key={photo.id}
                   onClick={() => handlePick(photo)}
-                  disabled={state !== 'idle'}
+                  disabled={saving}
                   className="relative aspect-square rounded-xl overflow-hidden border border-[#E5E3DF] active:opacity-80"
-                  aria-label={photo.alt || '검색 결과 사진 담기'}
+                  aria-label={picked ? `${photo.alt || '검색 결과 사진'} — 보드에서 빼기` : photo.alt || '검색 결과 사진 담기'}
                   title={photo.userName ? `Photo by ${photo.userName} on Unsplash` : undefined}
                 >
                   <img src={photo.thumb} alt={photo.alt} loading="lazy" className="w-full h-full object-cover" />
-                  {state !== 'idle' && (
-                    <span className="absolute inset-0 bg-black/45 flex items-center justify-center text-white text-caption font-semibold">
-                      {state === 'saving' ? '담는 중...' : '✓ 담았어'}
+                  {(picked || saving) && (
+                    <span className="absolute inset-0 bg-black/45 flex flex-col items-center justify-center text-white text-caption font-semibold">
+                      {saving ? '담는 중...' : (
+                        <>
+                          ✓ 담았어
+                          <span className="text-micro font-normal text-white/80 mt-0.5">탭해서 빼기</span>
+                        </>
+                      )}
                     </span>
                   )}
                 </button>
