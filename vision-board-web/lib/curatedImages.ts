@@ -57,15 +57,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/oGv9xIl7DkY/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA"
       },
       {
-        "id": "I1EWTM5mFEM",
-        "thumb": "https://images.unsplash.com/photo-1594882645126-14020914d58d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1594882645126-14020914d58d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "silhouette of man jumping on rocky mountain during sunset",
-        "author": "Venti Views",
-        "authorLink": "https://unsplash.com/@ventiviews",
-        "downloadLocation": "https://api.unsplash.com/photos/I1EWTM5mFEM/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA"
-      },
-      {
         "id": "AtfA8NDgpKA",
         "thumb": "https://images.unsplash.com/flagged/photo-1556746834-1cb5b8fabd54?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/flagged/photo-1556746834-1cb5b8fabd54?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -82,15 +73,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "author": "Huckster",
         "authorLink": "https://unsplash.com/@huckster",
         "downloadLocation": "https://api.unsplash.com/photos/V62UrdknDCA/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA"
-      },
-      {
-        "id": "JnoNcfFwrNA",
-        "thumb": "https://images.unsplash.com/photo-1502224562085-639556652f33?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1502224562085-639556652f33?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "silhouette photo of a person running on road",
-        "author": "lucas Favre",
-        "authorLink": "https://unsplash.com/@we_are_rising",
-        "downloadLocation": "https://api.unsplash.com/photos/JnoNcfFwrNA/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA"
       },
       {
         "id": "3I2vzcmEpLU",
@@ -111,13 +93,13 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/a6FHROHuQ9o/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxtb3JuaW5nJTIwcnVubmluZyUyMHdvcmtvdXQlMjB3ZWxsbmVzcyUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzg3fDA"
       },
       {
-        "id": "SS--7iqimwY",
-        "thumb": "https://images.unsplash.com/photo-1658467914626-ae3959c9815e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8bW9ybmluZyUyMHJ1bm5pbmclMjB3b3Jrb3V0JTIwd2VsbG5lc3MlMjBsaWZlc3R5bGV8ZW58MXwwfHx8MTc4MzQxNDc4N3ww&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1658467914626-ae3959c9815e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8bW9ybmluZyUyMHJ1bm5pbmclMjB3b3Jrb3V0JTIwd2VsbG5lc3MlMjBsaWZlc3R5bGV8ZW58MXwwfHx8MTc4MzQxNDc4N3ww&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "a person standing on a bridge",
-        "author": "Shadrina Izzati",
-        "authorLink": "https://unsplash.com/@shadrinaizzati",
-        "downloadLocation": "https://api.unsplash.com/photos/SS--7iqimwY/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8bW9ybmluZyUyMHJ1bm5pbmclMjB3b3Jrb3V0JTIwd2VsbG5lc3MlMjBsaWZlc3R5bGV8ZW58MXwwfHx8MTc4MzQxNDc4N3ww"
+        "id": "Jx4OJK76lcM",
+        "thumb": "https://images.unsplash.com/photo-1615657973599-990d6e05fb8a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTZ8&ixlib=rb-4.1.0&q=80&w=400",
+        "regular": "https://images.unsplash.com/photo-1615657973599-990d6e05fb8a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTZ8&ixlib=rb-4.1.0&q=80&w=1080",
+        "alt": "3 women doing yoga on blue yoga mat",
+        "author": "Alen Kajtezovic",
+        "authorLink": "https://unsplash.com/@alenkajtezovic",
+        "downloadLocation": "https://api.unsplash.com/photos/Jx4OJK76lcM/download?ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTZ8"
       }
     ]
   },
@@ -199,24 +181,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "author": "Aleksei Agafonov",
         "authorLink": "https://unsplash.com/@alekseixagafonov",
         "downloadLocation": "https://api.unsplash.com/photos/01k-C0uY_0Y/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw4fHxjYWxtJTIwbmF0dXJlJTIwbW9ybmluZyUyMGxpZ2h0JTIwcGVhY2VmdWx8ZW58MXwwfHx8MTc4MzQxNDc4OHww"
-      },
-      {
-        "id": "l0uMrskXaxM",
-        "thumb": "https://images.unsplash.com/photo-1759642796512-55f86af74502?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjYWxtJTIwbmF0dXJlJTIwbW9ybmluZyUyMGxpZ2h0JTIwcGVhY2VmdWx8ZW58MXwwfHx8MTc4MzQxNDc4OHww&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1759642796512-55f86af74502?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjYWxtJTIwbmF0dXJlJTIwbW9ybmluZyUyMGxpZ2h0JTIwcGVhY2VmdWx8ZW58MXwwfHx8MTc4MzQxNDc4OHww&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Golden sun setting behind silhouetted plants",
-        "author": "Kevin Doyle",
-        "authorLink": "https://unsplash.com/@kevdoy",
-        "downloadLocation": "https://api.unsplash.com/photos/l0uMrskXaxM/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjYWxtJTIwbmF0dXJlJTIwbW9ybmluZyUyMGxpZ2h0JTIwcGVhY2VmdWx8ZW58MXwwfHx8MTc4MzQxNDc4OHww"
-      },
-      {
-        "id": "LBDxDdVBLl8",
-        "thumb": "https://images.unsplash.com/photo-1771527190480-d1e8a704ee9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Y2FsbSUyMG5hdHVyZSUyMG1vcm5pbmclMjBsaWdodCUyMHBlYWNlZnVsfGVufDF8MHx8fDE3ODM0MTQ3ODh8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1771527190480-d1e8a704ee9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Y2FsbSUyMG5hdHVyZSUyMG1vcm5pbmclMjBsaWdodCUyMHBlYWNlZnVsfGVufDF8MHx8fDE3ODM0MTQ3ODh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Sun setting behind silhouetted branches and dry grass",
-        "author": "Mohamed B.",
-        "authorLink": "https://unsplash.com/@bangscreative",
-        "downloadLocation": "https://api.unsplash.com/photos/LBDxDdVBLl8/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Y2FsbSUyMG5hdHVyZSUyMG1vcm5pbmclMjBsaWdodCUyMHBlYWNlZnVsfGVufDF8MHx8fDE3ODM0MTQ3ODh8MA"
       }
     ]
   },
@@ -237,15 +201,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/cfGG0niafjc/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxfHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA"
       },
       {
-        "id": "Jwuv9ngb3UE",
-        "thumb": "https://images.unsplash.com/photo-1539056276907-dc946d5098c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwyfHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1539056276907-dc946d5098c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwyfHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "a group of people eating in a restaurant",
-        "author": "Zach Reiner",
-        "authorLink": "https://unsplash.com/@_zachreiner_",
-        "downloadLocation": "https://api.unsplash.com/photos/Jwuv9ngb3UE/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwyfHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA"
-      },
-      {
         "id": "4aM_QE-HRLw",
         "thumb": "https://images.unsplash.com/photo-1578515637272-e4afe0b8ec82?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/photo-1578515637272-e4afe0b8ec82?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -264,15 +219,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/zbI9maUvcaM/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA"
       },
       {
-        "id": "OssO-J9eNyI",
-        "thumb": "https://images.unsplash.com/photo-1686489356516-a54af456d168?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1686489356516-a54af456d168?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "a group of people sitting around a dinner table",
-        "author": "Annie Spratt",
-        "authorLink": "https://unsplash.com/@anniespratt",
-        "downloadLocation": "https://api.unsplash.com/photos/OssO-J9eNyI/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA"
-      },
-      {
         "id": "4q44RjJkeuM",
         "thumb": "https://images.unsplash.com/photo-1683541606184-fecb068b26eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/photo-1683541606184-fecb068b26eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -280,15 +226,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "author": "Sweet Life",
         "authorLink": "https://unsplash.com/@sweetlifediabetes",
         "downloadLocation": "https://api.unsplash.com/photos/4q44RjJkeuM/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA"
-      },
-      {
-        "id": "UEjjO-aJtZ8",
-        "thumb": "https://images.unsplash.com/photo-1778694277039-5cbf0b9a1fcf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1778694277039-5cbf0b9a1fcf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "People enjoying a candlelit dinner at a dimly lit restaurant.",
-        "author": "Romain Gal",
-        "authorLink": "https://unsplash.com/@wamstudio",
-        "downloadLocation": "https://api.unsplash.com/photos/UEjjO-aJtZ8/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA"
       },
       {
         "id": "11kwLZSdCHc",
@@ -300,15 +237,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/11kwLZSdCHc/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw4fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA"
       },
       {
-        "id": "qSwKivdr37M",
-        "thumb": "https://images.unsplash.com/photo-1635210793729-a535627a41b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1635210793729-a535627a41b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "a group of people sitting around a table",
-        "author": "Kan Denis",
-        "authorLink": "https://unsplash.com/@patt____k",
-        "downloadLocation": "https://api.unsplash.com/photos/qSwKivdr37M/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxmcmllbmRzJTIwZmFtaWx5JTIwd2FybSUyMGRpbm5lciUyMHRvZ2V0aGVyfGVufDF8MHx8fDE3ODM0MTQ3ODl8MA"
-      },
-      {
         "id": "AtGqSiqEJCA",
         "thumb": "https://images.unsplash.com/photo-1683538185904-4dc847308479?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8ZnJpZW5kcyUyMGZhbWlseSUyMHdhcm0lMjBkaW5uZXIlMjB0b2dldGhlcnxlbnwxfDB8fHwxNzgzNDE0Nzg5fDA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/photo-1683538185904-4dc847308479?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8ZnJpZW5kcyUyMGZhbWlseSUyMHdhcm0lMjBkaW5uZXIlMjB0b2dldGhlcnxlbnwxfDB8fHwxNzgzNDE0Nzg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -316,6 +244,24 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "author": "Sweet Life",
         "authorLink": "https://unsplash.com/@sweetlifediabetes",
         "downloadLocation": "https://api.unsplash.com/photos/AtGqSiqEJCA/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8ZnJpZW5kcyUyMGZhbWlseSUyMHdhcm0lMjBkaW5uZXIlMjB0b2dldGhlcnxlbnwxfDB8fHwxNzgzNDE0Nzg5fDA"
+      },
+      {
+        "id": "mKJUoZPy70I",
+        "thumb": "https://images.unsplash.com/photo-1536010305525-f7aa0834e2c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTd8&ixlib=rb-4.1.0&q=80&w=400",
+        "regular": "https://images.unsplash.com/photo-1536010305525-f7aa0834e2c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTd8&ixlib=rb-4.1.0&q=80&w=1080",
+        "alt": "three women walking on brown wooden dock near high rise building during daytime",
+        "author": "Priscilla Du Preez 🇨🇦",
+        "authorLink": "https://unsplash.com/@priscilladupreez",
+        "downloadLocation": "https://api.unsplash.com/photos/mKJUoZPy70I/download?ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTd8"
+      },
+      {
+        "id": "EU-Oc9VQHRg",
+        "thumb": "https://images.unsplash.com/photo-1622352496174-9e1d969b1945?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTd8&ixlib=rb-4.1.0&q=80&w=400",
+        "regular": "https://images.unsplash.com/photo-1622352496174-9e1d969b1945?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTd8&ixlib=rb-4.1.0&q=80&w=1080",
+        "alt": "3 women and 2 men smiling",
+        "author": "Crosby Hinze",
+        "authorLink": "https://unsplash.com/@crosbyhinze",
+        "downloadLocation": "https://api.unsplash.com/photos/EU-Oc9VQHRg/download?ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTd8"
       }
     ]
   },
@@ -336,24 +282,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/TM6GooYY1pc/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxfHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA"
       },
       {
-        "id": "ay1vG2t-hPQ",
-        "thumb": "https://images.unsplash.com/photo-1767126600705-b40408eabd3c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwyfHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1767126600705-b40408eabd3c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwyfHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Computer workstation with multiple monitors and plants.",
-        "author": "Jefferson Sees",
-        "authorLink": "https://unsplash.com/@jeffersonsees",
-        "downloadLocation": "https://api.unsplash.com/photos/ay1vG2t-hPQ/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwyfHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA"
-      },
-      {
-        "id": "jZQO3inAPe4",
-        "thumb": "https://images.unsplash.com/photo-1765758014805-a7a6cc272982?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1765758014805-a7a6cc272982?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "A cluttered desk with a computer and artwork.",
-        "author": "Orlando García",
-        "authorLink": "https://unsplash.com/@orlandogp",
-        "downloadLocation": "https://api.unsplash.com/photos/jZQO3inAPe4/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA"
-      },
-      {
         "id": "xKjFbpDj2sA",
         "thumb": "https://images.unsplash.com/photo-1769199242673-d0857146e1ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/photo-1769199242673-d0857146e1ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -361,15 +289,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "author": "Jose Zuniga",
         "authorLink": "https://unsplash.com/@jramiroz98",
         "downloadLocation": "https://api.unsplash.com/photos/xKjFbpDj2sA/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA"
-      },
-      {
-        "id": "bnCNT9DEuRM",
-        "thumb": "https://images.unsplash.com/photo-1763833294545-e38e4fab1961?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1763833294545-e38e4fab1961?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "A desk with computers, fan, and storage shelves.",
-        "author": "Annie Spratt",
-        "authorLink": "https://unsplash.com/@anniespratt",
-        "downloadLocation": "https://api.unsplash.com/photos/bnCNT9DEuRM/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxmb2N1c2VkJTIwd29yayUyMGNyZWF0aXZlJTIwc3R1ZGlvJTIwZGVza3xlbnwxfDB8fHwxNzgzNDE0NzkwfDA"
       },
       {
         "id": "OjmhUpWfXyg",
@@ -415,6 +334,15 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "author": "Grace Anne Bobadilla",
         "authorLink": "https://unsplash.com/@graceannefully",
         "downloadLocation": "https://api.unsplash.com/photos/ACiA74TQjnQ/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Zm9jdXNlZCUyMHdvcmslMjBjcmVhdGl2ZSUyMHN0dWRpbyUyMGRlc2t8ZW58MXwwfHx8MTc4MzQxNDc5MHww"
+      },
+      {
+        "id": "kw0z6RyvC0s",
+        "thumb": "https://images.unsplash.com/photo-1591382696684-38c427c7547a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTh8&ixlib=rb-4.1.0&q=80&w=400",
+        "regular": "https://images.unsplash.com/photo-1591382696684-38c427c7547a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTh8&ixlib=rb-4.1.0&q=80&w=1080",
+        "alt": "macbook pro on brown wooden table",
+        "author": "Mikey Harris",
+        "authorLink": "https://unsplash.com/@mikeyharris",
+        "downloadLocation": "https://api.unsplash.com/photos/kw0z6RyvC0s/download?ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTh8"
       }
     ]
   },
@@ -444,15 +372,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/oZp25y9B3rI/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwyfHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA"
       },
       {
-        "id": "ZypRn5gDHmI",
-        "thumb": "https://images.unsplash.com/photo-1780539404775-b58e86edfc19?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1780539404775-b58e86edfc19?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "An empty road winds towards mountains under a gray sky.",
-        "author": "Luisa Linkous",
-        "authorLink": "https://unsplash.com/@luisalinkous",
-        "downloadLocation": "https://api.unsplash.com/photos/ZypRn5gDHmI/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA"
-      },
-      {
         "id": "Asp8RD9Pqyw",
         "thumb": "https://images.unsplash.com/photo-1778461456542-b4325a1609f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/photo-1778461456542-b4325a1609f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -469,24 +388,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "author": "Patrick Zeef",
         "authorLink": "https://unsplash.com/@pzeef",
         "downloadLocation": "https://api.unsplash.com/photos/5uBxehjrfJ0/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA"
-      },
-      {
-        "id": "0I6GeUxnRbw",
-        "thumb": "https://images.unsplash.com/photo-1765871320629-d7b6ebf6f76d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1765871320629-d7b6ebf6f76d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Open highway stretching towards distant mountains under a cloudy sky",
-        "author": "Roberto Shumski",
-        "authorLink": "https://unsplash.com/@robshumski",
-        "downloadLocation": "https://api.unsplash.com/photos/0I6GeUxnRbw/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA"
-      },
-      {
-        "id": "ghZlDMUcJ-8",
-        "thumb": "https://images.unsplash.com/photo-1764092861433-09218f2d63f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1764092861433-09218f2d63f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Empty desert highway leading to distant mountains.",
-        "author": "Austin Ramsey",
-        "authorLink": "https://unsplash.com/@austin__ramsey",
-        "downloadLocation": "https://api.unsplash.com/photos/ghZlDMUcJ-8/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA"
       },
       {
         "id": "p2H3PmGld8U",
@@ -507,13 +408,22 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/J5B8vHTGqLc/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBzY2VuaWMlMjBmcmVlZG9tfGVufDF8MHx8fDE3ODM0MTQ3OTJ8MA"
       },
       {
-        "id": "_9_UjukCfNM",
-        "thumb": "https://images.unsplash.com/photo-1765873360327-cfa4c3ab615c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8dHJhdmVsJTIwYWR2ZW50dXJlJTIwc2NlbmljJTIwZnJlZWRvbXxlbnwxfDB8fHwxNzgzNDE0NzkyfDA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1765873360327-cfa4c3ab615c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8dHJhdmVsJTIwYWR2ZW50dXJlJTIwc2NlbmljJTIwZnJlZWRvbXxlbnwxfDB8fHwxNzgzNDE0NzkyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Open desert highway with distant mesas under a cloudy sky",
-        "author": "Roberto Shumski",
-        "authorLink": "https://unsplash.com/@robshumski",
-        "downloadLocation": "https://api.unsplash.com/photos/_9_UjukCfNM/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8dHJhdmVsJTIwYWR2ZW50dXJlJTIwc2NlbmljJTIwZnJlZWRvbXxlbnwxfDB8fHwxNzgzNDE0NzkyfDA"
+        "id": "hMc9vGqjDyk",
+        "thumb": "https://images.unsplash.com/photo-1771872703697-6180940d1f2b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTl8&ixlib=rb-4.1.0&q=80&w=400",
+        "regular": "https://images.unsplash.com/photo-1771872703697-6180940d1f2b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTl8&ixlib=rb-4.1.0&q=80&w=1080",
+        "alt": "Woman sitting on rocks overlooking city skyline",
+        "author": "Eirik Skarstein",
+        "authorLink": "https://unsplash.com/@eskarstein",
+        "downloadLocation": "https://api.unsplash.com/photos/hMc9vGqjDyk/download?ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMTl8"
+      },
+      {
+        "id": "ggKWqGrpsME",
+        "thumb": "https://images.unsplash.com/photo-1771600544794-00e1497c1adc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMjB8&ixlib=rb-4.1.0&q=80&w=400",
+        "regular": "https://images.unsplash.com/photo-1771600544794-00e1497c1adc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMjB8&ixlib=rb-4.1.0&q=80&w=1080",
+        "alt": "Woman with red backpack by canal in amsterdam",
+        "author": "Sara Ruffoni",
+        "authorLink": "https://unsplash.com/@ssarasframes",
+        "downloadLocation": "https://api.unsplash.com/photos/ggKWqGrpsME/download?ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzMjB8"
       }
     ]
   },
@@ -597,15 +507,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/8CVcpWyb5SQ/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw4fHxjb3p5JTIwaG9tZSUyMGludGVyaW9yJTIwc3VubGlnaHQlMjBwbGFudHN8ZW58MXwwfHx8MTc4MzQxNDc5M3ww"
       },
       {
-        "id": "90opoJA2DBQ",
-        "thumb": "https://images.unsplash.com/photo-1760552267060-7185dd08537b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjb3p5JTIwaG9tZSUyMGludGVyaW9yJTIwc3VubGlnaHQlMjBwbGFudHN8ZW58MXwwfHx8MTc4MzQxNDc5M3ww&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1760552267060-7185dd08537b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjb3p5JTIwaG9tZSUyMGludGVyaW9yJTIwc3VubGlnaHQlMjBwbGFudHN8ZW58MXwwfHx8MTc4MzQxNDc5M3ww&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Sunlight streams into a room overlooking trees.",
-        "author": "fr0ggy5",
-        "authorLink": "https://unsplash.com/@fr0ggy5_",
-        "downloadLocation": "https://api.unsplash.com/photos/90opoJA2DBQ/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjb3p5JTIwaG9tZSUyMGludGVyaW9yJTIwc3VubGlnaHQlMjBwbGFudHN8ZW58MXwwfHx8MTc4MzQxNDc5M3ww"
-      },
-      {
         "id": "W83HRDSkaL4",
         "thumb": "https://images.unsplash.com/photo-1745816384569-28163a18b4fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Y296eSUyMGhvbWUlMjBpbnRlcmlvciUyMHN1bmxpZ2h0JTIwcGxhbnRzfGVufDF8MHx8fDE3ODM0MTQ3OTN8MA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/photo-1745816384569-28163a18b4fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Y296eSUyMGhvbWUlMjBpbnRlcmlvciUyMHN1bmxpZ2h0JTIwcGxhbnRzfGVufDF8MHx8fDE3ODM0MTQ3OTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -676,15 +577,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/nhfrBwrL0dY/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA"
       },
       {
-        "id": "DYBQlhPeSu8",
-        "thumb": "https://images.unsplash.com/photo-1767220003707-6287f3cb41db?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1767220003707-6287f3cb41db?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Jesus calling book with breakfast and candle",
-        "author": "CARMELA LUSTRE",
-        "authorLink": "https://unsplash.com/@carmelalustrephotography",
-        "downloadLocation": "https://api.unsplash.com/photos/DYBQlhPeSu8/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA"
-      },
-      {
         "id": "0lKTASWm_UQ",
         "thumb": "https://images.unsplash.com/photo-1758522490286-31bf5af96d4d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw4fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/photo-1758522490286-31bf5af96d4d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw4fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -694,22 +586,13 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/0lKTASWm_UQ/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw4fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA"
       },
       {
-        "id": "3rXZyQdMdlI",
-        "thumb": "https://images.unsplash.com/photo-1758522490273-83abd2c9c3d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1758522490273-83abd2c9c3d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Couple looking at a smartphone together",
-        "author": "Vitaly Gariev",
-        "authorLink": "https://unsplash.com/@silverkblack",
-        "downloadLocation": "https://api.unsplash.com/photos/3rXZyQdMdlI/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxjb2ZmZWUlMjBicmVha2Zhc3QlMjBjb3p5JTIwZGFpbHklMjBsaWZlfGVufDF8MHx8fDE3ODM0MTQ3OTR8MA"
-      },
-      {
-        "id": "nHe8OAVrc34",
-        "thumb": "https://images.unsplash.com/photo-1758523417185-5d46089b870a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Y29mZmVlJTIwYnJlYWtmYXN0JTIwY296eSUyMGRhaWx5JTIwbGlmZXxlbnwxfDB8fHwxNzgzNDE0Nzk0fDA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1758523417185-5d46089b870a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Y29mZmVlJTIwYnJlYWtmYXN0JTIwY296eSUyMGRhaWx5JTIwbGlmZXxlbnwxfDB8fHwxNzgzNDE0Nzk0fDA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "Couple looking at tablet in modern kitchen",
-        "author": "Vitaly Gariev",
-        "authorLink": "https://unsplash.com/@silverkblack",
-        "downloadLocation": "https://api.unsplash.com/photos/nHe8OAVrc34/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8Y29mZmVlJTIwYnJlYWtmYXN0JTIwY296eSUyMGRhaWx5JTIwbGlmZXxlbnwxfDB8fHwxNzgzNDE0Nzk0fDA"
+        "id": "EgaPIySkcnM",
+        "thumb": "https://images.unsplash.com/photo-1689180822802-a50a2d7436c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzNzd8&ixlib=rb-4.1.0&q=80&w=400",
+        "regular": "https://images.unsplash.com/photo-1689180822802-a50a2d7436c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzNzd8&ixlib=rb-4.1.0&q=80&w=1080",
+        "alt": "a picnic is set out on a blanket in the grass",
+        "author": "Akram Huseyn",
+        "authorLink": "https://unsplash.com/@akramhuseyn",
+        "downloadLocation": "https://api.unsplash.com/photos/EgaPIySkcnM/download?ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzNzd8"
       }
     ]
   },
@@ -746,15 +629,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/zeqWK0n5PNM/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwzfHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTV8MA"
       },
       {
-        "id": "JWAAgQSbq44",
-        "thumb": "https://images.unsplash.com/photo-1564341505027-b410c159e1b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTV8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1564341505027-b410c159e1b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "a person jumping in the air at sunset",
-        "author": "Marc Najera",
-        "authorLink": "https://unsplash.com/@marcnajera",
-        "downloadLocation": "https://api.unsplash.com/photos/JWAAgQSbq44/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw0fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTV8MA"
-      },
-      {
         "id": "x5nZzttn2_k",
         "thumb": "https://images.unsplash.com/photo-1548126466-4470dfd3a209?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTV8MA&ixlib=rb-4.1.0&q=80&w=400",
         "regular": "https://images.unsplash.com/photo-1548126466-4470dfd3a209?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw1fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -771,15 +645,6 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "author": "Japheth Mast",
         "authorLink": "https://unsplash.com/@japhethmast",
         "downloadLocation": "https://api.unsplash.com/photos/Ls3yexjyRpk/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw2fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTV8MA"
-      },
-      {
-        "id": "mWxfBPiUYQ0",
-        "thumb": "https://images.unsplash.com/photo-1632766814518-09285fcc69c2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTZ8MA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1632766814518-09285fcc69c2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "a person jumping in the air with their arms in the air",
-        "author": "Ines Azevedo",
-        "authorLink": "https://unsplash.com/@ines_az",
-        "downloadLocation": "https://api.unsplash.com/photos/mWxfBPiUYQ0/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw3fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTZ8MA"
       },
       {
         "id": "FNqNEbDmYmE",
@@ -800,13 +665,13 @@ export const CURATED_CATEGORIES: CuratedCategory[] = [
         "downloadLocation": "https://api.unsplash.com/photos/Ts7CLyeik54/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHw5fHxzdWNjZXNzJTIwY2VsZWJyYXRpb24lMjByZWxheGVkJTIwbGlmZXN0eWxlfGVufDF8MHx8fDE3ODM0MTQ3OTZ8MA"
       },
       {
-        "id": "Ytcwrc6GgAE",
-        "thumb": "https://images.unsplash.com/photo-1573269354259-8c108692afa1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8c3VjY2VzcyUyMGNlbGVicmF0aW9uJTIwcmVsYXhlZCUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzk2fDA&ixlib=rb-4.1.0&q=80&w=400",
-        "regular": "https://images.unsplash.com/photo-1573269354259-8c108692afa1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8c3VjY2VzcyUyMGNlbGVicmF0aW9uJTIwcmVsYXhlZCUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzk2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-        "alt": "time lapse photography of group of people jumping on seashore under golden hour",
-        "author": "Daniel Joshua",
-        "authorLink": "https://unsplash.com/@daniel_joshua_",
-        "downloadLocation": "https://api.unsplash.com/photos/Ytcwrc6GgAE/download?ixid=M3w5NzU0NDl8MHwxfHNlYXJjaHwxMHx8c3VjY2VzcyUyMGNlbGVicmF0aW9uJTIwcmVsYXhlZCUyMGxpZmVzdHlsZXxlbnwxfDB8fHwxNzgzNDE0Nzk2fDA"
+        "id": "4YbpWk7HKRQ",
+        "thumb": "https://images.unsplash.com/photo-1670781111177-92f71d7fe53f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzNzd8&ixlib=rb-4.1.0&q=80&w=400",
+        "regular": "https://images.unsplash.com/photo-1670781111177-92f71d7fe53f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzNzd8&ixlib=rb-4.1.0&q=80&w=1080",
+        "alt": "a hammock hanging between two wooden poles in the ocean",
+        "author": "Nikola Tasic",
+        "authorLink": "https://unsplash.com/@tasae34",
+        "downloadLocation": "https://api.unsplash.com/photos/4YbpWk7HKRQ/download?ixid=M3w5NzU0NDl8MHwxfGFsbHx8fHx8fHx8fDE3ODM0MzEzNzd8"
       }
     ]
   }
