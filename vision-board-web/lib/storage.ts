@@ -1,4 +1,4 @@
-import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, SlotAnswer, SlotId, ChatMessage, ExtractedSlots } from './types';
+import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, ChatMessage, ExtractedSlots } from './types';
 
 const STORAGE_KEY = 'vision-board-data';
 
@@ -11,7 +11,6 @@ function createEmptySection(id: SectionId): SectionData {
     status: 'not_started',
     currentPhase: 1,
     currentSlotIndex: 0,
-    slots: {} as Record<SlotId, SlotAnswer | undefined>,
     images: [null, null, null],
     uploadedImages: [null, null, null, null, null],
   };
@@ -131,14 +130,16 @@ function migrateBoard(board: BoardData): void {
     }
   }
   if (from < 4) {
-    // v4: 레거시 slots[1|2|3|5] → extractedSlots 백필 (r6) — 이후 코드는 extractedSlots만 읽는다
+    // v4: 레거시 slots[1|2|3|5] → extractedSlots 백필 (r6) — 이후 코드는 extractedSlots만 읽는다.
+    // slots 필드는 v7.1에서 타입 제거 — 저장된 레거시 JSON을 읽기 위해 로컬 캐스트로만 접근
     for (const sec of Object.values(board.sections)) {
       if (!sec.extractedSlots) {
+        const slots = (sec as { slots?: Record<number, { text?: string } | undefined> }).slots;
         const legacy: ExtractedSlots = {};
-        if (sec.slots?.[1]?.text) legacy.current = sec.slots[1].text;
-        if (sec.slots?.[2]?.text) legacy.keyword = sec.slots[2].text;
-        if (sec.slots?.[3]?.text) legacy.want = sec.slots[3].text;
-        if (sec.slots?.[5]?.text) legacy.feeling = sec.slots[5].text;
+        if (slots?.[1]?.text) legacy.current = slots[1].text;
+        if (slots?.[2]?.text) legacy.keyword = slots[2].text;
+        if (slots?.[3]?.text) legacy.want = slots[3].text;
+        if (slots?.[5]?.text) legacy.feeling = slots[5].text;
         if (Object.keys(legacy).length > 0) sec.extractedSlots = legacy;
       }
     }

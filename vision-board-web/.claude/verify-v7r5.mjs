@@ -104,12 +104,11 @@ const withPhoto = (extra = {}) =>
   await ctx.close();
 }
 
-// ── 4) /board → /collage 리다이렉트 ──
+// ── 4) /board 스텁 — v7.1에서 철거됨 (배포 1사이클 유예 종료), 404 확인으로 대체 ──
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
-  await page.goto(`${BASE}/board`);
-  await page.waitForTimeout(1500);
-  ok('R5-4 /board → /collage', new URL(page.url()).pathname === '/collage', page.url());
+  const res = await page.goto(`${BASE}/board`);
+  ok('R5-4 /board 스텁 철거 (404)', res?.status() === 404, `status=${res?.status()}`);
   await ctx.close();
 }
 

@@ -1,7 +1,5 @@
 export type SectionId = 1 | 2 | 3 | 4 | 5 | 6;
 
-export type SlotId = 1 | 2 | 3 | 4 | 5 | 6;
-
 // not_started → in_progress → text_complete → completed
 // text_complete = 채팅 대화 완료
 // completed = scene + images 까지 완료
@@ -55,19 +53,11 @@ export interface Section {
   imageQuery?: string; // Unsplash 추천 검색어 — 영어가 검색 품질이 좋다 (v6.17)
 }
 
-export interface SlotAnswer {
-  text: string;
-  isDeferred: boolean;
-  helpAnswers?: string[];
-}
-
 export interface SectionData {
   id: SectionId;
   status: SectionStatus;
   currentPhase: 1 | 2 | 3 | 4 | 5;
   currentSlotIndex: number;
-  /** @deprecated v7.0-r6 — 마이그레이션 v4가 extractedSlots로 백필. 읽기·쓰기 금지, 레거시 데이터 호환용 */
-  slots: Record<SlotId, SlotAnswer | undefined>;
   chatMessages?: ChatMessage[];          // 섹션 채팅 기록
   extractedSlots?: ExtractedSlots;      // 질문 답변 단일 소스 (current/keyword/want/feeling)
   images: (string | null)[];

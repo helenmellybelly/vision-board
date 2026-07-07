@@ -159,12 +159,11 @@ const doneBoard = (overrides) => ({
   await ctx.close();
 }
 
-// ── 5) /moment/1 → /scene/1 리다이렉트 ──
+// ── 5) /moment 스텁 — v7.1에서 철거됨 (배포 1사이클 유예 종료), 404 확인으로 대체 ──
 {
   const { ctx, page } = await newPage(doneBoard({ 1: textComplete() }));
-  await page.goto(`${BASE}/moment/1`);
-  await page.waitForTimeout(1500);
-  ok('R2-5 /moment/1 → /scene/1', new URL(page.url()).pathname === '/scene/1', page.url());
+  const res = await page.goto(`${BASE}/moment/1`);
+  ok('R2-5 /moment/1 스텁 철거 (404)', res?.status() === 404, `status=${res?.status()}`);
   await ctx.close();
 }
 
