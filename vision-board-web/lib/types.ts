@@ -134,7 +134,10 @@ export interface BoardData {
   welcomeSeen?: boolean;
   oneSentence?: string;
   futureDayStory?: string;
-  boardYear?: string;                    // 비전보드 콜라주 중앙 연도
+  /** 목표 날짜(ISO YYYY-MM-DD) — 섹션 일기 헤더·콜라주 연도의 단일 소스 (v7.0-r3). 기본 오늘+3년 */
+  targetDate?: string;
+  /** @deprecated v7.0-r3 — targetDate로 통일. 마이그레이션 v3가 흡수, R6에서 제거 예정 */
+  boardYear?: string;
   collageTemplate?: CollageTemplate;     // 한눈에 보기 템플릿 선택값
   /** @deprecated v6.14 '내 배치' 레이아웃 — loadBoard()가 collageLayouts.polaroid로 이관 */
   collageLayout?: CollageLayout;

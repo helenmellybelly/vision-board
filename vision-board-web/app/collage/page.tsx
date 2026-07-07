@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import {
   clearCollageDeviceLayouts,
   loadBoard,
-  saveBoardYear,
+  saveTargetDate,
   saveCollageDeviceLayout,
   saveCollageDevicePreset,
   saveCollageLayout,
   saveCollageTemplate,
   saveFutureDayStory,
 } from '@/lib/storage';
+import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, CollageLayout, CollageTemplate } from '@/lib/types';
 import { ASPECT, CollageItem, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
@@ -117,7 +118,8 @@ export default function CollagePage() {
       .filter((item) => !!item.src);
   });
 
-  const boardYear = board.boardYear ?? String(new Date().getFullYear());
+  // 중앙 연도의 소스는 targetDate(일기 날짜)로 통일 (v7.0-r3) — 연도 편집도 targetDate의 연도만 교체
+  const boardYear = getTargetYear(board);
 
   // 기기 뷰의 선택 사이즈 — 편집·내보내기 비율을 이 프리셋이 결정한다 (v6.19)
   const devicePresetId = view !== 'board' ? board.collageDevicePresets?.[view] : undefined;
@@ -146,7 +148,7 @@ export default function CollagePage() {
   }
 
   function handleYearChange(y: string) {
-    saveBoardYear(y);
+    saveTargetDate(withYear(getTargetDate(loadBoard()), y));
     setBoard(loadBoard());
   }
 

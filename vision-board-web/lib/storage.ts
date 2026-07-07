@@ -3,7 +3,7 @@ import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, Slot
 const STORAGE_KEY = 'vision-board-data';
 
 // 현재 스키마 버전 — 비멱등 마이그레이션(migrateBoard)의 게이트. 올릴 때 migrateBoard에 체인 추가
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 function createEmptySection(id: SectionId): SectionData {
   return {
@@ -115,6 +115,19 @@ function migrateBoard(board: BoardData): void {
         }
         sec.situationText = undefined;
       }
+    }
+  }
+  if (from < 3) {
+    // v3: boardYear(연도만) → targetDate(전체 날짜)로 흡수 (r3) — 연도는 유지, 월일은 오늘 기준
+    if (board.boardYear && !board.targetDate) {
+      const y = Number(board.boardYear);
+      if (Number.isFinite(y) && y >= 1000 && y <= 9999) {
+        const now = new Date();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        board.targetDate = `${y}-${m}-${d}`;
+      }
+      board.boardYear = undefined;
     }
   }
   board.schemaVersion = SCHEMA_VERSION;
@@ -258,9 +271,17 @@ export function saveOneSentence(sentence: string): void {
   saveBoard(board);
 }
 
+/** @deprecated v7.0-r3 — saveTargetDate로 통일. 소비처 없음, R6에서 제거 예정 */
 export function saveBoardYear(year: string): void {
   const board = loadBoard();
   board.boardYear = year;
+  saveBoard(board);
+}
+
+// 목표 날짜(ISO YYYY-MM-DD) — 섹션 일기 헤더·콜라주 연도 공용 (v7.0-r3)
+export function saveTargetDate(iso: string): void {
+  const board = loadBoard();
+  board.targetDate = iso;
   saveBoard(board);
 }
 

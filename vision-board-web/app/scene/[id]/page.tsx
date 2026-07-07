@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
-import { loadBoard, saveSectionScene, saveMiniStory } from '@/lib/storage';
+import { loadBoard, saveSectionScene, saveMiniStory, saveTargetDate } from '@/lib/storage';
+import { getTargetDate, formatDiaryDate } from '@/lib/targetDate';
 import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import { SLOT_KEY_LABELS } from '@/lib/slotLabels';
 import ProcessBar from '@/components/ProcessBar';
@@ -35,12 +36,15 @@ export default function ScenePage() {
   const [usedAdditional, setUsedAdditional] = useState(false);
   const [editingStory, setEditingStory] = useState(false);
   const [storyDraft, setStoryDraft] = useState('');
+  const [targetDate, setTargetDate] = useState('');
+  const [editingDate, setEditingDate] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const b = loadBoard();
     setBoard(b);
+    setTargetDate(getTargetDate(b));
     const sec = b.sections[sectionId];
     if (sec.extractedSlots) setSlots(sec.extractedSlots);
     if (sec.sceneText) {
@@ -73,6 +77,7 @@ export default function ScenePage() {
           sectionTitle: section?.title.split(' — ')[0] ?? '',
           extractedSlots: slots,
           sceneText: scene,
+          targetDate,
           additionalInput: additional,
         }),
       });
@@ -84,6 +89,8 @@ export default function ScenePage() {
   }
 
   async function runStory(scene: string, additional?: string) {
+    // 일기 날짜 확정 — 첫 스토리 생성 시점에 저장해 전 섹션 일기가 같은 날짜를 공유
+    if (targetDate) saveTargetDate(targetDate);
     setStoryLoading(true);
     setStoryFailed(false);
     const result = await generateStory(scene, additional);
@@ -268,12 +275,40 @@ export default function ScenePage() {
                   className="mt-3 rounded-2xl border px-4 py-4 mb-3"
                   style={{ borderColor: section.color + '30', backgroundColor: section.color + '08' }}
                 >
-                  <p
-                    className="text-micro font-semibold uppercase tracking-wide mb-2"
-                    style={{ color: section.color }}
-                  >
-                    이 삶의 하루
-                  </p>
+                  {/* 일기 날짜 헤더 (v7.0-r3) — 자동 제안(+3년), 탭하면 수정. 전 섹션 일기가 같은 날짜 공유 */}
+                  <div className="mb-2">
+                    {editingDate ? (
+                      <>
+                        <input
+                          type="date"
+                          value={targetDate}
+                          onChange={(e) => {
+                            if (!e.target.value) return;
+                            setTargetDate(e.target.value);
+                            saveTargetDate(e.target.value);
+                          }}
+                          onBlur={() => setEditingDate(false)}
+                          autoFocus
+                          className="text-caption font-semibold bg-white border border-[#E5E3DF] rounded-lg px-2 py-1 outline-none"
+                          style={{ color: section.color }}
+                        />
+                        <p className="text-micro text-[#C9C5BE] mt-1">
+                          모든 영역의 일기에 같은 날짜가 적혀.
+                        </p>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setEditingDate(true)}
+                        className="flex items-center gap-1.5 active:opacity-70"
+                        aria-label="일기 날짜 수정"
+                      >
+                        <span className="text-caption font-semibold" style={{ color: section.color }}>
+                          {targetDate ? formatDiaryDate(targetDate) : ''}
+                        </span>
+                        <span className="text-micro text-[#C9C5BE]" aria-hidden="true">✏️</span>
+                      </button>
+                    )}
+                  </div>
                   {editingStory ? (
                     <>
                       <textarea
