@@ -121,6 +121,14 @@ existingDescriptions 배열에서 해당 인덱스를 제외한 나머지를 프
 `setTimeout` 기반 자동전환(4초 fallback)과 탭 투 컨티뉴가 공존하는 온보딩에서, QA 중 탭 액션이 실패하면 fallback이 전체 스토리를 끝까지 진행시킨다.
 QA 스크립트에 `waitForTimeout(1000)`만으로는 불충분 — fallback 시간보다 충분히 짧은 간격으로 연속 탭하거나, 타이머를 제어할 수 있는 테스트 전용 플래그 도입을 고려할 것.
 
+### 페이지 삭제 후에는 .next 캐시를 지우고 빌드할 것 #coding #next-js
+라우트 페이지(page.tsx)를 삭제하면 `.next/dev/types/validator.ts`가 삭제된 페이지를 계속 참조해 타입 체크가 실패한다(v6.21 /welcome·/scene 삭제).
+페이지 추가·삭제·이동 후에는 `rm -rf .next` 후 빌드해야 stale 타입 캐시 오류를 피한다.
+
+### 죽은 코드 grep은 부분 문자열 충돌을 걸러서 판정 #coding #workflow
+`SectionComplete` 검색이 라이브 함수 `markSectionComplete`에 매치되는 식으로, 식별자 grep은 부분 문자열 오탐이 흔하다(v6.21 죽은 코드 13개 삭제).
+삭제 판정 전 매치 라인을 실제로 읽어 import/사용인지 자기 정의·다른 식별자의 부분인지 구분할 것.
+
 ### pageerror 검증 FAIL은 변경 안 한 페이지에서 재현해 기존 이슈인지 판별 #coding #testing
 localStorage 시드 + `useState(loadBoard())` 패턴은 모든 페이지에서 hydration #418을 내므로(서버=빈 보드, 클라이언트=시드 보드), 검증 스크립트의 `pageerror` 체크가 이번 변경과 무관하게 FAIL한다(v6.20 /scenes 검증).
 새 에러를 만났을 때 같은 조건으로 변경하지 않은 페이지를 먼저 돌려 기존 전역 패턴 이슈인지 분리한 뒤 판정할 것.

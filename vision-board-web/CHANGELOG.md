@@ -2,16 +2,25 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.20 Unsplash 추천 /scenes 이동 + 온보딩·웰컴·moment 폴리시 — 프로덕션 배포 완료
+- **상태:** v6.21 전체 플로우 리뷰 개선(질문 단일화·용어 통일·상태 기반 내비·완료 시트·welcome 제거) — **커밋 5c49363, 프로덕션 배포는 다음 세션** (`npx vercel --prod` 필요)
 - **주요 기능:**
-  - /scenes: 장면 1·2·3 묘사에 어울리는 Unsplash 추천 행 (신규 /api/image/keywords가 묘사→영어 검색어 3개, imageKeywords 저장, 묘사 변경 시 재계산. 탭하면 장면 번호 슬롯 우선 저장). /section 채팅의 추천(v6.17 ImageSuggestions)은 제거
-  - /section: 답변 규칙 검증 + 진행 시 AI 의미 검증(gpt-4o-mini, fail-open). 리뷰 카드 질문 전문+답변+인라인 수정
-  - /collage: 보드(4:5) 기본, 폰/PC는 사이즈 선택 → 비율 그대로 편집 → 무크롭 정확 해상도 내보내기
-  - /welcome: 단계 4개 순차 등장 + 제목 17px·설명 15px. /moment CTA "비전보드 이미지 만들기"
-- **알려진 이슈:** UNSPLASH_ACCESS_KEY 미설정 → /scenes 추천 블록 숨김(설계된 fallback). hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상)
+  - 질문 정의 단일 소스: lib/questions.ts phaseOneQuestions(example·helpQuestions 병합)+sceneStep — slots[] 이중 정의 제거. 라벨은 lib/slotLabels.ts(지금/원해/더 들여다보기/방향 키워드, 순서 [1,3,5,2])
+  - 상태 기반 내비: lib/sectionRoute.ts getNextIncompleteRoute(review CTA)·getStepRoute(ProcessBar 단계 탭이 작업 위치로) — '/scene/1' 하드코딩·step2·3 중복 /review 해소
+  - 섹션 완료 바텀시트(/scenes 저장 후): "{섹션} 완성! n/6" + 다음 미완성 섹션 연속 진행 CTA + 대시보드 보조
+  - 진입 축소: /welcome·/scene 허브 삭제(온보딩 → /dashboard 직행), /dashboard 온보딩 가드, 보드 CTA는 사진 있을 때만
+  - 용어 통일: 완성물=비전보드(이미지보드 제거), /scenes 표시명 '순간 N'·'사진 담기', 관계 섹션 일반화(연인·가족·친구, '남편' 제거), 온보딩 6영역 카드는 SECTIONS 파생
+  - finish 피날레: 완성 확정 시에만 finishedAt 기록, 이름 헤드라인+한 문장 인용+키워드 칩+배경화면 CTA (peak-end)
+  - /scenes: 순간 1·2·3 묘사에 어울리는 Unsplash 추천 행 (/api/image/keywords, imageKeywords 저장). /section: 규칙+AI 의미 검증(fail-open). /collage: 보드 기본+기기 사이즈 우선 플로우
+- **알려진 이슈:** ⚠️ v6.21 프로덕션 미배포(빌드·Playwright 30/30 PASS 완료, `npx vercel --prod`만 남음). UNSPLASH_ACCESS_KEY 미설정 → /scenes 추천 숨김(설계된 fallback). hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-07-07 (v6.21 — 전체 플로우 리뷰 개선: P0 혼란 제거 + P1 동선 최적화 + P2 콘텐츠 품질)
+- 전체 플로우 리뷰(Explore 3에이전트) → P0~P2 플랜 승인 후 일괄 구현: 질문 이중 정의(slots[]) 단일화, 죽은 코드 13개 삭제(Phase* 6종·ChatInput·helpContent·placeholders·onboarding-prompt·api/chat), 슬롯 라벨·6영역 부제·완성물 용어 단일 소스화, '남편' 하드코딩 일반화+토리 질문 주어 너/네 통일
+- 동선: review CTA·ProcessBar 상태 기반 라우팅(getNextIncompleteRoute/getStepRoute), /scenes 저장 후 완료 바텀시트로 다음 섹션 연속 진행, /welcome·/scene 허브 삭제(첫 질문까지 1화면 단축), /dashboard 온보딩 가드+보드 CTA 조건 노출, finish 마운트 부작용(finishedAt) 제거
+- 카피: '장면' 이중 의미 해소(순간 N·사진 담기), renderStory·굵게 안내·describe 프롬프트 공통부 단일화, scene 쿠션 여정 위치 안내, review 헤더 역할 명시, finish 완성 화면 peak-end 강화(한 문장 인용+키워드 칩)
+- 검증: build 통과 + .claude/verify-v621.mjs 30/30 PASS → 커밋 5c49363 (배포는 다음 세션)
 
 ### 2026-06-12 (v6.20 — Unsplash /scenes 이동 + 온보딩·웰컴·moment 폴리시)
 - Unsplash 추천을 /section 채팅에서 /scenes 장면별 추천으로 이동: /api/image/keywords(gpt-4o-mini)가 묘사 3개를 영어 검색어로 변환해 SectionData.imageKeywords에 저장, SceneImageSuggestions가 장면 1·2·3 행 렌더(키워드 없으면 imageQuery+page 분산 폴백)
