@@ -124,7 +124,12 @@ export interface BoardData {
   userName: string;
   startedAt: number;
   finishedAt?: number;
+  /** 스키마 버전 — 비멱등 마이그레이션의 1회 실행 게이트 (v7.0-r1). 없으면 0으로 간주 */
+  schemaVersion?: number;
+  /** 온보딩 진행 스텝 — v7.0-r1부터 /onboarding/[step] 1~3 (구 Act 0~5는 마이그레이션 v1이 리맵) */
   onboardingStep?: number;
+  /** 대시보드 첫 진입 6영역 안내 시트 표시 여부 — 구 온보딩 Act5 대체 (v7.0-r1) */
+  dashboardIntroSeen?: boolean;
   /** @deprecated v6.21 — /welcome 페이지 제거로 미사용. 기존 저장 데이터 호환용으로만 남김 */
   welcomeSeen?: boolean;
   oneSentence?: string;

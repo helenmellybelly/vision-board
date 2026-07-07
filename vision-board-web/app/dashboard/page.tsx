@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadBoard } from '@/lib/storage';
+import { loadBoard, saveDashboardIntroSeen } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionStatus } from '@/lib/types';
 import { getSectionRoute } from '@/lib/sectionRoute';
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
+import DashboardIntroSheet from '@/components/DashboardIntroSheet';
 
 const STATUS_LABEL: Record<SectionStatus, string> = {
   not_started: '시작 전',
@@ -27,6 +28,7 @@ const STATUS_STYLE: Record<SectionStatus, { bg: string; text: string }> = {
 export default function DashboardPage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
+  const [showIntro, setShowIntro] = useState(false);
 
   useEffect(() => {
     const b = loadBoard();
@@ -36,7 +38,14 @@ export default function DashboardPage() {
       return;
     }
     setBoard(b);
+    // 첫 진입 6영역 안내 (v7.0-r1) — 구 온보딩 Act5 대체, 한 번 닫으면 재노출 없음
+    if (!b.dashboardIntroSeen) setShowIntro(true);
   }, [router]);
+
+  function handleCloseIntro() {
+    saveDashboardIntroSeen();
+    setShowIntro(false);
+  }
 
   if (!board) return null;
 
@@ -186,6 +195,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {showIntro && <DashboardIntroSheet userName={userName} onClose={handleCloseIntro} />}
     </main>
   );
 }

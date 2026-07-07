@@ -2,6 +2,9 @@ import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, Slot
 
 const STORAGE_KEY = 'vision-board-data';
 
+// 현재 스키마 버전 — 비멱등 마이그레이션(migrateBoard)의 게이트. 올릴 때 migrateBoard에 체인 추가
+const SCHEMA_VERSION = 1;
+
 function createEmptySection(id: SectionId): SectionData {
   return {
     id,
@@ -27,6 +30,7 @@ function createEmptyBoard(): BoardData {
     onboardingDone: false,
     userName: '',
     startedAt: Date.now(),
+    schemaVersion: SCHEMA_VERSION,
   };
 }
 
@@ -38,6 +42,7 @@ export function loadBoard(): BoardData {
     const parsed = JSON.parse(raw) as BoardData;
     if (parsed.userName === undefined) parsed.userName = '';
     migrateCollage(parsed);
+    migrateBoard(parsed);
     return parsed;
   } catch {
     return createEmptyBoard();
@@ -80,6 +85,26 @@ function migrateCollage(board: BoardData): void {
   }
 
   if (dirty) saveBoard(board);
+}
+
+// 버전 게이트 마이그레이션 체인 (v7.0-r1) — migrateCollage(필드 가드형)와 달리
+// 재실행하면 결과가 달라지는 마이그레이션을 schemaVersion으로 정확히 1회만 수행한다
+function migrateBoard(board: BoardData): void {
+  const from = board.schemaVersion ?? 0;
+  if (from >= SCHEMA_VERSION) return;
+  if (from < 1) {
+    // v1: 온보딩 Act 0~5 → /onboarding/[step] 1~3 리맵 (Act0+1→스텝1, Act2→스텝2, Act3~5→스텝3)
+    if (!board.onboardingDone && board.onboardingStep !== undefined) {
+      const s = board.onboardingStep;
+      board.onboardingStep = s <= 1 ? 1 : s === 2 ? 2 : 3;
+    }
+    // 기존 완료 사용자는 구 Act5(6영역 안내)를 이미 봤다 — 대시보드 인트로 시트 재노출 방지
+    if (board.onboardingDone) {
+      board.dashboardIntroSeen = true;
+    }
+  }
+  board.schemaVersion = SCHEMA_VERSION;
+  saveBoard(board);
 }
 
 // 저장 성공 여부 반환 — base64 이미지 누적으로 localStorage 5MB 한도(QuotaExceededError)에 닿을 수 있다 (v6.17)
@@ -161,6 +186,13 @@ export function markOnboardingDone(): void {
   const board = loadBoard();
   board.onboardingDone = true;
   board.onboardingStep = undefined;
+  saveBoard(board);
+}
+
+// 대시보드 첫 진입 6영역 안내 시트 — 한 번 닫으면 다시 보이지 않는다 (v7.0-r1, 구 온보딩 Act5 대체)
+export function saveDashboardIntroSeen(): void {
+  const board = loadBoard();
+  board.dashboardIntroSeen = true;
   saveBoard(board);
 }
 
