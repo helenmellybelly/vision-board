@@ -2,7 +2,7 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.21 전체 플로우 리뷰 개선(질문 단일화·용어 통일·상태 기반 내비·완료 시트·welcome 제거) — **커밋 5c49363, 프로덕션 배포는 다음 세션** (`npx vercel --prod` 필요)
+- **상태:** v6.21 전체 플로우 리뷰 개선(질문 단일화·용어 통일·상태 기반 내비·완료 시트·welcome 제거) — **푸시·프로덕션 배포 완료** (커밋 5c49363, vercel inspect target=production + 4경로 200, /welcome 404 정상) + **UNSPLASH_ACCESS_KEY 등록 완료**(/scenes 추천 활성)
 - **주요 기능:**
   - 질문 정의 단일 소스: lib/questions.ts phaseOneQuestions(example·helpQuestions 병합)+sceneStep — slots[] 이중 정의 제거. 라벨은 lib/slotLabels.ts(지금/원해/더 들여다보기/방향 키워드, 순서 [1,3,5,2])
   - 상태 기반 내비: lib/sectionRoute.ts getNextIncompleteRoute(review CTA)·getStepRoute(ProcessBar 단계 탭이 작업 위치로) — '/scene/1' 하드코딩·step2·3 중복 /review 해소
@@ -11,10 +11,14 @@
   - 용어 통일: 완성물=비전보드(이미지보드 제거), /scenes 표시명 '순간 N'·'사진 담기', 관계 섹션 일반화(연인·가족·친구, '남편' 제거), 온보딩 6영역 카드는 SECTIONS 파생
   - finish 피날레: 완성 확정 시에만 finishedAt 기록, 이름 헤드라인+한 문장 인용+키워드 칩+배경화면 CTA (peak-end)
   - /scenes: 순간 1·2·3 묘사에 어울리는 Unsplash 추천 행 (/api/image/keywords, imageKeywords 저장). /section: 규칙+AI 의미 검증(fail-open). /collage: 보드 기본+기기 사이즈 우선 플로우
-- **알려진 이슈:** ⚠️ v6.21 프로덕션 미배포(빌드·Playwright 30/30 PASS 완료, `npx vercel --prod`만 남음). UNSPLASH_ACCESS_KEY 미설정 → /scenes 추천 숨김(설계된 fallback). hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상)
+- **알려진 이슈:** 루트 미추적 임시 파일 정리 대기(스크린샷·mp4·filter.txt, 코드 미참조 public/tori-alpha.webm·tori-fallback.mp4). hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-07-07 (v6.21 프로덕션 배포 + UNSPLASH_ACCESS_KEY 등록)
+- `npx vercel --prod` 배포 → vercel inspect target=production 확인, 4경로 200 + /welcome 404(삭제 정상)
+- UNSPLASH_ACCESS_KEY 발급(사용자)·등록: .env.local + Vercel production env(기존 빈 값 변수 rm 후 add 필요) → 재배포, 로컬·프로덕션 /api/unsplash 사진 반환 확인 — /scenes 순간별 추천 활성
 
 ### 2026-07-07 (v6.21 — 전체 플로우 리뷰 개선: P0 혼란 제거 + P1 동선 최적화 + P2 콘텐츠 품질)
 - 전체 플로우 리뷰(Explore 3에이전트) → P0~P2 플랜 승인 후 일괄 구현: 질문 이중 정의(slots[]) 단일화, 죽은 코드 13개 삭제(Phase* 6종·ChatInput·helpContent·placeholders·onboarding-prompt·api/chat), 슬롯 라벨·6영역 부제·완성물 용어 단일 소스화, '남편' 하드코딩 일반화+토리 질문 주어 너/네 통일
