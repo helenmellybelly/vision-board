@@ -83,8 +83,17 @@ export default function CollagePage() {
   const [showCoach, setShowCoach] = useState(false);
 
   useEffect(() => {
-    setBoard(loadBoard());
+    const b = loadBoard();
+    setBoard(b);
     if (!localStorage.getItem(COACH_KEY)) setShowCoach(true);
+    // 대시보드 퀵 버튼 딥링크 (v7.1-r3) — ?device=phone|desktop이면 choose 뷰를 건너뛴다.
+    // useSearchParams는 Suspense 바운더리를 요구하므로 클라이언트 마운트에서 직접 파싱
+    const device = new URLSearchParams(window.location.search).get('device');
+    if (device === 'phone' || device === 'desktop') {
+      setView(device);
+      setPicking(!b.collageDevicePresets?.[device]);
+      history.replaceState(null, '', window.location.pathname);
+    }
   }, []);
 
   function dismissCoach() {

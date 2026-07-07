@@ -2,6 +2,18 @@ import { BoardData, SectionData, SectionId } from './types';
 
 const SECTION_IDS: SectionId[] = [1, 2, 3, 4, 5, 6];
 
+// 슬롯(0~2)에 사진이 1장이라도 담겼는지 — 대시보드 미니보드 캡션·추천 카드가 공유 (v7.1-r3)
+export function sectionHasPhoto(sec: SectionData): boolean {
+  const uploaded = sec.uploadedImages ?? [];
+  const generated = sec.generatedImages ?? [];
+  return [0, 1, 2].some((i) => !!(uploaded[i] ?? generated[i]));
+}
+
+// 대시보드 추천 카드의 '다음 할 일' 섹션 (v7.1-r3) — 없으면 null(전부 완성)
+export function getRecommendedSection(board: BoardData): SectionId | null {
+  return SECTION_IDS.find((id) => board.sections[id].status !== 'completed') ?? null;
+}
+
 // 섹션 상태에 따라 이어서 할 단계로 라우팅 (대시보드·보드 공용)
 // v7.0-r2: /moment 흡수 — text_complete는 miniStory 유무로 /scene | /scenes 이분
 export function getSectionRoute(sectionData: SectionData, sectionId: SectionId): string {
