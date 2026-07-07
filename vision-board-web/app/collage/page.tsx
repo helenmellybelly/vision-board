@@ -216,7 +216,7 @@ export default function CollagePage() {
             aria-label={view === 'board' ? '비전보드로 돌아가기' : '한눈에 보기로 돌아가기'}
             className="p-2 -ml-2 text-[#6B7280] active:opacity-60"
           >
-            ‹
+            ←
           </button>
           <h1 className="text-title font-bold">{VIEW_TITLES[view]}</h1>
         </div>

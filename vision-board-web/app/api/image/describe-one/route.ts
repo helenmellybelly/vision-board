@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { IMAGE_DESCRIBE_CORE_RULES } from '@/lib/prompts';
 
 interface DescribeOneRequest {
   sceneIndex: 0 | 1 | 2;
@@ -13,17 +14,7 @@ interface DescribeOneRequest {
 const SYSTEM = `당신은 비전보드 이미지 묘사 전문가입니다.
 특정 장면 번호(1, 2, 3 중 하나)에 해당하는 이미지 묘사 하나만 새롭게 제안하세요.
 
-핵심 원칙:
-- 주어는 항상 "그 순간의 나" — "한 사람"이 아니라 사용자 자신이 그 장면 안에 있어야 함
-- 평범한 일상이 아닌 의미 있는 피크 모먼트를 포착
-- 감정·추상 표현 금지 (예: "행복한", "여유로운 느낌" ❌) — 몸의 상태·표정·행동으로만 표현
-- 감각 디테일 필수: 빛의 방향과 질, 공간의 온도감, 사물의 질감 중 1가지 이상 포함
-- 묘사: 20-50자
-
-구도 규칙:
-- 장면1: 와이드샷 — 공간 전체가 보이는 환경 중심, 나는 그 안에 작게 위치
-- 장면2: 미디엄샷 — 상반신~전신, 자연스러운 동작이 보임
-- 장면3: 클로즈업 — 손·사물·공간의 특정 디테일 중심
+${IMAGE_DESCRIBE_CORE_RULES}
 
 기존 다른 장면들과 겹치지 않게 새로운 각도·소재·구도를 사용하세요.
 Output ONLY a single string (no JSON array, no quotes, just the description text).`;

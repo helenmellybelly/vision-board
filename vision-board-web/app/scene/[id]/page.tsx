@@ -5,16 +5,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
 import { loadBoard, saveSectionScene } from '@/lib/storage';
 import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
+import { SLOT_KEY_LABELS } from '@/lib/slotLabels';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 import InlineInput from '@/components/InlineInput';
-
-const SLOT_LABELS: Record<keyof ExtractedSlots, string> = {
-  current: '지금',
-  want: '원해',
-  feeling: '더 들여다보기',
-  keyword: '방향 키워드',
-};
 
 export default function ScenePage() {
   const router = useRouter();
@@ -57,18 +51,17 @@ export default function ScenePage() {
 
   if (!section || !board) return null;
 
-  const sceneSlot = section.slots.find((s) => s.phase === 3);
-  const examples = sceneSlot?.example ? sceneSlot.example.split(' / ') : [];
+  const sceneStep = section.sceneStep;
   const keyword = slots.keyword || '';
   const cushionText = keyword
-    ? `이제 미래의 하루를 그려볼 거야. '${keyword}' 상태가 이루어진 3년 뒤의 하루야. 이 하루가 비전보드의 핵심이 될 거야.`
-    : '이제 미래의 하루를 그려볼 거야. 지금까지 말해준 것들이 이루어진 3년 뒤의 하루야.';
+    ? `질문은 끝났어. 이제 '${keyword}' 상태가 이루어진 3년 뒤의 하루를 그려볼 거야. 이 하루가 비전보드의 핵심이 될 거야.`
+    : '질문은 끝났어. 이제 지금까지 말해준 것들이 이루어진 3년 뒤의 하루를 그려볼 거야.';
 
   const sceneQuestion = keyword
     ? '그날 어디서 뭘 하고 있어? 느낌과 상황을 구체적으로 써봐.'
-    : (sceneSlot?.mainQuestion ?? '그 하루를 구체적으로 써봐.');
+    : sceneStep.question;
 
-  const slotEntries = (Object.keys(SLOT_LABELS) as Array<keyof ExtractedSlots>).filter(
+  const slotEntries = (Object.keys(SLOT_KEY_LABELS) as Array<keyof ExtractedSlots>).filter(
     (k) => slots[k]
   );
 
@@ -83,7 +76,7 @@ export default function ScenePage() {
             aria-label="대화 단계로 돌아가기"
             className="text-[#6E6962] text-title leading-none mr-1 active:opacity-60"
           >
-            ‹
+            ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
           <span className="font-semibold text-body">{section.title.split(' — ')[0]} · 미래의 하루</span>
@@ -112,7 +105,7 @@ export default function ScenePage() {
                         color: key === 'keyword' ? section.color : '#9CA3AF',
                       }}
                     >
-                      {SLOT_LABELS[key]}
+                      {SLOT_KEY_LABELS[key]}
                     </span>
                     <span
                       className="text-body leading-relaxed"
@@ -133,27 +126,12 @@ export default function ScenePage() {
         {/* 질문 버블 — keyword 기반 동적 생성 */}
         <ChatBubble role="assistant" content={sceneQuestion} />
 
-        {/* 예시 답변 패널 */}
-        {examples.length > 0 && !submitted && (
-          <div className="mb-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3">
-            <p className="text-micro font-semibold text-[#6E6962] uppercase tracking-wide mb-2">
-              이런 식으로 써봐
-            </p>
-            <div className="space-y-1">
-              {examples.map((ex, i) => (
-                <p key={i} className="text-caption text-[#6B7280] leading-relaxed before:content-['○'] before:mr-1.5 before:text-[#C9C5BE]">
-                  {ex.trim()}
-                </p>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 입력창 */}
-        {!submitted && sceneSlot && (
+        {/* 입력창 — 예시는 InlineInput 내장 패널로 (v6.21 중복 구현 제거, /section과 동일 패턴) */}
+        {!submitted && (
           <InlineInput
             onSubmit={handleSubmit}
-            placeholder={sceneSlot.placeholder || '구체적일수록 좋아. 장소, 행동, 감각까지.'}
+            placeholder={sceneStep.placeholder || '구체적일수록 좋아. 장소, 행동, 감각까지.'}
+            example={sceneStep.example}
             hint="여러 순간이어도 좋아. 느낌, 장소, 상황 모두 담아봐."
           />
         )}

@@ -20,26 +20,22 @@ export interface ExtractedSlots {
   feeling?: string;   // ⑤ 이뤄졌을 때 기분
 }
 
-export interface SubQuestion {
-  id: number;
-  text: string;
-}
-
-export interface Slot {
-  id: SlotId;
-  mainQuestion: string;
-  placeholder: string;
-  example: string;
-  helpQuestions: SubQuestion[];
-  phase: 1 | 3 | 4;
-}
-
 export interface SectionQuestion {
   key: keyof ExtractedSlots;
   label: string;
   cushionText: string;
   questionText: string;
   placeholder: string;
+  example: string;
+  helpQuestions: string[];
+}
+
+// 미래의 하루(/scene) 단계 질문 정의 (v6.21 — 과거 phase-3 슬롯에서 이관)
+export interface SceneStep {
+  question: string;
+  placeholder: string;
+  example: string;
+  helpQuestions: string[];
 }
 
 export interface Section {
@@ -49,7 +45,7 @@ export interface Section {
   subtitle: string;
   color: string;
   lightColor: string;
-  slots: Slot[];
+  sceneStep: SceneStep;
   imageHints: string[];
   imageHintIntro: string;
   introText: string;
@@ -129,6 +125,7 @@ export interface BoardData {
   startedAt: number;
   finishedAt?: number;
   onboardingStep?: number;
+  /** @deprecated v6.21 — /welcome 페이지 제거로 미사용. 기존 저장 데이터 호환용으로만 남김 */
   welcomeSeen?: boolean;
   oneSentence?: string;
   futureDayStory?: string;
@@ -144,5 +141,3 @@ export interface BoardData {
   // 기기별 선택 사이즈 — lib/wallpaper.ts WALLPAPER_PRESETS의 id (v6.19 사이즈 우선 플로우)
   collageDevicePresets?: { phone?: string; desktop?: string };
 }
-
-export const PHASE1_SLOTS: SlotId[] = [1, 3, 5, 2];

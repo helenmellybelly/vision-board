@@ -19,7 +19,6 @@ export default function FinishPage() {
   useEffect(() => {
     const b = loadBoard();
     setBoard(b);
-    if (!b.finishedAt) markBoardFinished();
     if (b.oneSentence) setSentenceInput(b.oneSentence);
     if (b.futureDayStory) {
       setStory(b.futureDayStory);
@@ -206,7 +205,11 @@ export default function FinishPage() {
               다시 써줘
             </button>
             <button
-              onClick={() => setPhase('complete')}
+              onClick={() => {
+                // 완성을 실제로 확정하는 시점에만 기록 — 페이지 진입만으로 finishedAt이 찍히지 않게 (v6.21)
+                markBoardFinished();
+                setPhase('complete');
+              }}
               className="flex-1 py-3 rounded-xl text-body font-semibold bg-[#1C1B19] text-white"
             >
               비전보드 완성 →
@@ -215,27 +218,59 @@ export default function FinishPage() {
         </div>
       )}
 
-      {/* 완성물 */}
+      {/* 완성물 — 여정의 피날레: 사용자가 직접 쓴 한 문장이 주인공 (v6.21 peak-end) */}
       {phase === 'complete' && (
         <div className="flex-1 flex flex-col items-center justify-center space-y-8 text-center">
           <div className="space-y-3">
             <img src="/tori-profile-bust.png" alt="토리" className="w-16 h-16 rounded-full object-cover mx-auto" />
-            <h1 className="text-display font-bold">완성됐어.</h1>
-            <p className="text-[#6B7280] leading-relaxed text-body">
-              이미지보드 + 미래의 하루 이야기.<br />원하는 삶을 이미지로도 보고 글로도 읽는 거야.
-            </p>
+            <h1 className="text-display font-bold">
+              {board.userName ? `${board.userName}의 비전보드가 완성됐어 🐿️` : '비전보드가 완성됐어 🐿️'}
+            </h1>
           </div>
+
+          {(board.oneSentence || sentenceInput.trim()) && (
+            <blockquote className="w-full rounded-2xl bg-[#F5F5F3] px-6 py-5">
+              <p className="text-heading font-semibold leading-relaxed text-[#1C1B19]">
+                &ldquo;{board.oneSentence || sentenceInput.trim()}&rdquo;
+              </p>
+            </blockquote>
+          )}
+
+          {keywords.length > 0 && (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {keywords.map(({ section, kw }) => (
+                <span
+                  key={section.id}
+                  className="px-3 py-1.5 rounded-full text-caption font-semibold"
+                  style={{ backgroundColor: section.lightColor, color: section.color }}
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <p className="text-[#6B7280] leading-relaxed text-body">
+            비전보드 + 미래의 하루 이야기.<br />원하는 삶을 이미지로도 보고 글로도 읽는 거야.
+          </p>
+
           <div className="w-full space-y-2.5">
             <button
               onClick={() => router.push('/board')}
               className="w-full py-4 rounded-2xl text-heading font-semibold text-white"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              비전보드 보기
+              내 비전보드 보러 가기 →
+            </button>
+            <button
+              onClick={() => router.push('/collage')}
+              className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold"
+            >
+              폰 배경화면으로 만들기
             </button>
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold"
+              className="w-full py-2 text-caption text-[#6E6962]"
             >
               대시보드로
             </button>

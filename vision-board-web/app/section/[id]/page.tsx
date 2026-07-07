@@ -14,7 +14,6 @@ import { Fragment } from 'react';
 type Phase = 'questions' | 'review';
 
 const Q_KEYS: Array<keyof ExtractedSlots> = ['current', 'want', 'feeling', 'keyword'];
-const KEY_TO_SLOT_ID: Record<string, number> = { current: 1, want: 3, feeling: 5, keyword: 2 };
 
 type MsgItem =
   | { type: 'lumi'; text: string }
@@ -131,7 +130,7 @@ export default function SectionChatPage() {
   }
 
   function exampleFor(key: keyof ExtractedSlots): string {
-    return section?.slots.find((s) => s.id === KEY_TO_SLOT_ID[key])?.example ?? '';
+    return section?.phaseOneQuestions.find((q) => q.key === key)?.example ?? '';
   }
 
   function openFirstInvalidEdit(keys: AnswerKey[]) {
@@ -201,13 +200,8 @@ export default function SectionChatPage() {
   if (!section || !board) return null;
 
   const currentQ = phase === 'questions' && qIdx < 4 ? section.phaseOneQuestions[qIdx] : null;
-  const currentSlotId = currentQ ? KEY_TO_SLOT_ID[currentQ.key] : null;
-  const helpQs = currentSlotId
-    ? (section.slots.find((s) => s.id === currentSlotId)?.helpQuestions ?? [])
-    : [];
-  const currentExample = currentSlotId
-    ? (section.slots.find((s) => s.id === currentSlotId)?.example ?? '')
-    : '';
+  const helpQs = currentQ?.helpQuestions ?? [];
+  const currentExample = currentQ?.example ?? '';
 
   const msgs: MsgItem[] = [
     { type: 'lumi', text: section.introText },
@@ -459,9 +453,9 @@ export default function SectionChatPage() {
                 이런 각도로 생각해봐
               </p>
               <div className="space-y-1.5">
-                {helpQs.map((hq) => (
-                  <p key={hq.id} className="text-caption text-[#6B7280] leading-relaxed">
-                    ○ {hq.text}
+                {helpQs.map((hq, i) => (
+                  <p key={i} className="text-caption text-[#6B7280] leading-relaxed">
+                    ○ {hq}
                   </p>
                 ))}
               </div>

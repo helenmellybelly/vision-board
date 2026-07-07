@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getSection } from '@/lib/questions';
+import { getSection, SECTIONS } from '@/lib/questions';
+import { getSectionRoute } from '@/lib/sectionRoute';
 import {
   loadBoard,
   markSectionComplete,
@@ -59,6 +60,9 @@ export default function ScenesPage() {
   ];
 
   const [saving, setSaving] = useState(false);
+  // 저장 후 다음 행동을 잇는 완료 시트 (v6.21) — 대시보드 왕복 없이 다음 섹션으로
+  const [showComplete, setShowComplete] = useState(false);
+  const completeTrapRef = useFocusTrap<HTMLDivElement>(showComplete, () => setShowComplete(false));
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -223,7 +227,9 @@ export default function ScenesPage() {
     }
     saveUploadedImages(sectionId, uploadedImages);
     markSectionComplete(sectionId);
-    router.push('/dashboard');
+    setBoard(loadBoard());
+    setSaving(false);
+    setShowComplete(true);
   }
 
   function getSlotUrl(i: number): string | null {
@@ -304,7 +310,7 @@ export default function ScenesPage() {
             ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-body">{sectionName} · 이미지</span>
+          <span className="font-semibold text-body">{sectionName} · 사진 담기</span>
         </div>
         <button onClick={() => router.push('/dashboard')} className="text-caption text-[#6E6962] py-1">
           대시보드로
@@ -315,7 +321,7 @@ export default function ScenesPage() {
 
         {/* Descriptions section */}
         <div className="mb-2">
-          <p className="text-body font-semibold text-[#1C1B19] mb-1">장면을 만들어 볼까?</p>
+          <p className="text-body font-semibold text-[#1C1B19] mb-1">네 하루에서 순간 3개를 골라봤어</p>
           <p className="text-caption text-[#6E6962]">탭해서 직접 고칠 수 있어</p>
         </div>
 
@@ -363,7 +369,7 @@ export default function ScenesPage() {
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-micro font-semibold" style={{ color: section.color }}>
-                    장면 {i + 1}
+                    순간 {i + 1}
                   </span>
                   {editingIdx !== i && (
                     <button
@@ -427,8 +433,8 @@ export default function ScenesPage() {
 
         {/* Images section */}
         <div className="mb-3">
-          <p className="text-body font-semibold text-[#1C1B19] mb-0.5">나의 비전보드 이미지 찾기</p>
-          <p className="text-caption text-[#6E6962]">직접 올리거나 URL로 불러올 수 있어.</p>
+          <p className="text-body font-semibold text-[#1C1B19] mb-0.5">나의 비전보드 사진 찾기</p>
+          <p className="text-caption text-[#6E6962]">사진 3장을 담으면 이 영역이 완성돼. 직접 올리거나 URL로 불러올 수 있어.</p>
         </div>
 
         <div className="mb-3">
@@ -482,6 +488,59 @@ export default function ScenesPage() {
         <div ref={bottomRef} />
       </div>
 
+      {/* 완료 시트 — 섹션 간 체크인 + 다음 섹션 연속 진행 (v6.21) */}
+      {showComplete && (() => {
+        const completedCount = SECTIONS.filter(
+          (s) => board.sections[s.id].status === 'completed'
+        ).length;
+        // 현재 섹션 다음부터 순환 탐색 — 미완성 첫 섹션
+        const nextSection = [...SECTIONS.slice(sectionId), ...SECTIONS.slice(0, sectionId - 1)].find(
+          (s) => board.sections[s.id].status !== 'completed'
+        );
+        return (
+          <div
+            className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center"
+            onClick={() => setShowComplete(false)}
+          >
+            <div
+              ref={completeTrapRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="섹션 완성"
+              className="w-full max-w-md bg-white rounded-t-3xl px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slideUp"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-title font-bold mb-1">🐿️ {sectionName} 완성! {completedCount}/6이야.</p>
+              <p className="text-body text-[#6B7280] leading-relaxed mb-5">
+                잠깐 숨 돌려도 좋고, 흐름 탔으면 이어가자.
+              </p>
+              {nextSection ? (
+                <button
+                  onClick={() => router.push(getSectionRoute(board.sections[nextSection.id], nextSection.id))}
+                  className="w-full py-3.5 rounded-xl text-body font-semibold text-white active:opacity-80"
+                  style={{ backgroundColor: nextSection.color }}
+                >
+                  다음: {nextSection.shortTitle ?? nextSection.title.split(' — ')[0]} 이어가기 →
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push('/finish')}
+                  className="w-full py-3.5 rounded-xl text-body font-semibold text-white bg-[#1C1B19] active:opacity-80"
+                >
+                  다 채웠다! 비전보드 완성하러 가기 →
+                </button>
+              )}
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="w-full mt-3 py-2 text-caption text-[#6E6962] text-center active:opacity-70"
+              >
+                대시보드로
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {lightboxSrc && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
@@ -497,7 +556,7 @@ export default function ScenesPage() {
           >
             <Image
               src={lightboxSrc}
-              alt="확대된 장면 이미지"
+              alt="확대된 사진"
               fill
               className="object-cover"
               unoptimized

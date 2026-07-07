@@ -29,8 +29,14 @@ export default function DashboardPage() {
   const [board, setBoard] = useState<BoardData | null>(null);
 
   useEffect(() => {
-    setBoard(loadBoard());
-  }, []);
+    const b = loadBoard();
+    // 온보딩을 건너뛴 직접 URL 진입 가드 (v6.21) — 허브는 온보딩 완료 후에만
+    if (!b.onboardingDone) {
+      router.replace('/');
+      return;
+    }
+    setBoard(b);
+  }, [router]);
 
   if (!board) return null;
 
@@ -38,6 +44,13 @@ export default function DashboardPage() {
   const textCompleteCount = statuses.filter((s) => s === 'text_complete' || s === 'completed').length;
   const allTextDone = textCompleteCount === 6;
   const userName = board.userName;
+  // 보드 CTA는 담긴 사진이 1장이라도 있을 때만 — 빈 보드로 가는 선택지를 치워 주 동선에 집중 (v6.21)
+  const hasAnyImage = SECTIONS.some((section) => {
+    const sec = board.sections[section.id];
+    const uploaded = sec.uploadedImages ?? [];
+    const generated = sec.generatedImages ?? [];
+    return [0, 1, 2].some((i) => !!(uploaded[i] ?? generated[i]));
+  });
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full pb-10">
       <ProcessBar board={board} />
@@ -162,12 +175,14 @@ export default function DashboardPage() {
               다 됐다, 이제 미래의 하루를 그리러 가자 →
             </button>
           )}
-          <button
-            onClick={() => router.push('/board')}
-            className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold active:opacity-70 transition-opacity"
-          >
-            나의 비전보드 보러가기 →
-          </button>
+          {hasAnyImage && (
+            <button
+              onClick={() => router.push('/board')}
+              className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold active:opacity-70 transition-opacity"
+            >
+              나의 비전보드 보러가기 →
+            </button>
+          )}
         </div>
       </div>
 

@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { BookOpen, Pencil } from 'lucide-react';
 import useFocusTrap from './useFocusTrap';
 
+// 스토리 편집 안내 문구 — 편집 UI가 있는 곳(moment 포함)에서 공용
+export const BOLD_EDIT_HINT = '**굵게** 표시는 그대로 두면 강조로 보여.';
+
 interface StoryModalProps {
   story: string;
   color: string;
@@ -18,7 +21,8 @@ interface StoryModalProps {
   onSave?: (next: string) => void;
 }
 
-function renderStory(text: string) {
+// **굵게** 마크다운 볼드 렌더러 — moment 페이지와 공용 (v6.21 중복 제거)
+export function renderStory(text: string) {
   const lines = text.split('\n');
   return lines.map((line, li) => {
     const parts = line.split(/\*\*(.*?)\*\*/g);
@@ -121,7 +125,7 @@ export default function StoryModal({
                     autoFocus
                     className="w-full text-body leading-relaxed rounded-xl border border-[#E5E3DF] px-3 py-2.5 resize-none focus:outline-none focus:border-[#C9C5BE]"
                   />
-                  <p className="text-micro text-[#C9C5BE] mt-1">**굵게** 표시는 그대로 두면 강조로 보여.</p>
+                  <p className="text-micro text-[#C9C5BE] mt-1">{BOLD_EDIT_HINT}</p>
                 </>
               ) : (
                 <p

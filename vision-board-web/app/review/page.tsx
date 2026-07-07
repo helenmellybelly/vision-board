@@ -3,18 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard } from '@/lib/storage';
+import { getNextIncompleteRoute, getNextIncompleteCtaLabel } from '@/lib/sectionRoute';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, SlotId } from '@/lib/types';
+import { SLOT_LABELS, SLOT_ORDER } from '@/lib/slotLabels';
 import ProcessBar from '@/components/ProcessBar';
-
-const SLOT_LABELS: Record<number, string> = {
-  1: '지금의 나',
-  2: '키워드',
-  3: '원해',
-  5: '이뤄졌을때',
-};
-
-const SLOT_ORDER: SlotId[] = [1, 2, 3, 5];
 
 function AISummaryCard({ board }: { board: BoardData }) {
   const [summary, setSummary] = useState<string | null>(null);
@@ -115,7 +108,7 @@ export default function ReviewPage() {
           수고했어. 쓰다 보면 보이는 게 있어. 🐿️
         </h1>
         <p className="text-[#6B7280] text-body leading-relaxed">
-          네가 쓴 말들로, 토리가 네 이야기를 정리해봤어.
+          6가지 영역에서 네가 쓴 말들을 한자리에 모았어. 이제 이걸로 하루를 그릴 차례야.
         </p>
       </div>
 
@@ -178,22 +171,19 @@ export default function ReviewPage() {
       <div className="mx-6 mb-6 rounded-2xl bg-[#F9F8F6] p-5 border border-[#E5E3DF]">
         <p className="text-caption font-semibold text-[#6E6962] tracking-widest mb-3">NEXT STEP</p>
         <h3 className="text-heading font-bold mb-2 leading-snug">이제 미래의 하루를 그릴 거야</h3>
-        <p className="text-body text-[#6B7280] leading-relaxed mb-2">
-          지금까지 쓴 단어들이 이루어진 3년 뒤의 하루를 구체적으로 그려보는 단계야.
-        </p>
         <p className="text-body text-[#6B7280] leading-relaxed">
-          머릿속에만 있던 것들이 이미지로 선명해지면, 원하는 것을 더 강하게 느낄 수 있어.
-          각 섹션마다 그 하루의 순간 3가지를 쓰고, 거기에 어울리는 사진을 담게 돼.
+          지금까지 쓴 단어들이 이루어진 3년 뒤의 하루를 구체적으로 그려보는 단계야.
+          각 영역마다 그 하루의 순간 3가지를 쓰고, 어울리는 사진을 담으면 비전보드가 완성돼.
         </p>
       </div>
 
       {/* 하단 CTA */}
       <div className="px-6 space-y-3">
         <button
-          onClick={() => router.push('/scene/1')}
+          onClick={() => router.push(getNextIncompleteRoute(board))}
           className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity"
         >
-          미래의 하루 그리기 시작 →
+          {getNextIncompleteCtaLabel(getNextIncompleteRoute(board))}
         </button>
         <button
           onClick={() => router.push('/dashboard')}

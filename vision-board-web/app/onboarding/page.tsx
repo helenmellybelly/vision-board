@@ -8,7 +8,7 @@ import {
   saveOnboardingStep,
   loadBoard,
 } from '@/lib/storage';
-import { SECTION_COLORS } from '@/lib/colors';
+import { SECTIONS } from '@/lib/questions';
 import { josa } from '@/lib/josa';
 type Act = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -142,14 +142,12 @@ function CompareAutoCard() {
   );
 }
 
-const SIX_AREAS = [
-  { label: '나', desc: '감정·성장·정체성', color: SECTION_COLORS[0] },
-  { label: '건강', desc: '몸·마음·루틴', color: SECTION_COLORS[1] },
-  { label: '관계', desc: '사랑·우정·연결', color: SECTION_COLORS[2] },
-  { label: '일', desc: '일·배움·성취', color: SECTION_COLORS[3] },
-  { label: '돈', desc: '소비·저축·가치', color: SECTION_COLORS[4] },
-  { label: '공간', desc: '환경·물건·분위기', color: SECTION_COLORS[5] },
-];
+// 6영역 카드 — 명칭·부제의 단일 소스는 lib/questions.ts SECTIONS (v6.21 용어 통일)
+const SIX_AREAS = SECTIONS.map((s) => ({
+  label: s.title.split(' — ')[0],
+  desc: s.title.split(' — ')[1] ?? s.subtitle,
+  color: s.color,
+}));
 
 const TOTAL_ACTS = 5; // Act 1~5 진행 점 표시
 
@@ -208,7 +206,8 @@ export default function OnboardingPage() {
 
   function handleFinish() {
     markOnboardingDone();
-    router.replace('/welcome');
+    // /welcome 제거 (v6.21) — 4단계 안내는 대시보드의 '전체 과정 보기' 모달이 담당
+    router.replace('/dashboard');
   }
 
   function goToStart() {

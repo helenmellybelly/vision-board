@@ -164,12 +164,6 @@ export function markOnboardingDone(): void {
   saveBoard(board);
 }
 
-export function markWelcomeSeen(): void {
-  const board = loadBoard();
-  board.welcomeSeen = true;
-  saveBoard(board);
-}
-
 export function markBoardFinished(): void {
   const board = loadBoard();
   board.finishedAt = Date.now();

@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { BoardData } from '@/lib/types';
+import { getStepRoute } from '@/lib/sectionRoute';
 
 interface Props {
   board: BoardData;
@@ -10,12 +11,13 @@ interface Props {
 type StepId = 1 | 2 | 3 | 4 | 5;
 
 // 라벨은 시스템 구조가 아니라 사용자의 행동 언어로 — v6.15 리네이밍 (구: 대화·하루·스토리·이미지·마무리)
-const STEPS: { id: StepId; short: string; route: string }[] = [
-  { id: 1, short: '꿈 꺼내기', route: '/dashboard' },
-  { id: 2, short: '하루 그리기', route: '/review' },
-  { id: 3, short: '미래 스토리', route: '/review' },
-  { id: 4, short: '사진 담기', route: '/board' },
-  { id: 5, short: '완성', route: '/finish' },
+// 목적지는 정적 라우트가 아니라 getStepRoute()가 진행 상태 기반으로 결정 (v6.21)
+const STEPS: { id: StepId; short: string }[] = [
+  { id: 1, short: '꿈 꺼내기' },
+  { id: 2, short: '하루 그리기' },
+  { id: 3, short: '미래 스토리' },
+  { id: 4, short: '사진 담기' },
+  { id: 5, short: '완성' },
 ];
 
 // 현재 경로가 가리키는 단계 (허브 페이지는 null → 상태 기반 fallback)
@@ -75,7 +77,7 @@ export default function ProcessBar({ board }: Props) {
           return (
             <div key={step.id} className="flex items-center flex-1 min-w-0">
               <button
-                onClick={() => !isFuture && router.push(step.route)}
+                onClick={() => !isFuture && router.push(getStepRoute(board, step.id))}
                 disabled={isFuture}
                 className="flex flex-col items-center gap-0.5 flex-shrink-0 transition-opacity active:opacity-60"
                 style={{ cursor: isFuture ? 'default' : 'pointer' }}

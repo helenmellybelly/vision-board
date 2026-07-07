@@ -121,14 +121,14 @@ export default function SceneImageSuggestions({ sectionId, keywords, fallbackQue
     <div className="mb-4 animate-fadeIn">
       <div className="mb-2">
         <p className="text-body font-semibold text-[#1C1B19] mb-0.5">이런 이미지들도 있어 🌰</p>
-        <p className="text-caption text-[#6E6962]">장면에 어울리는 사진이야. 탭하면 비전보드에 담아둘게.</p>
+        <p className="text-caption text-[#6E6962]">순간에 어울리는 사진이야. 탭하면 비전보드에 담아둘게.</p>
       </div>
       <div className="space-y-2.5">
         {scenePhotos.map((photos, i) =>
           photos.length === 0 ? null : (
             <div key={i}>
               <p className="text-micro font-semibold mb-1" style={{ color }}>
-                장면 {i + 1}
+                순간 {i + 1}
               </p>
               <div className="flex gap-2 overflow-x-auto scroll-hide pb-1 -mx-1 px-1">
                 {photos.map((photo) => {
@@ -139,7 +139,7 @@ export default function SceneImageSuggestions({ sectionId, keywords, fallbackQue
                       onClick={() => handlePick(i, photo)}
                       disabled={state !== 'idle'}
                       className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border border-[#E5E3DF] active:opacity-80"
-                      aria-label={photo.alt || `장면 ${i + 1} 추천 이미지 담기`}
+                      aria-label={photo.alt || `순간 ${i + 1} 추천 이미지 담기`}
                     >
                       <img src={photo.thumb} alt={photo.alt} loading="lazy" className="w-full h-full object-cover" />
                       {state !== 'idle' && (

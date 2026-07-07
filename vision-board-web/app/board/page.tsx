@@ -86,7 +86,7 @@ export default function BoardPage() {
             onClick={() => router.push('/dashboard')}
             className="p-2 -ml-2 text-[#6B7280] active:opacity-60"
           >
-            ‹
+            ←
           </button>
           <h1 className="text-title font-bold">내 비전보드</h1>
           <span className="text-body text-[#6E6962] ml-auto">{completedCount}/6</span>
@@ -196,7 +196,6 @@ export default function BoardPage() {
       <div className="px-4 md:px-6 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex-shrink-0 animate-fadeIn">
         <button
           onClick={handleCollageClick}
-          title={collageImageCount === 0 ? '비전보드 사진을 1개 이상 올리면 활성화돼요' : undefined}
           className={
             collageImageCount > 0
               ? 'w-full bg-[#1C1B19] text-white py-3 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity'

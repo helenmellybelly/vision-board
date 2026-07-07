@@ -11,6 +11,7 @@ import {
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
+import { renderStory, BOLD_EDIT_HINT } from '@/components/StoryModal';
 
 type Step = 'situation' | 'story';
 const STEP_ORDER: Step[] = ['situation', 'story'];
@@ -18,23 +19,6 @@ const STEP_LABELS: Record<Step, string> = {
   situation: '① 순간',
   story: '② 스토리',
 };
-
-function renderStory(text: string) {
-  const lines = text.split('\n');
-  return lines.map((line, li) => {
-    const parts = line.split(/\*\*(.*?)\*\*/g);
-    return (
-      <span key={li}>
-        {parts.map((part, i) =>
-          i % 2 === 1
-            ? <strong key={i} className="font-semibold text-[#1C1B19]">{part}</strong>
-            : part
-        )}
-        {li < lines.length - 1 && <br />}
-      </span>
-    );
-  });
-}
 
 export default function MomentPage() {
   const router = useRouter();
@@ -264,7 +248,7 @@ export default function MomentPage() {
                         autoFocus
                         className="w-full text-body leading-relaxed rounded-xl border border-[#E5E3DF] bg-white px-3 py-2.5 resize-none focus:outline-none focus:border-[#C9C5BE]"
                       />
-                      <p className="text-micro text-[#C9C5BE] mt-1 mb-2">**굵게** 표시는 그대로 두면 강조로 보여.</p>
+                      <p className="text-micro text-[#C9C5BE] mt-1 mb-2">{BOLD_EDIT_HINT}</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
