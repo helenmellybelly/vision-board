@@ -17,7 +17,8 @@ import {
 import { compressImage } from '@/lib/imageUtils';
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
-import SceneImageSuggestions from '@/components/SceneImageSuggestions';
+import CuratedGallery from '@/components/CuratedGallery';
+import UnsplashSearch from '@/components/UnsplashSearch';
 import StoryModal from '@/components/StoryModal';
 import useFocusTrap from '@/components/useFocusTrap';
 
@@ -27,6 +28,9 @@ interface GeneratedImage {
   index: number;
 }
 
+// 사진 담기 (v7.0-r4 재배치) — ① 내 사진 올리기(1순위) ② 큐레이션 샘플 갤러리
+// ③ '더 찾아보기'(AI 힌트 + Unsplash 검색 + URL, 접힘). AI 묘사는 필수 스텝 → 선택형 힌트로 강등,
+// 펼칠 때만 lazy 호출(온마운트 자동 호출 제거 — API 비용↓)
 export default function ScenesPage() {
   const router = useRouter();
   const params = useParams();
@@ -35,16 +39,13 @@ export default function ScenesPage() {
 
   const [board, setBoard] = useState(loadBoard());
 
-  // descriptions
-  const [descriptions, setDescriptions] = useState<string[]>(['', '', '']);
+  // AI 힌트 (구 '순간 1,2,3' 묘사) — 읽기 전용, 펼칠 때만 로드
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [descriptions, setDescriptions] = useState<string[]>([]);
   const [describeLoading, setDescribeLoading] = useState(false);
   const [describeError, setDescribeError] = useState(false);
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
-  const [editingText, setEditingText] = useState('');
-  const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
-
-  // 장면별 Unsplash 검색어 — 묘사가 만들어지거나 바뀔 때 다시 계산 (v6.20)
   const [imageKeywords, setImageKeywords] = useState<string[]>([]);
+  const [requestedQuery, setRequestedQuery] = useState('');
 
   // images — 보드·콜라주와 동일하게 섹션당 3장으로 제한
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
@@ -52,6 +53,7 @@ export default function ScenesPage() {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const lightboxTrapRef = useFocusTrap<HTMLDivElement>(!!lightboxSrc, () => setLightboxSrc(null));
   const [urlInput, setUrlInput] = useState('');
+  const [slotNotice, setSlotNotice] = useState('');
 
   const uploadRefs = [
     useRef<HTMLInputElement>(null),
@@ -64,22 +66,17 @@ export default function ScenesPage() {
   const [showComplete, setShowComplete] = useState(false);
   const completeTrapRef = useFocusTrap<HTMLDivElement>(showComplete, () => setShowComplete(false));
 
-  const bottomRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const b = loadBoard();
     setBoard(b);
     const sec = b.sections[sectionId];
 
+    // 저장된 힌트가 있으면 상태만 복원 — API 호출은 '더 찾아보기'를 펼칠 때만
     if (sec.imageDescriptions && sec.imageDescriptions.length > 0) {
       setDescriptions(sec.imageDescriptions);
-      if (sec.imageKeywords && sec.imageKeywords.length > 0) {
-        setImageKeywords(sec.imageKeywords);
-      } else {
-        fetchKeywords(sec.imageDescriptions);
-      }
-    } else {
-      fetchDescriptions(b);
+    }
+    if (sec.imageKeywords && sec.imageKeywords.length > 0) {
+      setImageKeywords(sec.imageKeywords);
     }
 
     if (sec.generatedImages && sec.generatedImages.length > 0) {
@@ -119,8 +116,8 @@ export default function ScenesPage() {
     }
   }
 
-  async function fetchDescriptions(boardData = board) {
-    const sec = boardData.sections[sectionId];
+  async function fetchDescriptions() {
+    const sec = loadBoard().sections[sectionId];
     setDescribeLoading(true);
     setDescribeError(false);
     try {
@@ -129,7 +126,7 @@ export default function ScenesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sectionTitle: section?.title.split(' — ')[0] ?? '',
-          situationText: sec.situationText ?? '',
+          situationText: '',
           sceneText: sec.sceneText ?? '',
           story: sec.miniStory ?? '',
         }),
@@ -150,31 +147,12 @@ export default function ScenesPage() {
     }
   }
 
-  async function handleRegenerateOne(index: number) {
-    setRegeneratingIdx(index);
-    try {
-      const res = await fetch('/api/image/describe-one', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sceneIndex: index,
-          sectionTitle: section?.title.split(' — ')[0] ?? '',
-          situationText: sectionData?.situationText ?? '',
-          sceneText: sectionData?.sceneText ?? '',
-          story: sectionData?.miniStory ?? '',
-          existingDescriptions: descriptions,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.description) {
-        const updated = [...descriptions];
-        updated[index] = data.description;
-        setDescriptions(updated);
-        saveImageDescriptions(sectionId, updated);
-        fetchKeywords(updated);
-      }
-    } finally {
-      setRegeneratingIdx(null);
+  // '더 찾아보기' 펼침 — 저장된 힌트가 있으면 재사용, 키워드만 없으면 키워드만 lazy 보충
+  function handleToggleMore() {
+    const next = !moreOpen;
+    setMoreOpen(next);
+    if (next && descriptions.length > 0 && imageKeywords.length === 0) {
+      fetchKeywords(descriptions);
     }
   }
 
@@ -189,6 +167,17 @@ export default function ScenesPage() {
       saveUploadedImage(sectionId, index, compressed);
     };
     reader.readAsDataURL(file);
+  }
+
+  // 큰 '내 사진 올리기' — 첫 빈 슬롯의 파일 선택을 연다
+  function handleUploadClick() {
+    setSlotNotice('');
+    const emptyIdx = [0, 1, 2].find((i) => !getSlotUrl(i));
+    if (emptyIdx === undefined) {
+      setSlotNotice('사진 3장이 가득 찼어. 한 장 비우면 올릴 수 있어.');
+      return;
+    }
+    uploadRefs[emptyIdx].current?.click();
   }
 
   function handleAddUrl() {
@@ -218,6 +207,11 @@ export default function ScenesPage() {
     }
   }
 
+  function refreshSlots() {
+    const imgs = loadBoard().sections[sectionId].uploadedImages ?? [];
+    setUploadedImages([imgs[0] ?? null, imgs[1] ?? null, imgs[2] ?? null]);
+  }
+
   async function handleSave() {
     setSaving(true);
     const validAiUrls = generatedImages.filter((img) => img.url).map((img) => img.url);
@@ -237,8 +231,6 @@ export default function ScenesPage() {
     if (i < 3 && i < generatedImages.length && generatedImages[i]?.url) return generatedImages[i].url;
     return null;
   }
-
-  const hasAnyImage = generatedImages.some((img) => img.url) || uploadedImages.some(Boolean);
 
   if (!section) return null;
 
@@ -319,10 +311,10 @@ export default function ScenesPage() {
 
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8">
 
-        {/* Descriptions section */}
+        {/* 인트로 */}
         <div className="mb-2">
-          <p className="text-body font-semibold text-[#1C1B19] mb-1">네 하루에서 순간 3개를 골라봤어</p>
-          <p className="text-caption text-[#6E6962]">탭해서 직접 고칠 수 있어</p>
+          <p className="text-body font-semibold text-[#1C1B19] mb-1">이 하루에 어울리는 사진 3장을 담아봐</p>
+          <p className="text-caption text-[#6E6962]">3장을 담으면 이 영역이 완성돼.</p>
         </div>
 
         {story && (
@@ -334,158 +326,131 @@ export default function ScenesPage() {
           />
         )}
 
-        {describeLoading ? (
-          <div className="space-y-2 mb-4">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 animate-pulse">
-                <div className="h-3 bg-[#F5F5F3] rounded-full w-16 mb-2" />
-                <div className="h-4 bg-[#F5F5F3] rounded-full w-full" />
-              </div>
-            ))}
-          </div>
-        ) : describeError ? (
-          <div className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-4 text-center mb-4">
-            <p className="text-body text-[#6B7280] mb-3">묘사를 만들지 못했어.</p>
-            <button onClick={() => fetchDescriptions()} className="text-body text-[#374151] underline">
-              다시 시도
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-2 mb-2">
-            {descriptions.map((desc, i) => (
-              <div
-                key={i}
-                className="rounded-2xl border px-4 py-3 transition-colors cursor-pointer"
-                style={{
-                  borderColor: editingIdx === i ? section.color + '80' : '#E5E3DF',
-                  backgroundColor: editingIdx === i ? section.color + '08' : '#ffffff',
-                }}
-                onClick={() => {
-                  if (editingIdx !== i) {
-                    setEditingIdx(i);
-                    setEditingText(desc);
-                  }
-                }}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-micro font-semibold" style={{ color: section.color }}>
-                    순간 {i + 1}
-                  </span>
-                  {editingIdx !== i && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRegenerateOne(i);
-                      }}
-                      disabled={regeneratingIdx === i}
-                      className="text-micro text-[#6E6962] border border-[#E5E3DF] rounded-full px-2 py-0.5 active:opacity-60 disabled:opacity-40"
-                    >
-                      {regeneratingIdx === i ? '제안 중...' : '↻ 다시 제안'}
-                    </button>
-                  )}
-                </div>
-
-                {editingIdx === i ? (
-                  <>
-                    <textarea
-                      value={editingText}
-                      onChange={(e) => setEditingText(e.target.value)}
-                      rows={2}
-                      autoFocus
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full text-body leading-relaxed resize-none outline-none bg-transparent placeholder:text-[#D1CEC9]"
-                    />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const updated = [...descriptions];
-                        updated[i] = editingText;
-                        setDescriptions(updated);
-                        saveImageDescriptions(sectionId, updated);
-                        fetchKeywords(updated);
-                        setEditingIdx(null);
-                      }}
-                      className="mt-2 w-full py-1.5 rounded-lg text-caption font-semibold text-white"
-                      style={{ backgroundColor: section.color }}
-                    >
-                      저장
-                    </button>
-                  </>
-                ) : (
-                  <p className="text-body leading-relaxed text-[#374151]">{desc || '—'}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!describeLoading && !describeError && (
-          <button
-            onClick={() => fetchDescriptions()}
-            className="w-full py-2 text-caption text-[#6E6962] text-center mb-4"
-          >
-            묘사 전체 다시 제안받기
-          </button>
-        )}
-
-        {/* Divider */}
-        <div className="border-t border-[#F5F5F3] mb-4" />
-
-        {/* Images section */}
-        <div className="mb-3">
-          <p className="text-body font-semibold text-[#1C1B19] mb-0.5">나의 비전보드 사진 찾기</p>
-          <p className="text-caption text-[#6E6962]">사진 3장을 담으면 이 영역이 완성돼. 직접 올리거나 URL로 불러올 수 있어.</p>
-        </div>
-
-        <div className="mb-3">
+        {/* ① 사진 3슬롯 + 내 사진 올리기 (1순위) */}
+        <div className="mb-4">
           <div className="grid grid-cols-3 gap-2 mb-2">
             {[0, 1, 2].map((i) => renderSlot(i))}
           </div>
-        </div>
-
-        {/* 장면별 Unsplash 추천 — 키 미설정이면 조용히 사라짐 (v6.20: 채팅에서 이동) */}
-        <SceneImageSuggestions
-          sectionId={sectionId}
-          keywords={imageKeywords}
-          fallbackQuery={section.imageQuery ?? ''}
-          color={section.color}
-          onSaved={() => {
-            const imgs = loadBoard().sections[sectionId].uploadedImages ?? [];
-            setUploadedImages([imgs[0] ?? null, imgs[1] ?? null, imgs[2] ?? null]);
-          }}
-        />
-
-        {/* URL 입력 */}
-        <div className="flex gap-2 mb-4">
-          <input
-            type="url"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl(); }}
-            placeholder="이미지 URL 주소 붙여넣기"
-            className="flex-1 text-caption px-3 py-2.5 rounded-xl border border-[#E5E3DF] bg-white outline-none focus:border-[#9CA3AF] placeholder:text-[#C9C5BE]"
-          />
           <button
-            onClick={handleAddUrl}
-            disabled={!urlInput.trim()}
-            className="px-3 py-2.5 rounded-xl text-caption font-medium text-white disabled:opacity-40 transition-opacity"
+            onClick={handleUploadClick}
+            className="w-full py-3.5 rounded-xl text-body font-semibold text-white active:opacity-80"
             style={{ backgroundColor: section.color }}
           >
-            불러오기
+            📷 내 사진 올리기
           </button>
+          {slotNotice && <p className="text-micro text-[#B45309] mt-1">{slotNotice}</p>}
         </div>
+
+        {/* ② 큐레이션 샘플 갤러리 */}
+        <CuratedGallery sectionId={sectionId} color={section.color} onSaved={refreshSlots} />
+
+        {/* ③ 더 찾아보기 — AI 힌트 + Unsplash 검색 + URL (접힘) */}
+        <button
+          onClick={handleToggleMore}
+          className="w-full flex items-center justify-between py-3 border-t border-[#F5F5F3] text-body text-[#6B7280] active:opacity-70"
+          aria-expanded={moreOpen}
+        >
+          <span className="font-medium">더 찾아보기</span>
+          <span className="text-caption">{moreOpen ? '접기 ▲' : '검색·힌트·URL ▼'}</span>
+        </button>
+
+        {moreOpen && (
+          <div className="animate-fadeIn">
+            {/* AI 힌트 — 구 '순간 1,2,3' 편집 스텝을 읽기 전용 검색 힌트로 강등 */}
+            <div className="rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 mb-3">
+              <p className="text-caption font-semibold text-[#1C1B19] mb-1">
+                어떤 사진을 찾으면 좋을지 모르겠어?
+              </p>
+              {descriptions.length === 0 && !describeLoading && !describeError && (
+                <button
+                  onClick={fetchDescriptions}
+                  className="text-caption underline"
+                  style={{ color: section.color }}
+                >
+                  토리에게 힌트 받기 🌰
+                </button>
+              )}
+              {describeLoading && (
+                <div className="space-y-2 mt-2">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-4 bg-[#F5F5F3] rounded-full animate-pulse" />
+                  ))}
+                </div>
+              )}
+              {describeError && (
+                <p className="text-caption text-[#6E6962]">
+                  힌트를 만들지 못했어.{' '}
+                  <button onClick={fetchDescriptions} className="underline">다시 시도</button>
+                </p>
+              )}
+              {descriptions.length > 0 && !describeLoading && (
+                <div className="space-y-2 mt-1">
+                  {descriptions.map((desc, i) => (
+                    <div key={i} className="flex items-start justify-between gap-2">
+                      <p className="text-caption text-[#374151] leading-relaxed flex-1">
+                        <span className="font-semibold" style={{ color: section.color }}>순간 {i + 1}</span>{' '}
+                        {desc}
+                      </p>
+                      {imageKeywords[i] && (
+                        <button
+                          onClick={() => setRequestedQuery(imageKeywords[i])}
+                          className="flex-shrink-0 text-micro text-[#6E6962] border border-[#E5E3DF] rounded-full px-2 py-0.5 active:opacity-60"
+                        >
+                          이 키워드로 검색
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    onClick={fetchDescriptions}
+                    className="text-micro text-[#6E6962] underline"
+                  >
+                    힌트 다시 받기
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Unsplash 직접 검색 */}
+            <UnsplashSearch
+              sectionId={sectionId}
+              color={section.color}
+              defaultQuery={imageKeywords[0] ?? section.imageQuery ?? ''}
+              requestedQuery={requestedQuery}
+              onSaved={refreshSlots}
+            />
+
+            {/* URL 입력 */}
+            <div className="flex gap-2 mb-4">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl(); }}
+                placeholder="이미지 URL 주소 붙여넣기"
+                className="flex-1 text-caption px-3 py-2.5 rounded-xl border border-[#E5E3DF] bg-white outline-none focus:border-[#9CA3AF] placeholder:text-[#C9C5BE]"
+              />
+              <button
+                onClick={handleAddUrl}
+                disabled={!urlInput.trim()}
+                className="px-3 py-2.5 rounded-xl text-caption font-medium text-white disabled:opacity-40 transition-opacity"
+                style={{ backgroundColor: section.color }}
+              >
+                불러오기
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Save button */}
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-3.5 rounded-xl text-body font-medium text-white mb-3 disabled:opacity-60 transition-opacity"
+          className="w-full py-3.5 rounded-xl text-body font-medium text-white mt-2 mb-3 disabled:opacity-60 transition-opacity"
           style={{ backgroundColor: section.color }}
         >
           {saving ? '저장 중...' : '저장'}
         </button>
-
-        <div ref={bottomRef} />
       </div>
 
       {/* 완료 시트 — 섹션 간 체크인 + 다음 섹션 연속 진행 (v6.21) */}
