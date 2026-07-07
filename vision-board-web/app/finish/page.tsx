@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { loadBoard, markBoardFinished, saveOneSentence, saveFutureDayStory } from '@/lib/storage';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
+import MiniBoardPreview from '@/components/MiniBoardPreview';
 
 type FinishPhase = 'pattern' | 'sentence' | 'story-loading' | 'story' | 'complete';
 
@@ -227,6 +228,11 @@ export default function FinishPage() {
             </h1>
           </div>
 
+          {/* 완성 보드 리빌 — 폴라로이드가 하나씩 나타나는 스태거 애니메이션 (v7.0-r5 peak) */}
+          <div className="w-full">
+            <MiniBoardPreview board={board} />
+          </div>
+
           {(board.oneSentence || sentenceInput.trim()) && (
             <blockquote className="w-full rounded-2xl bg-[#F5F5F3] px-6 py-5">
               <p className="text-heading font-semibold leading-relaxed text-[#1C1B19]">
@@ -255,7 +261,7 @@ export default function FinishPage() {
 
           <div className="w-full space-y-2.5">
             <button
-              onClick={() => router.push('/board')}
+              onClick={() => router.push('/collage')}
               className="w-full py-4 rounded-2xl text-heading font-semibold text-white"
               style={{ backgroundColor: '#1C1B19' }}
             >

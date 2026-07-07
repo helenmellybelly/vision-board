@@ -22,10 +22,12 @@ import WallpaperSheet from '@/components/WallpaperSheet';
 import CollageBoard from '@/components/collage/CollageBoard';
 import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 
-// 화면 구조 (v6.19) — 보드가 기본, 폰/PC 배경은 사이즈를 먼저 고르고 그 비율 그대로 편집하는 별도 플로우
-type CollageView = 'board' | 'phone' | 'desktop';
+// 화면 구조 (v7.0-r5) — 진입 시 '어디에 둘까'(폰/PC/보드) 선택이 먼저, 그 다음 해당 뷰로.
+// 폰/PC 배경은 사이즈를 먼저 고르고 그 비율 그대로 편집하는 플로우 (v6.19)
+type CollageView = 'choose' | 'board' | 'phone' | 'desktop';
 
 const VIEW_TITLES: Record<CollageView, string> = {
+  choose: '내 비전보드',
   board: '한눈에 보기',
   phone: '폰 배경 만들기',
   desktop: 'PC 배경 만들기',
@@ -74,7 +76,7 @@ function TemplateSwatch({ id }: { id: CollageTemplate }) {
 export default function CollagePage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
-  const [view, setView] = useState<CollageView>('board');
+  const [view, setView] = useState<CollageView>('choose');
   const [picking, setPicking] = useState(false); // 기기 플로우 1단계 — 사이즈 선택
   const [sheetOpen, setSheetOpen] = useState(false);
   const [confirmReseed, setConfirmReseed] = useState<WallpaperPreset | null>(null);
@@ -122,15 +124,17 @@ export default function CollagePage() {
   const boardYear = getTargetYear(board);
 
   // 기기 뷰의 선택 사이즈 — 편집·내보내기 비율을 이 프리셋이 결정한다 (v6.19)
-  const devicePresetId = view !== 'board' ? board.collageDevicePresets?.[view] : undefined;
+  const isDevice = view === 'phone' || view === 'desktop';
+  const devicePresetId =
+    view === 'phone' || view === 'desktop' ? board.collageDevicePresets?.[view] : undefined;
   const devicePreset = WALLPAPER_PRESETS.find((p) => p.id === devicePresetId);
-  const aspect = view === 'board' || !devicePreset ? ASPECT : devicePreset.w / devicePreset.h;
+  const aspect = !isDevice || !devicePreset ? ASPECT : devicePreset.w / devicePreset.h;
 
   // 뷰별 저장된 배치 — 보드는 collageLayouts, 폰/PC는 collageDeviceLayouts
   const savedLayout =
-    view === 'board'
-      ? board.collageLayouts?.[template]
-      : board.collageDeviceLayouts?.[view]?.[template];
+    view === 'phone' || view === 'desktop'
+      ? board.collageDeviceLayouts?.[view]?.[template]
+      : board.collageLayouts?.[template];
 
   // 화면에 보이는 배치 그대로 — 배경화면 내보내기와 공유
   const currentLayout = resolveLayout(template, keyedItems, savedLayout, aspect);
@@ -142,8 +146,8 @@ export default function CollagePage() {
 
   function handleLayoutChange(l: CollageLayout) {
     const stamped = { ...l, aspect };
-    if (view === 'board') saveCollageLayout(template, stamped);
-    else saveCollageDeviceLayout(view, template, stamped);
+    if (view === 'phone' || view === 'desktop') saveCollageDeviceLayout(view, template, stamped);
+    else saveCollageLayout(template, stamped);
     setBoard(loadBoard());
   }
 
@@ -158,15 +162,16 @@ export default function CollagePage() {
     setPicking(!board?.collageDevicePresets?.[t]);
   }
 
-  function backToBoard() {
-    setView('board');
+  // 모든 뷰의 상위는 선택 화면 (v7.0-r5) — 보드·기기 어디서든 ←는 여기로
+  function backToChoose() {
+    setView('choose');
     setPicking(false);
     setConfirmReseed(null);
   }
 
   // 사이즈 선택 — 비율이 거의 같으면 배치 유지, 다르면 리시드 확인
   function handleSelectPreset(preset: WallpaperPreset) {
-    if (view === 'board' || !board) return;
+    if ((view !== 'phone' && view !== 'desktop') || !board) return;
     const hasLayouts =
       Object.keys(board.collageDeviceLayouts?.[view] ?? {}).length > 0;
     const newAspect = preset.w / preset.h;
@@ -181,7 +186,7 @@ export default function CollagePage() {
   }
 
   function applyReseed() {
-    if (!confirmReseed || view === 'board') return;
+    if (!confirmReseed || (view !== 'phone' && view !== 'desktop')) return;
     clearCollageDeviceLayouts(view);
     saveCollageDevicePreset(view, confirmReseed.id);
     setBoard(loadBoard());
@@ -210,19 +215,21 @@ export default function CollagePage() {
 
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-3xl mx-auto w-full pb-10">
-      {/* 헤더 — 기기 플로우에선 보드로 돌아가는 단계 헤더가 된다 */}
+      {/* 헤더 — 모든 뷰의 상위는 선택 화면(choose), 선택 화면의 상위는 대시보드 (v7.0-r5) */}
       <div className="px-6 pt-4 pb-4">
         <div className="flex items-center gap-3 mb-1">
           <button
-            onClick={() => (view === 'board' ? router.push('/board') : backToBoard())}
-            aria-label={view === 'board' ? '비전보드로 돌아가기' : '한눈에 보기로 돌아가기'}
+            onClick={() => (view === 'choose' ? router.push('/dashboard') : backToChoose())}
+            aria-label={view === 'choose' ? '대시보드로 돌아가기' : '어디에 둘까 선택으로 돌아가기'}
             className="p-2 -ml-2 text-[#6B7280] active:opacity-60"
           >
             ←
           </button>
           <h1 className="text-title font-bold">{VIEW_TITLES[view]}</h1>
         </div>
-        {view === 'board' ? (
+        {view === 'choose' ? (
+          <p className="text-caption text-[#6E6962] pl-8">완성된 보드, 어디에 둘까?</p>
+        ) : view === 'board' ? (
           <p className="text-caption text-[#6E6962] pl-8">내 비전보드를 하나로.</p>
         ) : devicePreset && !picking ? (
           <div className="flex items-center gap-2 pl-8">
@@ -247,15 +254,61 @@ export default function CollagePage() {
             <p className="text-body text-[#6E6962]">
               아직 담긴 사진이 없어.
               <br />
-              비전보드에 사진을 1개 이상 올리면 여기서 볼 수 있어.
+              사진을 1장 이상 담으면 여기서 볼 수 있어.
             </p>
             <button
-              onClick={() => router.push('/board')}
+              onClick={() => router.push('/dashboard')}
               className="mt-6 px-6 py-3 rounded-2xl text-body font-semibold text-white bg-[#1C1B19] active:opacity-80"
             >
-              비전보드로 가기 →
+              사진 담으러 가기 →
             </button>
           </div>
+        ) : view === 'choose' ? (
+          <>
+            {/* 어디에 둘까 — 기기 선택 퍼스트 (v7.0-r5). 지난번 사이즈가 있으면 부제로 표시 */}
+            <div className="space-y-2.5">
+              {([
+                {
+                  target: 'phone' as const,
+                  icon: '📱',
+                  label: '폰 배경 만들기',
+                  desc: board.collageDevicePresets?.phone
+                    ? `지난번: ${WALLPAPER_PRESETS.find((p) => p.id === board.collageDevicePresets?.phone)?.label ?? ''}`
+                    : '잠금화면에서 매일 보게',
+                },
+                {
+                  target: 'desktop' as const,
+                  icon: '🖥️',
+                  label: 'PC 배경 만들기',
+                  desc: board.collageDevicePresets?.desktop
+                    ? `지난번: ${WALLPAPER_PRESETS.find((p) => p.id === board.collageDevicePresets?.desktop)?.label ?? ''}`
+                    : '일하는 화면에서 매일 보게',
+                },
+              ]).map((opt) => (
+                <button
+                  key={opt.target}
+                  onClick={() => enterDevice(opt.target)}
+                  className="w-full flex items-center gap-4 rounded-2xl bg-white border border-[#E5E3DF] px-5 py-4 text-left active:opacity-70 transition-opacity"
+                >
+                  <span className="text-title" aria-hidden="true">{opt.icon}</span>
+                  <span>
+                    <span className="block text-body font-semibold text-[#1C1B19]">{opt.label} →</span>
+                    <span className="block text-caption text-[#6E6962] mt-0.5">{opt.desc}</span>
+                  </span>
+                </button>
+              ))}
+              <button
+                onClick={() => setView('board')}
+                className="w-full flex items-center gap-4 rounded-2xl bg-white border border-[#E5E3DF] px-5 py-4 text-left active:opacity-70 transition-opacity"
+              >
+                <span className="text-title" aria-hidden="true">🖼️</span>
+                <span>
+                  <span className="block text-body font-semibold text-[#1C1B19]">그냥 보드로 보기 →</span>
+                  <span className="block text-caption text-[#6E6962] mt-0.5">4:5 비율로 보고 꾸미기</span>
+                </span>
+              </button>
+            </div>
+          </>
         ) : view === 'board' ? (
           <>
             {templateSelector}
@@ -355,8 +408,8 @@ export default function CollagePage() {
           </>
         )}
 
-        {/* 미래의 하루 이야기 — 보드 뷰에서만 / 6개 영역 완성 시에만 노출 */}
-        {view === 'board' && board.futureDayStory ? (
+        {/* 미래의 하루 이야기 — 선택·보드 뷰에서 / 6개 영역 완성 시에만 노출 */}
+        {(view === 'choose' || view === 'board') && board.futureDayStory ? (
           <div className="mt-8 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-body">미래의 하루 이야기</span>
@@ -378,7 +431,7 @@ export default function CollagePage() {
               }}
             />
           </div>
-        ) : view === 'board' && completedCount === 6 ? (
+        ) : (view === 'choose' || view === 'board') && completedCount === 6 ? (
           <div className="mt-8 space-y-2">
             <button
               onClick={() => router.push('/finish')}
@@ -393,8 +446,8 @@ export default function CollagePage() {
         ) : null}
       </div>
 
-      {/* 첫 진입 코치마크 — 직접 편집할 수 있다는 걸 1회 안내 (v6.17 발견성 피드백) */}
-      {showCoach && collageImages.length > 0 && (
+      {/* 첫 진입 코치마크 — 보드 편집 화면에서 1회 안내 (v6.17 발견성 피드백, v7.0-r5: 보드 뷰에서만) */}
+      {showCoach && view === 'board' && collageImages.length > 0 && (
         <div
           className="fixed inset-0 z-[60] bg-black/55 flex items-center justify-center px-6 animate-fadeIn"
           role="dialog"
@@ -436,7 +489,7 @@ export default function CollagePage() {
         </div>
       )}
 
-      {sheetOpen && view !== 'board' && devicePreset && (
+      {sheetOpen && (view === 'phone' || view === 'desktop') && devicePreset && (
         <WallpaperSheet
           year={boardYear}
           preset={devicePreset}

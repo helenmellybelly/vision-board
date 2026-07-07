@@ -25,7 +25,7 @@ function getRouteStep(pathname: string): StepId | null {
   if (pathname.startsWith('/section')) return 1;
   if (pathname.startsWith('/scenes')) return 3; // '/scene'보다 먼저 매칭해야 함
   if (pathname.startsWith('/scene')) return 2;
-  if (pathname.startsWith('/board')) return 3;
+  if (pathname.startsWith('/collage')) return 3; // v7.0-r5: /board→/collage 통합
   if (pathname.startsWith('/finish')) return 4;
   return null;
 }

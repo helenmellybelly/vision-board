@@ -20,6 +20,7 @@ import ProcessBar from '@/components/ProcessBar';
 import CuratedGallery from '@/components/CuratedGallery';
 import UnsplashSearch from '@/components/UnsplashSearch';
 import StoryModal from '@/components/StoryModal';
+import MiniBoardPreview from '@/components/MiniBoardPreview';
 import useFocusTrap from '@/components/useFocusTrap';
 
 interface GeneratedImage {
@@ -476,9 +477,13 @@ export default function ScenesPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-title font-bold mb-1">🐿️ {sectionName} 완성! {completedCount}/6이야.</p>
-              <p className="text-body text-[#6B7280] leading-relaxed mb-5">
-                잠깐 숨 돌려도 좋고, 흐름 탔으면 이어가자.
+              <p className="text-body text-[#6B7280] leading-relaxed mb-3">
+                방금 이 칸이 채워졌어. 잠깐 숨 돌려도 좋고, 흐름 탔으면 이어가자.
               </p>
+              {/* 방금 채워진 칸 강조 미니보드 (v7.0-r5 peak) */}
+              <div className="mb-4">
+                <MiniBoardPreview board={board} highlightSectionId={sectionId} compact />
+              </div>
               {nextSection ? (
                 <button
                   onClick={() => router.push(getSectionRoute(board.sections[nextSection.id], nextSection.id))}

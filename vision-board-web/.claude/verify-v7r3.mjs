@@ -138,7 +138,10 @@ const PIXEL =
     1: textComplete({ sceneText: '하루', miniStory: '스토리.', status: 'completed', uploadedImages: [PIXEL, null, null, null, null] }),
   }, { targetDate: '2031-05-05' }));
   await page.goto(`${BASE}/collage`);
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1500);
+  // v7.0-r5부터 선택 화면이 먼저 — 보드 뷰로 들어가 중앙 연도 확인
+  await page.getByText('그냥 보드로 보기').click().catch(() => {});
+  await page.waitForTimeout(1200);
   ok('R3-5 콜라주 연도 = targetDate 연도', await page.getByText('2031').first().isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r3-collage-year.png`, fullPage: true });
   await ctx.close();

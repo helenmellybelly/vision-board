@@ -9,6 +9,7 @@ import { getSectionRoute } from '@/lib/sectionRoute';
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
 import DashboardIntroSheet from '@/components/DashboardIntroSheet';
+import MiniBoardPreview from '@/components/MiniBoardPreview';
 
 const STATUS_LABEL: Record<SectionStatus, string> = {
   not_started: '시작 전',
@@ -60,6 +61,19 @@ export default function DashboardPage() {
     const generated = sec.generatedImages ?? [];
     return [0, 1, 2].some((i) => !!(uploaded[i] ?? generated[i]));
   });
+  // 미니보드 goal-gradient — '칸'의 정의는 사진이 1장이라도 담긴 섹션 (v7.0-r5)
+  const photoSectionCount = SECTIONS.filter((section) => {
+    const sec = board.sections[section.id];
+    const uploaded = sec.uploadedImages ?? [];
+    const generated = sec.generatedImages ?? [];
+    return [0, 1, 2].some((i) => !!(uploaded[i] ?? generated[i]));
+  }).length;
+  const boardCaption =
+    photoSectionCount === 0
+      ? '질문에 답하고 사진을 담으면 이 보드가 채워져 🌰'
+      : photoSectionCount < 6
+      ? `이제 ${6 - photoSectionCount}칸 남았어 🌰`
+      : '다 채웠다! 배경화면으로 만들어봐 🐿️';
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full pb-10">
       <ProcessBar board={board} />
@@ -81,6 +95,22 @@ export default function DashboardPage() {
           <h1 className="text-display font-bold">
             {userName ? `${userName}의 비전보드` : '내 비전보드'}
           </h1>
+        </div>
+
+        {/* 미니 비전보드 — 채워지는 진행이 한눈에 (v7.0-r5, goal-gradient). 사진 있으면 탭 → 완성 보드 */}
+        <div className="mb-5 animate-slideUp">
+          {hasAnyImage ? (
+            <button
+              onClick={() => router.push('/collage')}
+              className="w-full text-left active:opacity-90 transition-opacity"
+              aria-label="완성 보드 보러 가기"
+            >
+              <MiniBoardPreview board={board} />
+            </button>
+          ) : (
+            <MiniBoardPreview board={board} />
+          )}
+          <p className="text-caption text-[#6E6962] text-center mt-2">{boardCaption}</p>
         </div>
 
         {/* 섹션 소개 — 처음 시작하는 경우 */}
@@ -186,7 +216,7 @@ export default function DashboardPage() {
           )}
           {hasAnyImage && (
             <button
-              onClick={() => router.push('/board')}
+              onClick={() => router.push('/collage')}
               className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold active:opacity-70 transition-opacity"
             >
               나의 비전보드 보러가기 →

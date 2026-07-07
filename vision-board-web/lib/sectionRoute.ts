@@ -70,11 +70,11 @@ export function getStepRoute(board: BoardData, stepId: ProcessStep): string {
     const target = eligible.find((id) => !board.sections[id].miniStory);
     return target ? `/scene/${target}` : '/review';
   }
-  // stepId === 3 — 사진 담기: 스토리까지 있는 미완성 섹션이 우선, 없으면 보드로
+  // stepId === 3 — 사진 담기: 스토리까지 있는 미완성 섹션이 우선, 없으면 완성 보드로 (v7.0-r5: /board→/collage 통합)
   const target = eligible.find(
     (id) => board.sections[id].miniStory && board.sections[id].status !== 'completed'
   );
-  return target ? `/scenes/${target}` : '/board';
+  return target ? `/scenes/${target}` : '/collage';
 }
 
 // 사진은 있는데 채팅·스토리 단계가 남은 섹션 — CTA를 pill로 강조해 다음 단계를 권유
