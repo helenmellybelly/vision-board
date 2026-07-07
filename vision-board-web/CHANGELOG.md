@@ -2,19 +2,23 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v6.21 전체 플로우 리뷰 개선(질문 단일화·용어 통일·상태 기반 내비·완료 시트·welcome 제거) — **푸시·프로덕션 배포 완료** (커밋 5c49363, vercel inspect target=production + 4경로 200, /welcome 404 정상) + **UNSPLASH_ACCESS_KEY 등록 완료**(/scenes 추천 활성)
+- **상태:** v7.0 전체 UX 리플래닝 6라운드(사용자 피드백 기반) — **푸시·프로덕션 배포 완료** (커밋 05814d4→5bd8a68, dpl_HoYt662onUsYbBrLFTQJrQa7Ls76 target=production, 신규 8경로 200 + /welcome 404 정상)
 - **주요 기능:**
-  - 질문 정의 단일 소스: lib/questions.ts phaseOneQuestions(example·helpQuestions 병합)+sceneStep — slots[] 이중 정의 제거. 라벨은 lib/slotLabels.ts(지금/원해/더 들여다보기/방향 키워드, 순서 [1,3,5,2])
-  - 상태 기반 내비: lib/sectionRoute.ts getNextIncompleteRoute(review CTA)·getStepRoute(ProcessBar 단계 탭이 작업 위치로) — '/scene/1' 하드코딩·step2·3 중복 /review 해소
-  - 섹션 완료 바텀시트(/scenes 저장 후): "{섹션} 완성! n/6" + 다음 미완성 섹션 연속 진행 CTA + 대시보드 보조
-  - 진입 축소: /welcome·/scene 허브 삭제(온보딩 → /dashboard 직행), /dashboard 온보딩 가드, 보드 CTA는 사진 있을 때만
-  - 용어 통일: 완성물=비전보드(이미지보드 제거), /scenes 표시명 '순간 N'·'사진 담기', 관계 섹션 일반화(연인·가족·친구, '남편' 제거), 온보딩 6영역 카드는 SECTIONS 파생
-  - finish 피날레: 완성 확정 시에만 finishedAt 기록, 이름 헤드라인+한 문장 인용+키워드 칩+배경화면 CTA (peak-end)
-  - /scenes: 순간 1·2·3 묘사에 어울리는 Unsplash 추천 행 (/api/image/keywords, imageKeywords 저장). /section: 규칙+AI 의미 검증(fail-open). /collage: 보드 기본+기기 사이즈 우선 플로우
-- **알려진 이슈:** hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상)
+  - 온보딩 3스텝 URL(/onboarding/1~3, 이탈 추적 가능): 토리+이름 통합 → 도토리 3메시지 탭채팅 → 막연함vs선명함+정의. 랜딩(/) 삭제→상태 기반 리다이렉트, 6영역 안내는 대시보드 첫 진입 시트. 클릭 13→5회
+  - 하루 그리기 통합(/scene): 질문 1개+순간 보태기 칩+같은 화면 스토리 생성·수정. ProcessBar 4단계(꿈 꺼내기/하루 그리기/사진 담기/완성)
+  - 일기 스토리: targetDate(기본 +3년, 탭 수정, lib/targetDate.ts) 헤더 + 일기체 프롬프트(/api/story/section) — 콜라주 중앙 연도와 단일 소스
+  - 사진 담기(/scenes): 내 사진 업로드 1순위 + 큐레이션 샘플 갤러리(카테고리 8종×10장, lib/curatedImages.ts) + '더 찾아보기' 접힘(AI 힌트 lazy·Unsplash 검색·URL)
+  - 완성 보드(/collage): '어디에 둘까'(폰/PC/보드) 선택 퍼스트, /board는 통합 스텁. 대시보드 미니보드(goal-gradient "이제 N칸 남았어")·완료 시트 "방금 이 칸이 채워졌어"·피날레 리빌
+  - schemaVersion 게이트 마이그레이션 v1~v4(lib/storage.ts migrateBoard): 온보딩 스텝 리맵/situationText 병합/boardYear→targetDate/slots→extractedSlots 백필 — 기존 데이터 무손실
+- **알려진 이슈:** hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상). /moment·/board 스텁은 배포 1사이클 후 철거 예정
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-07-07 (v7.0 — 전체 UX 리플래닝 6라운드 + 프로덕션 배포)
+- 사용자 피드백(온보딩 깊이·URL 추적 불가·질문 중복·딱딱한 스토리·Unsplash 실효성·메뉴 파편화·몰입 부족) → 6라운드 플랜 승인 후 순차 구현: r1 랜딩 제거+온보딩 3스텝 URL / r2 scene+moment 통합+4단계 / r3 일기 스토리+targetDate / r4 업로드+큐레이션 이미지 / r5 board→collage 통합·기기 선택 퍼스트·미니보드 / r6 dead code 정리(reviewTemplate·구 API 2종·slots 이중 저장 등)
+- schemaVersion 게이트 마이그레이션 프레임 도입(v1~v4, 비멱등 마이그레이션 1회 실행 보장), 라운드별 verify-v7r1~r6.mjs 총 124항목 PASS + 매 라운드 전체 리그레션
+- master 푸시 + `npx vercel deploy --prod` 배포, 프로덕션 8경로 200 확인. 구 verify(v618~621)는 .claude/archive/로 이동
 
 ### 2026-07-07 (임시 파일·미사용 에셋 정리)
 - 미참조 public 에셋 18개 git rm(인사*·프로필상반신·tori-final*·tori-hello·tori-gardener·tori-profile·기본 svg 5종 — 참조 5개만 잔존), untracked 미참조 tori-alpha.webm·tori-fallback.mp4 삭제

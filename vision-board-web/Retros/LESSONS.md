@@ -132,3 +132,11 @@ QA 스크립트에 `waitForTimeout(1000)`만으로는 불충분 — fallback 시
 ### pageerror 검증 FAIL은 변경 안 한 페이지에서 재현해 기존 이슈인지 판별 #coding #testing
 localStorage 시드 + `useState(loadBoard())` 패턴은 모든 페이지에서 hydration #418을 내므로(서버=빈 보드, 클라이언트=시드 보드), 검증 스크립트의 `pageerror` 체크가 이번 변경과 무관하게 FAIL한다(v6.20 /scenes 검증).
 새 에러를 만났을 때 같은 조건으로 변경하지 않은 페이지를 먼저 돌려 기존 전역 패턴 이슈인지 분리한 뒤 판정할 것.
+
+### 단조 증가 값(schemaVersion 등)은 verify에서 `===`가 아니라 `>=`로 단언 #coding #testing
+라운드별 검증 스크립트가 `schemaVersion === N`으로 고정 단언하면 다음 라운드가 버전을 올릴 때마다 리그레션이 위양성 FAIL한다(v7.0에서 r1·r2·r3 스크립트 3회 반복 수정).
+마이그레이션 실행 여부는 결과 데이터 단언이 보장하므로, 버전 자체는 처음부터 `>= N`으로 쓸 것.
+
+### Playwright getByText는 strict mode — 같은 문구가 2곳이면 isVisible()이 false로 오판 #coding #playwright
+시트와 배경 카드에 같은 부제('몸·마음·에너지')가 동시에 있으면 `getByText(...).isVisible()`이 다중 매칭 에러를 던지고 `.catch(() => false)`에 삼켜져 조용한 FAIL이 된다(v7.0-r1 인트로 시트 검증).
+재사용되는 문구는 `.first().isVisible()` 또는 `count() > 0`으로 단언할 것.
