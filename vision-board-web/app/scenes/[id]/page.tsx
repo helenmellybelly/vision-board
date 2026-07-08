@@ -536,9 +536,16 @@ export default function ScenesPage() {
               role="dialog"
               aria-modal="true"
               aria-label="섹션 완성"
-              className="w-full max-w-md bg-white rounded-t-3xl px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slideUp"
+              className="relative w-full max-w-md bg-white rounded-t-3xl px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slideUp"
               onClick={(e) => e.stopPropagation()}
             >
+              <button
+                onClick={() => setShowComplete(false)}
+                aria-label="닫기"
+                className="absolute top-4 right-5 w-8 h-8 rounded-full bg-[#F5F5F3] text-[#6E6962] text-body flex items-center justify-center active:opacity-70"
+              >
+                ×
+              </button>
               <p className="text-title font-bold mb-1">🐿️ {sectionName} 완성! {completedCount}/6이야.</p>
               <p className="text-body text-[#6B7280] leading-relaxed mb-3">
                 방금 이 칸이 채워졌어. 잠깐 숨 돌려도 좋고, 흐름 탔으면 이어가자.
@@ -585,9 +592,16 @@ export default function ScenesPage() {
             role="dialog"
             aria-modal="true"
             aria-label="사진 저장 완료"
-            className="w-full max-w-md bg-white rounded-t-3xl px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slideUp"
+            className="relative w-full max-w-md bg-white rounded-t-3xl px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slideUp"
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              onClick={() => setShowPhotoNudge(false)}
+              aria-label="닫기"
+              className="absolute top-4 right-5 w-8 h-8 rounded-full bg-[#F5F5F3] text-[#6E6962] text-body flex items-center justify-center active:opacity-70"
+            >
+              ×
+            </button>
             <p className="text-title font-bold mb-1">🌰 사진 담았어!</p>
             <p className="text-body text-[#6B7280] leading-relaxed mb-3">
               근데 이 칸이 진짜 &apos;완성&apos;이 되려면 네 이야기가 필요해.
