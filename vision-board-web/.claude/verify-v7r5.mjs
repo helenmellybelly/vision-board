@@ -59,48 +59,34 @@ const doneBoard = (overrides, extra = {}) => ({
 const withPhoto = (extra = {}) =>
   textComplete({ sceneText: '하루', miniStory: '스토리.', status: 'completed', uploadedImages: [PIXEL, null, null, null, null], ...extra });
 
-// ── 1) /collage 첫 진입 → 기기 선택 화면 ──
+// ── 1·2) /collage 진입 즉시 보드 + 토글 (v7.2 한 화면 통합 — 구 choose 케이스를 재정의) ──
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
-  ok('R5-1a 선택 화면 부제', await page.getByText('완성된 보드, 어디에 둘까?').isVisible().catch(() => false));
-  ok('R5-1b 폰 배경 옵션', await page.getByText('폰 배경 만들기').first().isVisible().catch(() => false));
-  ok('R5-1c PC 배경 옵션', await page.getByText('PC 배경 만들기').first().isVisible().catch(() => false));
-  ok('R5-1d 보드로 보기 옵션', await page.getByText('그냥 보드로 보기').isVisible().catch(() => false));
-  await page.screenshot({ path: `${OUT}/v7r5-collage-choose.png`, fullPage: true });
-
-  // 폰 선택 → 프리셋 피커
-  await page.getByText('폰 배경 만들기').first().click();
-  await page.waitForTimeout(800);
-  ok('R5-1e 폰 선택 → 사이즈 피커', await page.getByText('어떤 기기에 쓸지 사이즈부터 골라줘').isVisible().catch(() => false));
-  await ctx.close();
-}
-
-// ── 2) 보드로 보기 → 4:5 보드 뷰 (템플릿 탭) ──
-{
-  const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
-  await page.goto(`${BASE}/collage`);
-  await page.waitForTimeout(1500);
-  await page.getByText('그냥 보드로 보기').click();
-  await page.waitForTimeout(800);
-  ok('R5-2a 보드 뷰 헤더', await page.getByText('한눈에 보기').isVisible().catch(() => false));
-  ok('R5-2b 템플릿 탭', await page.getByText('폴라로이드').isVisible().catch(() => false));
-  // 보드 뷰 ← → 선택 화면 복귀
-  await page.getByLabel('어디에 둘까 선택으로 돌아가기').click();
+  ok('R5-1a 진입 즉시 보드 탭 활성', await page.getByRole('radio', { name: '보드' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('폴라로이드').isVisible().catch(() => false));
+  await page.screenshot({ path: `${OUT}/v7r5-collage-unified.png`, fullPage: true });
+  await page.getByRole('radio', { name: '📱 폰' }).click();
   await page.waitForTimeout(500);
-  ok('R5-2c 보드 ← → 선택 화면', await page.getByText('완성된 보드, 어디에 둘까?').isVisible().catch(() => false));
+  ok('R5-1e 폰 탭 → 사이즈 피커 인라인', await page.getByText('휴대폰').first().isVisible().catch(() => false));
+  // R5-2: 뒤로가기는 대시보드로 (choose 왕복 단언은 v7.2에서 삭제)
+  await page.getByLabel('대시보드로 돌아가기').click();
+  await page.waitForTimeout(800);
+  ok('R5-2c ← → 대시보드', new URL(page.url()).pathname === '/dashboard', page.url());
   await ctx.close();
 }
 
-// ── 3) 재방문: 지난번 사이즈 부제 표시 ──
+// ── 3) 재방문: 저장된 프리셋 → 폰 탭에서 사이즈 칩 표시 (구 '지난번:' 부제를 재정의) ──
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }, {
     collageDevicePresets: { phone: 'iphone-pro' },
   }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
-  ok('R5-3 지난번 사이즈 부제', await page.getByText(/지난번:/).isVisible().catch(() => false));
+  await page.getByRole('radio', { name: '📱 폰' }).click();
+  await page.waitForTimeout(500);
+  ok('R5-3 저장된 프리셋 → 사이즈 칩', (await page.getByText('사이즈 바꾸기').count()) > 0);
   await ctx.close();
 }
 

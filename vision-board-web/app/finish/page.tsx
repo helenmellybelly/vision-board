@@ -267,7 +267,7 @@ export default function FinishPage() {
               내 비전보드 보러 가기 →
             </button>
             <button
-              onClick={() => router.push('/collage')}
+              onClick={() => router.push('/collage?device=phone')}
               className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold"
             >
               폰 배경화면으로 만들기
