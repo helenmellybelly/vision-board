@@ -10,7 +10,7 @@ export const SECTIONS: Section[] = [
   {
     id: 1,
     title: '나 — 감정·성장·정체성',
-    shortTitle: '나 자신',
+    shortTitle: '원하는 내 모습',
     subtitle: '어떤 사람으로, 어떤 감각으로 살고 싶어?',
     imageQuery: 'calm morning routine self growth journaling',
     color: SECTION_COLORS[0],
@@ -19,7 +19,7 @@ export const SECTIONS: Section[] = [
     imageHints: ['"여유로운 아침"', '"혼자만의 시간"', '"나만의 루틴"'],
     situationChips: ['통창 있는 내 서재', '영어로 화상 미팅하는 나', '고객 후기가 쌓인 내 SNS', '내 이름이 담긴 웹사이트'],
     introText: '너 자신에 대해 이야기해보자. 지금의 나, 원하는 나를 같이 들여다볼게.',
-    whyText: '비전보드에서 가장 먼저 들여다봐야 할 건 나 자신이야. 어떤 사람으로 살고 싶은지 알아야 나머지 이야기도 선명해지거든.',
+    whyText: '비전보드에서 가장 먼저 들여다봐야 할 건 원하는 내 모습이야. 어떤 사람으로 살고 싶은지 알아야 나머지 이야기도 선명해지거든.',
     phaseOneQuestions: [
       {
         key: 'current',
