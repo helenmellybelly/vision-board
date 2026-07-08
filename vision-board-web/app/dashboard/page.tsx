@@ -71,22 +71,33 @@ export default function DashboardPage() {
   const photoSectionCount = SECTIONS.filter((section) => sectionHasPhoto(board.sections[section.id])).length;
   const boardCaption =
     photoSectionCount === 0
-      ? '질문에 답하고 사진을 담으면 이 보드가 채워져 🌰'
+      ? '질문에 답하고 사진을 담으면 이 정원이 피어나 🌰'
       : photoSectionCount < 6
-      ? `이제 ${6 - photoSectionCount}칸 남았어 🌰`
-      : '다 채웠다! 배경화면으로 만들어봐 🐿️';
+      ? `${photoSectionCount}/6 피었어 🌰`
+      : '다 피었다! 배경화면으로 만들어봐 🐿️';
 
-  // 추천 카드 — 다음 할 일 1개만 (v7.1-r3, goal-gradient 포커스)
+  // 추천 카드 — 다음 할 일 1개만 (v7.1-r3 → v7.2 문장형: 섹션명 단독 노출이 어색하다는 피드백)
   const recommendedId = getRecommendedSection(board);
   const recommended = recommendedId ? getSection(recommendedId) : null;
-  // 부캡션 (v7.1-r4): 열린 고리(사진有·답변無) > 막판 goal-gradient > 기본
+  const recommendedStatus = recommendedId ? board.sections[recommendedId].status : null;
+  const recommendLabel = recommended
+    ? recommended.shortTitle ?? recommended.title.split(' — ')[0]
+    : '';
+  // 부캡션: 열린 고리(사진有·답변無) > 막판 goal-gradient > 토리 대기
   const completedCount = statuses.filter((s) => s === 'completed').length;
   const recommendCaption =
     recommendedId && isPhotoOnlySection(board.sections[recommendedId])
       ? '사진은 담았는데 이야기가 비어 있어 🌰'
       : completedCount >= 4
       ? `이제 ${6 - completedCount}칸이면 끝이야 🐿️`
-      : '다음 할 일';
+      : '🐿️ 토리가 여기서 기다려';
+  // 본문: 상태에 맞는 다음 행동을 문장으로
+  const recommendAction =
+    recommendedId && isPhotoOnlySection(board.sections[recommendedId])
+      ? `${recommendLabel}, 이야기를 들려줄래? →`
+      : recommendedStatus === 'text_complete'
+      ? `${recommendLabel}, 사진을 담아볼까? →`
+      : `${recommendLabel}, 이야기부터 시작해볼까? →`;
 
   return (
     <main className="min-h-screen flex flex-col max-w-md md:max-w-xl mx-auto w-full pb-10">
@@ -147,9 +158,7 @@ export default function DashboardPage() {
             style={{ backgroundColor: recommended.lightColor, borderColor: recommended.color + '40' }}
           >
             <p className="text-caption text-[#6E6962] mb-0.5">{recommendCaption}</p>
-            <p className="font-semibold text-body">
-              {recommended.shortTitle ?? recommended.title.split(' — ')[0]} →
-            </p>
+            <p className="font-semibold text-body">{recommendAction}</p>
           </button>
         ) : (
           <button
@@ -173,29 +182,12 @@ export default function DashboardPage() {
             </button>
           )}
           {hasAnyImage && (
-            <>
-              {/* 배경화면 퀵 진입 (v7.1-r3) — choose 뷰를 건너뛰는 딥링크 */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  onClick={() => router.push('/collage?device=phone')}
-                  className="py-3.5 rounded-2xl border border-[#E5E3DF] bg-white text-body font-semibold text-[#1C1B19] active:opacity-70 transition-opacity"
-                >
-                  📱 폰 배경화면
-                </button>
-                <button
-                  onClick={() => router.push('/collage?device=desktop')}
-                  className="py-3.5 rounded-2xl border border-[#E5E3DF] bg-white text-body font-semibold text-[#1C1B19] active:opacity-70 transition-opacity"
-                >
-                  🖥️ PC 배경화면
-                </button>
-              </div>
-              <button
-                onClick={() => router.push('/collage')}
-                className="w-full py-2 text-caption text-[#6E6962] text-center active:opacity-70"
-              >
-                그냥 보드로 볼래? →
-              </button>
-            </>
+            <button
+              onClick={() => router.push('/collage')}
+              className="w-full py-3.5 rounded-2xl border border-[#E5E3DF] bg-white text-body font-semibold text-[#1C1B19] active:opacity-70 transition-opacity"
+            >
+              🖼️ 내 비전보드 보기
+            </button>
           )}
         </div>
       </div>

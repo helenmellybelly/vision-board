@@ -100,8 +100,9 @@ async function newPage(seed) {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('R3-3a 추천 카드 노출', await page.getByText('다음 할 일').isVisible().catch(() => false));
-  await page.getByText('다음 할 일').click();
+  // v7.2: 추천 카드 문장형 — 부캡션 '토리가 여기서 기다려' + 본문 행동 문장
+  ok('R3-3a 추천 카드 노출', await page.getByText('토리가 여기서 기다려').isVisible().catch(() => false));
+  await page.getByText('이야기부터 시작해볼까?').click();
   await page.waitForTimeout(600);
   // v7.1-r4: 추천 타깃이 미시작이면 양경로 시트 경유
   await page.getByText('✍️ 질문에 답하며 시작').click();
@@ -110,56 +111,48 @@ async function newPage(seed) {
   await ctx.close();
 }
 
-// ── 4) 퀵 버튼 gating + 폰 딥링크 (프리셋 무 → 사이즈 선택) ──
+// ── 4) 보드 진입 버튼 gating + 딥링크 (v7.2 단일 버튼 + 한 화면 토글로 재정의) ──
 {
   const { ctx, page } = await newPage(doneBoard({ 1: textComplete() })); // 사진 없음
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('R3-4a 사진 없으면 퀵 버튼 숨김', (await page.getByText('폰 배경화면').count()) === 0);
+  ok('R3-4a 사진 없으면 보드 버튼 숨김', (await page.getByText('내 비전보드 보기').count()) === 0);
   await ctx.close();
 }
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('R3-4b 사진 있으면 퀵 버튼 노출', await page.getByText('폰 배경화면').isVisible().catch(() => false));
-  await page.getByText('폰 배경화면').click();
-  await page.waitForTimeout(1500);
-  ok('R3-4c 폰 딥링크 → 편집 헤더 직행', await page.getByText('폰 배경 만들기').first().isVisible().catch(() => false));
-  ok('R3-4d choose 뷰 건너뜀', (await page.getByText('완성된 보드, 어디에 둘까?').count()) === 0);
-  ok('R3-4e 프리셋 무 → 사이즈 피커', await page.getByText('어떤 기기에 쓸지 사이즈부터 골라줘').isVisible().catch(() => false));
-  ok('R3-4f URL 파람 정리', !page.url().includes('device='), page.url());
+  ok('R3-4b 사진 있으면 보드 버튼 노출', await page.getByText('내 비전보드 보기').isVisible().catch(() => false));
+  await page.getByText('내 비전보드 보기').click();
+  await page.waitForTimeout(800);
+  ok('R3-4c 진입 즉시 보드 뷰', await page.getByRole('radio', { name: '보드' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // 딥링크는 URL 직접 진입으로 검증 (대시보드 퀵 버튼은 v7.2에서 제거, /finish 진입용으로 유지)
+  await page.goto(`${BASE}/collage?device=phone`);
+  await page.waitForTimeout(800);
+  ok('R3-4d 폰 딥링크 → 폰 탭 활성', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  ok('R3-4e 프리셋 무 → 사이즈 피커 인라인', await page.getByText('휴대폰').first().isVisible().catch(() => false));
   await ctx.close();
 }
-// 프리셋 有 → 바로 편집(피커 없음)
+// 프리셋 有 → 피커 건너뛰고 같은 화면에서 '사이즈 바꾸기' 칩
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }, {
     collageDevicePresets: { phone: 'iphone' },
   }));
-  await page.goto(`${BASE}/dashboard`);
+  await page.goto(`${BASE}/collage?device=phone`);
   await page.waitForTimeout(1500);
-  await page.getByText('폰 배경화면').click();
-  await page.waitForTimeout(1500);
-  ok('R3-4g 프리셋 有 → 피커 건너뜀', (await page.getByText('어떤 기기에 쓸지 사이즈부터 골라줘').count()) === 0);
-  ok('R3-4h 템플릿 탭 노출', await page.getByText('폴라로이드').isVisible().catch(() => false));
+  ok('R3-4f 프리셋 有 → 사이즈 바꾸기 칩', (await page.getByText('사이즈 바꾸기').count()) > 0);
+  ok('R3-4g 템플릿 탭 노출', await page.getByText('폴라로이드').isVisible().catch(() => false));
   await ctx.close();
 }
 
-// ── 5) /collage?device=desktop 직URL + 보드 보기 링크 ──
+// ── 5) /collage?device=desktop 직URL ──
+// R3-5 '그냥 보드로 볼래?' 링크 케이스는 v7.2에서 삭제 — 단일 버튼 진입이 곧 보드 뷰(R3-4c가 대체)
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage?device=desktop`);
   await page.waitForTimeout(1500);
-  ok('R3-5a 직URL → PC 배경 만들기', await page.getByText('PC 배경 만들기').first().isVisible().catch(() => false));
-  await ctx.close();
-}
-{
-  const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
-  await page.goto(`${BASE}/dashboard`);
-  await page.waitForTimeout(1500);
-  await page.getByText('그냥 보드로 볼래?').click();
-  await page.waitForTimeout(1500);
-  ok('R3-5b 보드 보기 링크 → choose 뷰', await page.getByText('완성된 보드, 어디에 둘까?').isVisible().catch(() => false));
+  ok('R3-5a 직URL → PC 탭 활성', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   await ctx.close();
 }
 

@@ -119,11 +119,12 @@ const withPhoto = (extra = {}) =>
   await page.waitForTimeout(1500);
   ok('R5-5a 미니보드 렌더 (Vision Board)', await page.getByText('Vision Board').isVisible().catch(() => false));
   ok('R5-5b 중앙 연도 = targetDate', await page.getByText('2029').isVisible().catch(() => false));
-  ok('R5-5c goal-gradient 카피', await page.getByText('이제 5칸 남았어').isVisible().catch(() => false));
+  // v7.2 정원 캡션: '이제 N칸 남았어' → 'N/6 피었어'
+  ok('R5-5c goal-gradient 카피', await page.getByText('1/6 피었어').isVisible().catch(() => false));
   const photoCount = await page.locator('img[alt="나"]').count();
   ok('R5-5d 완료 섹션 칸에 사진', photoCount >= 1, `imgs=${photoCount}`);
-  // v7.1-r3: 미니보드 전체 탭 제거 → '그냥 보드로 볼래?' 링크가 /collage 진입
-  await page.getByText('그냥 보드로 볼래?').click();
+  // v7.2: 단일 진입 버튼 '내 비전보드 보기' → 보드 뷰 직행
+  await page.getByText('내 비전보드 보기').click();
   await page.waitForTimeout(1500);
   ok('R5-5e 미니보드 탭 → /collage', new URL(page.url()).pathname === '/collage', page.url());
   await ctx.close();
