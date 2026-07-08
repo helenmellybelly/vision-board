@@ -99,6 +99,12 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 
 ## Testing / QA
 
+### "텍스트가 빠졌다" 신고는 프로덕션 번들 grep으로 코드/배포 문제를 먼저 분리한다 #coding #debugging #deployment
+사용자가 프로덕션에서 문구 누락을 신고하면 배포 불일치로 추정하기 쉽지만, 페이지 HTML의 `_next/static/chunks` JS를 받아 해당 문자열을 grep하면 몇 초 만에 판별된다(SSR HTML은 클라이언트 렌더 카피가 없어 무용). v7.3에서 신고된 온보딩 문장은 배포 문제가 아니라 코드에 그 문장 자체가 없던 것 — 기대 문구와 코드 문구를 문장 단위로 diff해야 진짜 누락 지점이 보인다.
+
+### 한 값을 새 위치에 노출하면 다른 스위트의 기존 단언이 strict mode로 연쇄 파손된다 #coding #testing #playwright
+대시보드에 연도 캡션("2029년의 나를…")을 추가하자 미니보드 중앙 연도만 매칭하던 구 스위트의 `getByText('2029').isVisible()`이 다중 매칭 strict 위반 → catch → FAIL로 깨졌다(v7r5·v7r3 2곳). 기존 값을 새 UI에 추가 노출하는 변경은 그 값을 단언하는 모든 스위트를 grep해서 `.first()` 또는 더 특정한 문구로 바꿔야 한다.
+
 ### verify 시드 fixture의 id는 실존 상수와 대조해야 한다 — 느슨한 단언에선 오타가 잠복한다 #coding #testing #qa
 v7r5 시드의 프리셋 id 'iphone-pro'는 WALLPAPER_PRESETS에 없는 오타였지만, 구 검증이 텍스트 존재만 확인해서(undefined→폴백 문구) 계속 통과했다. UI 재작성으로 시드가 실제 분기(프리셋 유→칩 표시)를 타자 그제야 FAIL. 시드 데이터의 id·enum 값은 소스 상수 파일과 대조해 작성하고, 스위트 갱신 시 기존 시드도 함께 의심할 것.
 
