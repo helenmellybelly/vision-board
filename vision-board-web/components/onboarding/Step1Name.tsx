@@ -48,14 +48,12 @@ export default function Step1Name({
           </p>
           <p className="text-body text-[#6B7280] leading-relaxed">
             네가 원하는 삶을 발견하도록 돕는 꿈의 정원사지.
-            <br />
-            그다음엔 우리 같이 비전보드를 만들 거야.
           </p>
         </div>
 
         <div className="space-y-3">
           <p className="text-body font-semibold text-center text-[#1C1B19]">
-            그 전에 — 앞으로 나는 너를 뭐라고 불러줄까? 🌱
+            너를 뭐라고 불러주면 좋을까? 🌱
           </p>
           <input
             type="text"

@@ -31,8 +31,8 @@ const noScroll = (page) =>
   const { ctx, page } = await newPage(null);
   await page.goto(`${BASE}/onboarding/1`);
   await page.waitForTimeout(1500);
-  ok('R1-1a 여정 예고 문장', await page.getByText('그다음엔 우리 같이 비전보드를 만들 거야').isVisible().catch(() => false));
-  ok('R1-1b 질문 연결부(그 전에)', (await page.getByText('앞으로 나는 너를 뭐라고 불러줄까?').count()) > 0);
+  ok('R1-1a 여정 예고 문장 제거', (await page.getByText('그다음엔 우리 같이 비전보드를 만들 거야').count()) === 0);
+  ok('R1-1b 이름 질문(새 카피)', (await page.getByText('너를 뭐라고 불러주면 좋을까?').count()) > 0);
   ok('R1-4a 스텝1 무스크롤', await noScroll(page));
   await page.getByPlaceholder('이름 또는 닉네임').fill('헬렌');
   await page.getByText('이렇게 불러줘').click();

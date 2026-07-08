@@ -86,7 +86,7 @@ const readBoard = (page) =>
   const { ctx, page } = await newPage(null);
   await page.goto(`${BASE}/onboarding/1`);
   await page.waitForTimeout(1200);
-  ok('R1-4a 스텝1 이름 질문 렌더', await page.getByText('뭐라고 불러줄까').isVisible().catch(() => false));
+  ok('R1-4a 스텝1 이름 질문 렌더', await page.getByText('뭐라고 불러주면 좋을까').isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r1-step1.png`, fullPage: true });
 
   await page.getByPlaceholder('이름 또는 닉네임').fill('헬렌');
