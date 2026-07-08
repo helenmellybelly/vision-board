@@ -38,9 +38,10 @@ export default function DashboardIntroSheet({
         </div>
 
         <p className="text-body leading-relaxed mb-4">
-          좋아{userName ? `, ${josa(userName, '아/야')}` : ''}. 이제 진짜 시작이야.<br />
-          비전보드는 삶의 6가지 영역으로 이루어져 있어.<br />
-          하나씩 채워가다 보면 네 삶 전체가 그려질 거야.
+          좋아{userName ? `, ${josa(userName, '아/야')}` : ''}. 비전보드는 6칸짜리 정원이야. <span className="font-semibold">순서는 네 마음!</span><br />
+          각 칸은 <span className="font-semibold">질문에 답하고 → 어울리는 사진을 담으면</span> 완성돼.<br />
+          사진부터 담아도 되지만, 질문으로 진짜 원하는 걸 먼저 찾아보는 걸 추천해 🌰<br />
+          6칸이 다 피면 폰·PC 배경화면으로 만들 수 있어.
         </p>
 
         <div className="grid grid-cols-2 gap-2 mb-5">
