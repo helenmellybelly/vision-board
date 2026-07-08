@@ -429,7 +429,7 @@ export default function SectionChatPage() {
                 disabled={aiChecking}
                 className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80 disabled:opacity-60"
               >
-                {aiChecking ? '잠깐, 확인해볼게…' : '원하는 삶을 그려보자 →'}
+                {aiChecking ? '잠깐, 확인해볼게…' : '이 답들로 미래의 하루 그려보기 →'}
               </button>
               <button
                 onClick={() => router.push('/dashboard')}

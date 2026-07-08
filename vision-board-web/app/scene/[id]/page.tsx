@@ -386,7 +386,7 @@ export default function ScenePage() {
                       disabled={!additionalInput.trim() || regenerating}
                       className="w-full py-3 rounded-xl text-body border border-[#E5E3DF] bg-white text-[#374151] disabled:opacity-40"
                     >
-                      {regenerating ? '다시 그리는 중...' : '다시 그려줘'}
+                      {regenerating ? '다시 쓰는 중...' : '다시 써줘'}
                     </button>
                   </div>
                 )}
@@ -397,7 +397,7 @@ export default function ScenePage() {
                     className="w-full py-3.5 rounded-xl text-body font-medium text-white mb-3"
                     style={{ backgroundColor: section.color }}
                   >
-                    비전보드 이미지 만들기 →
+                    이 하루에 어울리는 사진 담으러 가기 →
                   </button>
                 )}
               </>

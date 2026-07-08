@@ -116,7 +116,7 @@ const doneBoard = (overrides) => ({
   await page.waitForTimeout(1500);
   // v7.0-r3에서 카드 헤더가 '이 삶의 하루' 라벨 → 일기 날짜로 바뀜 — 스토리 본문으로 확인
   ok('R2-3a 같은 페이지에서 스토리 카드', await page.getByText('커피를 내리는 손이 느긋하다').isVisible().catch(() => false));
-  ok('R2-3b 다음 CTA(이미지 만들기)', await page.getByText('비전보드 이미지 만들기').isVisible().catch(() => false));
+  ok('R2-3b 다음 CTA(사진 담으러)', await page.getByText('사진 담으러 가기').isVisible().catch(() => false));
   ok('R2-3c payload에 situationText 없음', payload !== null && !('situationText' in payload));
   ok('R2-3d payload에 sceneText 포함', payload?.sceneText === '카페 창가에서 책 읽는 하루');
   const board = await readBoard(page);
@@ -198,7 +198,7 @@ const doneBoard = (overrides) => ({
   await page.waitForTimeout(1500);
   ok('R2-7a 재방문 시 스토리 카드', await page.getByText('완성된').isVisible().catch(() => false));
   ok('R2-7b 하루 다시 쓰기 링크', await page.getByText('하루 다시 쓰기').isVisible().catch(() => false));
-  ok('R2-7c CTA', await page.getByText('비전보드 이미지 만들기').isVisible().catch(() => false));
+  ok('R2-7c CTA', await page.getByText('사진 담으러 가기').isVisible().catch(() => false));
   await ctx.close();
 }
 
