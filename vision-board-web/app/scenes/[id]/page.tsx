@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { track } from '@vercel/analytics';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getSection, SECTIONS } from '@/lib/questions';
@@ -59,6 +60,7 @@ export default function ScenesPage() {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const lightboxTrapRef = useFocusTrap<HTMLDivElement>(!!lightboxSrc, () => setLightboxSrc(null));
   const [urlInput, setUrlInput] = useState('');
+  const [urlOpen, setUrlOpen] = useState(false); // ① 직접 올리기 아래 URL 입력 토글 (v7.3)
   const [slotNotice, setSlotNotice] = useState('');
 
   const uploadRefs = [
@@ -165,6 +167,7 @@ export default function ScenesPage() {
   function handleToggleMore() {
     const next = !moreOpen;
     setMoreOpen(next);
+    if (next) track('scenes_more_open', { section: sectionId });
     if (next && descriptions.length > 0 && imageKeywords.length === 0) {
       fetchKeywords(descriptions);
     }
@@ -389,9 +392,37 @@ export default function ScenesPage() {
             className="w-full py-3.5 rounded-xl text-body font-semibold text-white active:opacity-80"
             style={{ backgroundColor: section.color }}
           >
-            📷 내 사진 올리기
+            📷 직접 사진 올리기
           </button>
           {slotNotice && <p className="text-micro text-[#B45309] mt-1">{slotNotice}</p>}
+          {/* URL로 담기 — ③ 접힘 패널에서 업로드 바로 아래로 이동 (v7.3) */}
+          <button
+            onClick={() => setUrlOpen((o) => !o)}
+            aria-expanded={urlOpen}
+            className="text-caption text-[#6E6962] underline mt-2 active:opacity-70"
+          >
+            🔗 이미지 주소(URL)로 담기 {urlOpen ? '▲' : '▼'}
+          </button>
+          {urlOpen && (
+            <div className="flex gap-2 mt-2 animate-fadeIn">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl(); }}
+                placeholder="이미지 URL 주소 붙여넣기"
+                className="flex-1 text-caption px-3 py-2.5 rounded-xl border border-[#E5E3DF] bg-white outline-none focus:border-[#9CA3AF] placeholder:text-[#C9C5BE]"
+              />
+              <button
+                onClick={handleAddUrl}
+                disabled={!urlInput.trim()}
+                className="px-3 py-2.5 rounded-xl text-caption font-medium text-white disabled:opacity-40 transition-opacity"
+                style={{ backgroundColor: section.color }}
+              >
+                불러오기
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ② 큐레이션 샘플 갤러리 */}
@@ -404,7 +435,7 @@ export default function ScenesPage() {
           aria-expanded={moreOpen}
         >
           <span className="font-medium">더 찾아보기</span>
-          <span className="text-caption">{moreOpen ? '접기 ▲' : '검색·힌트·URL ▼'}</span>
+          <span className="text-caption">{moreOpen ? '접기 ▲' : '검색·힌트 ▼'}</span>
         </button>
 
         {moreOpen && (
@@ -484,25 +515,6 @@ export default function ScenesPage() {
               onChanged={refreshSlots}
             />
 
-            {/* URL 입력 */}
-            <div className="flex gap-2 mb-4">
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl(); }}
-                placeholder="이미지 URL 주소 붙여넣기"
-                className="flex-1 text-caption px-3 py-2.5 rounded-xl border border-[#E5E3DF] bg-white outline-none focus:border-[#9CA3AF] placeholder:text-[#C9C5BE]"
-              />
-              <button
-                onClick={handleAddUrl}
-                disabled={!urlInput.trim()}
-                className="px-3 py-2.5 rounded-xl text-caption font-medium text-white disabled:opacity-40 transition-opacity"
-                style={{ backgroundColor: section.color }}
-              >
-                불러오기
-              </button>
-            </div>
           </div>
         )}
 

@@ -84,8 +84,8 @@ const sec1 = async (page) => (await readBoard(page))?.sections?.[1];
   ok('R2-3a 슬롯 × → 슬롯 빈', !s?.uploadedImages?.[0]);
   ok('R2-3b 슬롯 × → 갤러리 오버레이 해제', (await page.getByText('탭해서 빼기').count()) === 0);
 
-  // 4) URL 수동 입력 → source null 유지
-  await page.getByText('더 찾아보기').click();
+  // 4) URL 수동 입력 → source null 유지 (v7.3: URL 입력이 ① 직접 올리기 아래 토글로 이동)
+  await page.getByText('이미지 주소(URL)로 담기').click();
   await page.waitForTimeout(400);
   await page.getByPlaceholder('이미지 URL 주소 붙여넣기').fill(PX_GIF);
   await page.getByText('불러오기').click();

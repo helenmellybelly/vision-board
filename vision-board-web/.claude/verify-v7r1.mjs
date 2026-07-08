@@ -102,14 +102,14 @@ const readBoard = (page) =>
   await page.getByText('이렇게 불러줘').click();
   await page.waitForTimeout(1200);
 
-  // 스텝2: 도토리 메시지 3개 — 탭 2회로 전부 공개
-  ok('R1-5a 도토리 첫 메시지(조사 처리)', await page.getByText('헬렌아, 너 그거 아니?').isVisible().catch(() => false));
+  // 스텝2: 도토리 메시지 3개 — 탭 2회로 전부 공개 (v7.3 문안 교체)
+  ok('R1-5a 도토리 첫 메시지(조사 처리)', await page.getByText('헬렌아, 도토리도 땅에 심겨야').isVisible().catch(() => false));
   await page.getByText('계속하려면 탭').click();
   await page.waitForTimeout(500);
   await page.getByText('계속하려면 탭').click();
   await page.waitForTimeout(500);
-  ok('R1-5b 탭 2회 → 마지막 메시지(심을 땅)', await page.getByText('너를 심을 땅이야').isVisible().catch(() => false));
-  const cta2 = page.getByText('그 가능성, 꺼내볼게');
+  ok('R1-5b 탭 2회 → 마지막 메시지(함께 만들자)', await page.getByText('우리 함께 비전보드를 만들어 볼까?').isVisible().catch(() => false));
+  const cta2 = page.getByText('그래, 함께 해보자!');
   ok('R1-5c 탭 2회 → CTA 노출', await cta2.isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r1-step2.png`, fullPage: true });
   await cta2.click();

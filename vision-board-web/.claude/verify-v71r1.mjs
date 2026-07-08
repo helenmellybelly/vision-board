@@ -39,16 +39,16 @@ const noScroll = (page) =>
   await page.waitForTimeout(1200);
   ok('R1-1c 이름 입력 → 스텝2', new URL(page.url()).pathname === '/onboarding/2', page.url());
 
-  // ── 2) 스텝2: '헬렌아, 너 그거 아니?' josa + 탭 2회 → 스텝3 ──
-  ok('R1-2a 첫 버블 josa+훅', (await page.getByText('헬렌아, 너 그거 아니?').count()) > 0);
+  // ── 2) 스텝2: '헬렌아, 도토리도...' josa + 탭 2회 → 스텝3 (v7.3 문안 교체) ──
+  ok('R1-2a 첫 버블 josa+훅', (await page.getByText('헬렌아, 도토리도 땅에 심겨야').count()) > 0);
   ok('R1-4b 스텝2 무스크롤', await noScroll(page));
-  await page.getByText('너 그거 아니?').click();
+  await page.getByText('도토리도 땅에 심겨야').click();
   await page.waitForTimeout(400);
-  ok('R1-2b 두번째 버블(비밀)', (await page.getByText('근데 비밀이 하나 있어').count()) > 0);
-  await page.getByText('근데 비밀이 하나 있어').click();
+  ok('R1-2b 두번째 버블(헬렌이라는·비옥한 땅)', (await page.getByText('헬렌이라는 도토리를 비옥한 땅에').count()) > 0);
+  await page.getByText('우리도 도토리랑 같아').click();
   await page.waitForTimeout(400);
-  ok('R1-2c 세번째 버블(헬렌이라는)', (await page.getByText('헬렌이라는 도토리도 똑같아').count()) > 0);
-  await page.getByText('그 가능성, 꺼내볼게').click();
+  ok('R1-2c 세번째 버블(함께 만들자)', (await page.getByText('우리 함께 비전보드를 만들어 볼까?').count()) > 0);
+  await page.getByText('그래, 함께 해보자!').click();
   await page.waitForTimeout(1200);
   ok('R1-2d 스텝3 진입', new URL(page.url()).pathname === '/onboarding/3', page.url());
 
@@ -78,7 +78,7 @@ const noScroll = (page) =>
   });
   await page.goto(`${BASE}/onboarding/2`);
   await page.waitForTimeout(1500);
-  ok('R1-6 영문 이름 Helen야 렌더', (await page.getByText('Helen야, 너 그거 아니?').count()) > 0);
+  ok('R1-6 영문 이름 Helen야 렌더', (await page.getByText('Helen야, 도토리도 땅에 심겨야').count()) > 0);
   await ctx.close();
 }
 

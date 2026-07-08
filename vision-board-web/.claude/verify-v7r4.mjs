@@ -73,7 +73,7 @@ const SCENES_SEED = () => doneBoard({
   await page.goto(`${BASE}/scenes/1`);
   await page.waitForTimeout(2500);
   ok('R4-1a 마운트 시 describe 미호출 (lazy)', describeCalled === 0, `calls=${describeCalled}`);
-  ok('R4-1b 내 사진 올리기 버튼 (1순위)', await page.getByText('내 사진 올리기').isVisible().catch(() => false));
+  ok('R4-1b 직접 사진 올리기 버튼 (1순위, v7.3 리네임)', await page.getByText('직접 사진 올리기').isVisible().catch(() => false));
   ok('R4-1c 샘플 갤러리 섹션', await page.getByText('샘플에서 고르기').isVisible().catch(() => false));
   ok('R4-1d 카테고리 칩(운동·건강)', await page.getByText('운동·건강').isVisible().catch(() => false));
   ok('R4-1e 더 찾아보기 접힘 (검색 인풋 미노출)', !(await page.getByPlaceholder('검색어 (영어가 결과가 좋아)').isVisible().catch(() => false)));
@@ -173,7 +173,10 @@ const SCENES_SEED = () => doneBoard({
   await kwBtn.click();
   await page.waitForTimeout(1000);
   ok('R4-5f 키워드로 검색 실행', searchQuery === 'morning coffee window', `q=${searchQuery}`);
-  ok('R4-5g URL 붙여넣기 인풋', await page.getByPlaceholder('이미지 URL 주소 붙여넣기').isVisible().catch(() => false));
+  // v7.3: URL 입력이 ① 직접 올리기 아래 토글로 이동 — 토글 열고 확인
+  await page.getByText('이미지 주소(URL)로 담기').click();
+  await page.waitForTimeout(400);
+  ok('R4-5g URL 붙여넣기 인풋 (① 토글)', await page.getByPlaceholder('이미지 URL 주소 붙여넣기').isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r4-scenes-more.png`, fullPage: true });
   await ctx.close();
 }

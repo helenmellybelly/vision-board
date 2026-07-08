@@ -95,27 +95,24 @@ async function newPage(seed) {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
-  ok('V2-3a-1 진입 즉시 보드 탭 활성', await page.getByRole('radio', { name: '보드' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // v7.3: 기본 뷰가 PC
+  ok('V2-3a-1 진입 즉시 PC 탭 활성 (v7.3 기본)', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   ok('V2-3a-2 choose 뷰 부재', (await page.getByText('완성된 보드, 어디에 둘까?').count()) === 0);
 
-  // 폰 탭 → 인라인 사이즈 피커
+  // 폰 탭 → 표준 프리셋 자동 선택 + 상시 칩 행 (v7.3)
   await page.getByRole('radio', { name: '📱 폰' }).click();
-  await page.waitForTimeout(500);
-  ok('V2-3b 폰 탭 → 인라인 피커(휴대폰 그룹)', await page.getByText('휴대폰').first().isVisible().catch(() => false));
-
-  // 프리셋 선택 → 같은 화면에서 칩 + 저장 버튼
-  await page.getByRole('radiogroup', { name: '휴대폰 사이즈' }).getByRole('radio').first().click();
   await page.waitForTimeout(800);
-  ok('V2-3c-1 프리셋 선택 → 사이즈 칩', (await page.getByText('사이즈 바꾸기').count()) > 0);
+  ok('V2-3b 폰 탭 → 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+
+  // 다른 칩 탭 → 즉시 적용 + 같은 화면에 저장 버튼
+  await page.getByRole('radio', { name: 'iPhone', exact: true }).click();
+  await page.waitForTimeout(800);
+  ok('V2-3c-1 칩 탭 → 즉시 적용 (라벨 캡션)', await page.getByText('iPhone 일반·Pro').isVisible().catch(() => false));
   ok('V2-3c-2 같은 화면에 저장 버튼', await page.getByText('폰 배경화면 저장').isVisible().catch(() => false));
 
-  // 사이즈 바꾸기 토글 → 피커 재노출 / 접기 → 닫힘
-  await page.getByText('사이즈 바꾸기').click();
-  await page.waitForTimeout(400);
-  ok('V2-3d-1 사이즈 바꾸기 → 피커 재노출', await page.getByText('휴대폰').first().isVisible().catch(() => false));
-  await page.getByText('접기').click();
-  await page.waitForTimeout(400);
-  ok('V2-3d-2 접기 → 피커 닫힘', (await page.getByText('휴대폰').count()) === 0);
+  // v7.3: '사이즈 바꾸기' 패널 제거 — 칩이 상시 노출
+  ok('V2-3d-1 사이즈 바꾸기 패널 부재', (await page.getByText('사이즈 바꾸기').count()) === 0);
+  ok('V2-3d-2 칩 상시 노출 (Galaxy S)', (await page.getByRole('radio', { name: 'Galaxy S' }).count()) > 0);
 
   // 보드 탭 복귀 → 템플릿 셀렉터 + 보드 안내
   await page.getByRole('radio', { name: '보드' }).click();

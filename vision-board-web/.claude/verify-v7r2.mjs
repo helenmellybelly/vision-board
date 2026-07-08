@@ -84,7 +84,7 @@ const doneBoard = (overrides) => ({
   await page.waitForTimeout(1500);
   ok('R2-2a 통합 질문 렌더', await page.getByText('그날의 하루, 어디서 뭘 하고 있어?').isVisible().catch(() => false));
   ok('R2-2b 구 순간 질문 부재', (await page.getByText('어떤 장면들이 눈에 들어와').count()) === 0);
-  ok('R2-2c 순간 보태기 칩 안내', await page.getByText('이런 순간을 보태도 좋아').isVisible().catch(() => false));
+  ok('R2-2c 순간 보태기 칩 안내 (v7.3 카피)', await page.getByText('막막하면 탭해서 넣고').isVisible().catch(() => false));
   const chip = page.getByText('통창 있는 내 서재');
   ok('R2-2d 섹션 칩 렌더', await chip.isVisible().catch(() => false));
   await chip.click();

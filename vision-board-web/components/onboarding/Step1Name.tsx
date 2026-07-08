@@ -49,6 +49,9 @@ export default function Step1Name({
           <p className="text-body text-[#6B7280] leading-relaxed">
             네가 원하는 삶을 발견하도록 돕는 꿈의 정원사지.
           </p>
+          <p className="text-body text-[#6B7280] leading-relaxed">
+            우리가 함께 비전보드를 만들어 갈 거야.
+          </p>
         </div>
 
         <div className="space-y-3">

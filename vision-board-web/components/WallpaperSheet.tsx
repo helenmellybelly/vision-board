@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { track } from '@vercel/analytics';
 import useFocusTrap from './useFocusTrap';
 import { CollageLayout, CollageTemplate } from '@/lib/types';
 import { CollageItem } from '@/lib/collageTemplates';
@@ -53,6 +54,7 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
     try {
       const canvas = await renderCurrent();
       await saveCanvas(canvas, `vision-board-${year}-${board.template}-${preset.id}.png`);
+      track('wallpaper_save', { preset: preset.id, template: board.template });
     } catch {
       setError('저장에 실패했어. 다시 시도해줘.');
     } finally {
@@ -75,7 +77,7 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
       >
         <div className="w-10 h-1 bg-[#E5E3DF] rounded-full mx-auto mb-5" />
         <h2 id="wallpaper-title" className="text-heading font-bold mb-1">
-          {landscape ? 'PC 배경화면 저장' : '폰 배경화면 저장'}
+          {preset.id === 'board' ? '보드 이미지 저장' : landscape ? 'PC 배경화면 저장' : '폰 배경화면 저장'}
         </h2>
         <p className="text-caption text-[#6E6962] mb-3">
           {preset.label} · {preset.w}×{preset.h} — 편집한 그대로 저장돼.

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard } from '@/lib/storage';
 import { getNextIncompleteRoute, getNextIncompleteCtaLabel } from '@/lib/sectionRoute';
+import { getTargetYear } from '@/lib/targetDate';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
 import { SLOT_KEY_LABELS, SLOT_KEY_ORDER } from '@/lib/slotLabels';
@@ -170,7 +171,9 @@ export default function ReviewPage() {
         <p className="text-caption font-semibold text-[#6E6962] tracking-widest mb-3">NEXT STEP</p>
         <h3 className="text-heading font-bold mb-2 leading-snug">이제 미래의 하루를 그릴 거야</h3>
         <p className="text-body text-[#6B7280] leading-relaxed">
-          지금까지 쓴 단어들이 이루어진 3년 뒤의 하루를 구체적으로 그려보는 단계야.
+          {board
+            ? `지금까지 쓴 단어들이 이루어진 ${getTargetYear(board)}년의 하루를 구체적으로 그려보는 단계야.`
+            : '지금까지 쓴 단어들이 이루어진 미래의 하루를 구체적으로 그려보는 단계야.'}{' '}
           각 영역마다 그 하루의 순간 3가지를 쓰고, 어울리는 사진을 담으면 비전보드가 완성돼.
         </p>
       </div>

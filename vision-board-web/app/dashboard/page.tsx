@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadBoard, saveDashboardIntroSeen, saveLastVisit } from '@/lib/storage';
+import { track } from '@vercel/analytics';
+import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate } from '@/lib/storage';
+import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, SectionId } from '@/lib/types';
 import { getSectionRoute, getRecommendedSection, isPhotoOnlySection, sectionHasPhoto } from '@/lib/sectionRoute';
@@ -25,6 +27,11 @@ export default function DashboardPage() {
   const [pathSheetId, setPathSheetId] = useState<SectionId | null>(null);
   const pathSheetTrapRef = useFocusTrap<HTMLDivElement>(pathSheetId !== null, () => setPathSheetId(null));
   const [showReturnGreeting, setShowReturnGreeting] = useState(false);
+  // 사진 바로 담기 — 인터뷰 없이 섹션별 /scenes 직행 시트 (v7.3)
+  const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
+  const photoSheetTrapRef = useFocusTrap<HTMLDivElement>(photoSheetOpen, () => setPhotoSheetOpen(false));
+  // 보드 연도 편집 — targetDate의 연도만 교체 (v7.3, collage 연도 편집과 같은 소스)
+  const [yearEditOpen, setYearEditOpen] = useState(false);
 
   useEffect(() => {
     const b = loadBoard();
@@ -57,6 +64,16 @@ export default function DashboardPage() {
   function handleCloseIntro() {
     saveDashboardIntroSeen();
     setShowIntro(false);
+  }
+
+  // 연도 스텝 — 일기 날짜(targetDate)의 연도만 바꾼다. 월·일은 유지
+  function stepYear(delta: number) {
+    if (!board) return;
+    const now = new Date().getFullYear();
+    const next = Number(getTargetYear(board)) + delta;
+    if (next < now + 1 || next > now + 10) return;
+    saveTargetDate(withYear(getTargetDate(board), String(next)));
+    setBoard(loadBoard());
   }
 
   if (!board) return null;
@@ -135,6 +152,47 @@ export default function DashboardPage() {
             onSelectSection={handleSelectSection}
           />
           <p className="text-caption text-[#6E6962] text-center mt-2">{boardCaption}</p>
+          {/* 보드 연도 — 고정처럼 보인다는 피드백에 편집 진입점 노출 (v7.3) */}
+          <div className="text-center mt-1">
+            {!yearEditOpen ? (
+              <p className="text-caption text-[#6E6962]">
+                🗓️ {getTargetYear(board)}년의 나를 그리는 보드야 ·{' '}
+                <button
+                  onClick={() => setYearEditOpen(true)}
+                  className="underline active:opacity-70"
+                >
+                  연도 바꾸기
+                </button>
+              </p>
+            ) : (
+              <div className="inline-flex flex-col items-center gap-1">
+                <div className="inline-flex items-center gap-3 rounded-full border border-[#E5E3DF] bg-white px-3 py-1.5">
+                  <button
+                    onClick={() => stepYear(-1)}
+                    aria-label="연도 줄이기"
+                    className="w-6 h-6 rounded-full bg-[#F5F5F3] text-[#1C1B19] font-semibold active:opacity-70"
+                  >
+                    −
+                  </button>
+                  <span className="text-body font-semibold tabular-nums">{getTargetYear(board)}</span>
+                  <button
+                    onClick={() => stepYear(1)}
+                    aria-label="연도 늘리기"
+                    className="w-6 h-6 rounded-full bg-[#F5F5F3] text-[#1C1B19] font-semibold active:opacity-70"
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={() => setYearEditOpen(false)}
+                    className="text-caption font-semibold text-[#1C1B19] active:opacity-70"
+                  >
+                    완료
+                  </button>
+                </div>
+                <p className="text-micro text-[#6E6962]">미래 일기의 날짜도 같이 바뀌어.</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 진행 현황 */}
@@ -189,6 +247,13 @@ export default function DashboardPage() {
               🖼️ 내 비전보드 보기
             </button>
           )}
+          {/* 인터뷰 없이 사진부터 — 섹션 선택 시트로 /scenes 직행 (v7.3) */}
+          <button
+            onClick={() => setPhotoSheetOpen(true)}
+            className="w-full py-2 text-caption text-[#6E6962] underline active:opacity-70"
+          >
+            📷 질문 없이, 사진부터 담아볼래? →
+          </button>
         </div>
       </div>
 
@@ -231,6 +296,58 @@ export default function DashboardPage() {
           </div>
         );
       })()}
+
+      {/* 사진 바로 담기 시트 (v7.3) — 섹션을 고르면 인터뷰 없이 /scenes로 */}
+      {photoSheetOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center"
+          onClick={() => setPhotoSheetOpen(false)}
+        >
+          <div
+            ref={photoSheetTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="사진을 담을 칸 선택"
+            className="w-full max-w-md bg-white rounded-t-3xl px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slideUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-title font-bold mb-1">어느 칸에 사진을 담을까?</p>
+            <p className="text-body text-[#6B7280] leading-relaxed mb-4">
+              사진을 담고 나서 이야기는 나중에 해도 돼.
+            </p>
+            <div className="space-y-2">
+              {SECTIONS.map((section) => {
+                const sec = board.sections[section.id];
+                const up = sec.uploadedImages ?? [];
+                const gen = sec.generatedImages ?? [];
+                const count = [0, 1, 2].filter((i) => up[i] || gen[i]).length;
+                const label = section.shortTitle ?? section.title.split(' — ')[0];
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      track('photo_first_entry', { section: section.id });
+                      router.push(`/scenes/${section.id}`);
+                    }}
+                    className="w-full flex items-center justify-between py-3 px-4 rounded-xl border border-[#E5E3DF] bg-white active:opacity-70"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: section.color }}
+                      />
+                      <span className="text-body font-medium text-[#1C1B19]">{label}</span>
+                    </span>
+                    <span className="text-caption text-[#6E6962]">
+                      {count > 0 ? `사진 ${count}장` : '비어 있어'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showIntro && <DashboardIntroSheet userName={userName} onClose={handleCloseIntro} />}
     </main>

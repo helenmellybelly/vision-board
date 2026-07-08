@@ -3,15 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { josa } from '@/lib/josa';
 
-// 스텝2: 도토리 이야기 (v7.0-r1 — 탭 채팅 형식 유지, 메시지 7→3개 압축으로 탭 6→2번)
-// 핵심 서사 유지: 2,400배 성장 → 심어야만 자란다(어디에 놓이느냐) → 비전보드는 너를 심을 땅
+// 스텝2: 도토리 이야기 (v7.3 — 문안 교체: 심어야 싹튼다 → 나를 어디에 심느냐 → 비전보드=비옥한 땅, 함께 만들자)
 const ACORN_MESSAGES = [
   (name: string) =>
-    `${name ? `${josa(name, '아/야')}, ` : ''}너 그거 아니? 도토리 있잖아, 그 2.5cm짜리 씨앗.\n땅에 심으면 최대 60m 참나무가 돼. 2,400배야.`,
-  () =>
-    `근데 비밀이 하나 있어.\n땅에 심어야만 그렇게 돼. 책상 위에 두면 그냥 도토리야.\n중요한 건 어디에 놓이느냐는 거지.`,
+    `${name ? `${josa(name, '아/야')}, ` : ''}도토리도 땅에 심겨야 싹을 틔울 수 있어.\n책상 위에 두면 그냥 작은 도토리일 뿐이야.\n중요한 건 우리가 어디에 놓여 있느냐는 거지.`,
   (name: string) =>
-    `${name ? josa(name, '이라는/라는') : '너라는'} 도토리도 똑같아.\n비전보드는 너를 심을 땅이야.\n참나무가 될 잠재력을 꺼내줄 환경이지.`,
+    `우리도 도토리랑 같아.\n'나'라는 도토리를 어디에 심느냐에 따라 미래가 달라지거든.\n비전보드를 만드는 건 ${name ? josa(name, '이라는/라는') : '너라는'} 도토리를 비옥한 땅에 심는 일이야.`,
+  () =>
+    `거대한 참나무가 될 네 잠재력을 깨워줄 환경, 지금 만들어보자.\n그럼, 우리 함께 비전보드를 만들어 볼까?`,
 ];
 
 export default function Step2Acorn({
@@ -82,7 +81,7 @@ export default function Step2Acorn({
             className="w-full py-4 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80"
             style={{ backgroundColor: '#1C1B19' }}
           >
-            그 가능성, 꺼내볼게 →
+            그래, 함께 해보자!
           </button>
         </div>
       )}

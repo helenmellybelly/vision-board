@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadBoard, markBoardFinished, saveOneSentence, saveFutureDayStory } from '@/lib/storage';
+import { getTargetYear } from '@/lib/targetDate';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
 import MiniBoardPreview from '@/components/MiniBoardPreview';
@@ -126,7 +127,7 @@ export default function FinishPage() {
           <div>
             <p className="text-body text-[#6E6962] mb-2">네 비전을 한 문장으로.</p>
             <h2 className="text-display font-bold leading-snug">
-              3년 뒤 나는<br />어떤 사람으로 살고 있어?
+              {board ? `${getTargetYear(board)}년의 나는` : '미래의 나는'}<br />어떤 사람으로 살고 있어?
             </h2>
           </div>
           {keywords.length > 0 && (

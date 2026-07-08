@@ -64,12 +64,14 @@ const withPhoto = (extra = {}) =>
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
-  ok('R5-1a 진입 즉시 보드 탭 활성', await page.getByRole('radio', { name: '보드' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // v7.3: 기본 뷰가 PC
+  ok('R5-1a 진입 즉시 PC 탭 활성 (v7.3 기본)', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('폴라로이드').isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r5-collage-unified.png`, fullPage: true });
   await page.getByRole('radio', { name: '📱 폰' }).click();
   await page.waitForTimeout(500);
-  ok('R5-1e 폰 탭 → 사이즈 피커 인라인', await page.getByText('휴대폰').first().isVisible().catch(() => false));
+  // v7.3: 빈 피커 대신 표준 프리셋 자동 선택 + 상시 칩 행
+  ok('R5-1e 폰 탭 → 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   // R5-2: 뒤로가기는 대시보드로 (choose 왕복 단언은 v7.2에서 삭제)
   await page.getByLabel('대시보드로 돌아가기').click();
   await page.waitForTimeout(800);
@@ -86,7 +88,8 @@ const withPhoto = (extra = {}) =>
   await page.waitForTimeout(1500);
   await page.getByRole('radio', { name: '📱 폰' }).click();
   await page.waitForTimeout(500);
-  ok('R5-3 저장된 프리셋 → 사이즈 칩', (await page.getByText('사이즈 바꾸기').count()) > 0);
+  // v7.3: '사이즈 바꾸기' 패널 제거 — 저장된 프리셋이 상시 칩 행에서 선택 상태
+  ok('R5-3 저장된 프리셋 → iPhone 칩 선택', await page.getByRole('radio', { name: 'iPhone', exact: true }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   await ctx.close();
 }
 
@@ -104,7 +107,8 @@ const withPhoto = (extra = {}) =>
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
   ok('R5-5a 미니보드 렌더 (Vision Board)', await page.getByText('Vision Board').isVisible().catch(() => false));
-  ok('R5-5b 중앙 연도 = targetDate', await page.getByText('2029').isVisible().catch(() => false));
+  // v7.3: 연도 캡션('2029년의 나를...')과 다중 매칭 — first()로 확인
+  ok('R5-5b 중앙 연도 = targetDate', await page.getByText('2029').first().isVisible().catch(() => false));
   // v7.2 정원 캡션: '이제 N칸 남았어' → 'N/6 피었어'
   ok('R5-5c goal-gradient 카피', await page.getByText('1/6 피었어').isVisible().catch(() => false));
   const photoCount = await page.locator('img[alt="나"]').count();

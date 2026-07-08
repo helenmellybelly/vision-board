@@ -8,6 +8,8 @@ import { COLLAGE_THEMES, CollageItem, STICKER_FONT_RATIO, hasTopReserve } from '
 export interface WallpaperPreset {
   id: string;
   label: string;
+  /** 칩 행 표시용 짧은 라벨 (v7.3) — 없으면 label 사용 */
+  shortLabel?: string;
   w: number;
   h: number;
   group: '휴대폰' | '태블릿' | 'PC';
@@ -15,17 +17,17 @@ export interface WallpaperPreset {
 }
 
 export const WALLPAPER_PRESETS: WallpaperPreset[] = [
-  { id: 'phone', label: '기본 폰 (9:19.5)', w: 1170, h: 2532, group: '휴대폰' },
-  { id: 'iphone', label: 'iPhone 일반·Pro', w: 1179, h: 2556, group: '휴대폰' },
-  { id: 'iphone-max', label: 'iPhone Plus·Pro Max', w: 1290, h: 2796, group: '휴대폰' },
-  { id: 'galaxy-s', label: 'Galaxy S 시리즈', w: 1080, h: 2340, group: '휴대폰' },
-  { id: 'zflip-main', label: 'Galaxy Z Flip 메인', w: 1080, h: 2640, group: '휴대폰' },
-  { id: 'zflip-cover', label: 'Galaxy Z Flip 커버', w: 720, h: 748, group: '휴대폰', note: '커버 화면은 정사각에 가까워. 그 비율 그대로 꾸밀 수 있어.' },
-  { id: 'tablet', label: 'iPad·갤럭시탭 세로', w: 1668, h: 2388, group: '태블릿', note: '폰보다 가로가 넓은 비율이야.' },
-  { id: 'pc-fhd', label: 'PC FHD (16:9)', w: 1920, h: 1080, group: 'PC' },
-  { id: 'pc-qhd', label: 'PC QHD (16:9)', w: 2560, h: 1440, group: 'PC' },
-  { id: 'macbook', label: '맥북 (16:10)', w: 2560, h: 1664, group: 'PC' },
-  { id: 'ultrawide', label: '울트라와이드 (21:9)', w: 3440, h: 1440, group: 'PC', note: '좌우로 아주 넓은 비율이야.' },
+  { id: 'phone', label: '기본 폰 (9:19.5)', shortLabel: '기본 폰', w: 1170, h: 2532, group: '휴대폰' },
+  { id: 'iphone', label: 'iPhone 일반·Pro', shortLabel: 'iPhone', w: 1179, h: 2556, group: '휴대폰' },
+  { id: 'iphone-max', label: 'iPhone Plus·Pro Max', shortLabel: 'iPhone Max', w: 1290, h: 2796, group: '휴대폰' },
+  { id: 'galaxy-s', label: 'Galaxy S 시리즈', shortLabel: 'Galaxy S', w: 1080, h: 2340, group: '휴대폰' },
+  { id: 'zflip-main', label: 'Galaxy Z Flip 메인', shortLabel: 'Z Flip', w: 1080, h: 2640, group: '휴대폰' },
+  { id: 'zflip-cover', label: 'Galaxy Z Flip 커버', shortLabel: 'Z Flip 커버', w: 720, h: 748, group: '휴대폰', note: '커버 화면은 정사각에 가까워. 그 비율 그대로 꾸밀 수 있어.' },
+  { id: 'tablet', label: 'iPad·갤럭시탭 세로', shortLabel: '태블릿', w: 1668, h: 2388, group: '태블릿', note: '폰보다 가로가 넓은 비율이야.' },
+  { id: 'pc-fhd', label: 'PC FHD (16:9)', shortLabel: 'FHD', w: 1920, h: 1080, group: 'PC' },
+  { id: 'pc-qhd', label: 'PC QHD (16:9)', shortLabel: 'QHD', w: 2560, h: 1440, group: 'PC' },
+  { id: 'macbook', label: '맥북 (16:10)', shortLabel: '맥북', w: 2560, h: 1664, group: 'PC' },
+  { id: 'ultrawide', label: '울트라와이드 (21:9)', shortLabel: '울트라와이드', w: 3440, h: 1440, group: 'PC', note: '좌우로 아주 넓은 비율이야.' },
 ];
 
 const INK = '#1C1B19';

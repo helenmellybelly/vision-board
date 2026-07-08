@@ -126,22 +126,24 @@ async function newPage(seed) {
   ok('R3-4b 사진 있으면 보드 버튼 노출', await page.getByText('내 비전보드 보기').isVisible().catch(() => false));
   await page.getByText('내 비전보드 보기').click();
   await page.waitForTimeout(800);
-  ok('R3-4c 진입 즉시 보드 뷰', await page.getByRole('radio', { name: '보드' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // v7.3: 기본 뷰가 PC — 진입 즉시 PC 탭 활성
+  ok('R3-4c 진입 즉시 PC 뷰 (v7.3 기본)', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   // 딥링크는 URL 직접 진입으로 검증 (대시보드 퀵 버튼은 v7.2에서 제거, /finish 진입용으로 유지)
   await page.goto(`${BASE}/collage?device=phone`);
   await page.waitForTimeout(800);
   ok('R3-4d 폰 딥링크 → 폰 탭 활성', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
-  ok('R3-4e 프리셋 무 → 사이즈 피커 인라인', await page.getByText('휴대폰').first().isVisible().catch(() => false));
+  // v7.3: 프리셋 미선택이면 표준값 자동 선택 — 빈 피커 대신 '기본 폰' 칩이 선택돼 있다
+  ok('R3-4e 프리셋 무 → 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   await ctx.close();
 }
-// 프리셋 有 → 피커 건너뛰고 같은 화면에서 '사이즈 바꾸기' 칩
+// 프리셋 有 → 상시 칩 행에서 해당 칩이 선택 상태 (v7.3: '사이즈 바꾸기' 패널 제거)
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }, {
     collageDevicePresets: { phone: 'iphone' },
   }));
   await page.goto(`${BASE}/collage?device=phone`);
   await page.waitForTimeout(1500);
-  ok('R3-4f 프리셋 有 → 사이즈 바꾸기 칩', (await page.getByText('사이즈 바꾸기').count()) > 0);
+  ok('R3-4f 프리셋 有 → iPhone 칩 선택', await page.getByRole('radio', { name: 'iPhone', exact: true }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   ok('R3-4g 템플릿 탭 노출', await page.getByText('폴라로이드').isVisible().catch(() => false));
   await ctx.close();
 }

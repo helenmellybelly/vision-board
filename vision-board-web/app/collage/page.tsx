@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { track } from '@vercel/analytics';
 import {
   clearCollageDeviceLayouts,
   loadBoard,
@@ -23,7 +24,17 @@ import CollageBoard from '@/components/collage/CollageBoard';
 import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 
 // 화면 구조 (v7.2) — choose 뷰 제거, 한 화면에서 [보드|폰|PC] 토글 + 인라인 사이즈 선택
+// v7.3 — 기본 뷰 PC, 사이즈는 패널 대신 상단 칩 상시 노출, 모든 뷰에서 저장 가능, ?view= URL 동기화
 type CollageView = 'board' | 'phone' | 'desktop';
+
+// 보드 뷰 저장용 임시 프리셋 — 화면과 같은 4:5 비율이라 WYSIWYG (WallpaperSheet는 id/label/w/h만 사용)
+const BOARD_EXPORT_PRESET: WallpaperPreset = {
+  id: 'board',
+  label: '보드 이미지 (4:5)',
+  w: 1600,
+  h: 2000,
+  group: 'PC',
+};
 
 const TEMPLATES: { id: CollageTemplate; label: string }[] = [
   { id: 'polaroid', label: '폴라로이드' },
@@ -68,8 +79,7 @@ function TemplateSwatch({ id }: { id: CollageTemplate }) {
 export default function CollagePage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
-  const [view, setView] = useState<CollageView>('board');
-  const [sizePanelOpen, setSizePanelOpen] = useState(false); // 프리셋 있는 상태에서 '사이즈 바꾸기'
+  const [view, setView] = useState<CollageView>('desktop'); // 기본 PC — 가로 시야 확보 (v7.3)
   const [sheetOpen, setSheetOpen] = useState(false);
   const [confirmReseed, setConfirmReseed] = useState<WallpaperPreset | null>(null);
   const [showCoach, setShowCoach] = useState(false);
@@ -78,14 +88,28 @@ export default function CollagePage() {
     const b = loadBoard();
     setBoard(b);
     if (!localStorage.getItem(COACH_KEY)) setShowCoach(true);
-    // ?device=phone|desktop 딥링크 (/finish 진입용) — 해당 탭으로 바로 전환
+    // ?view= 우선, 레거시 ?device=(/finish 딥링크) 호환 — URL은 ?view=로 정규화해
+    // 페이지뷰 분석에서 서브뷰가 구분되게 남긴다 (v7.3)
     // useSearchParams는 Suspense 바운더리를 요구하므로 클라이언트 마운트에서 직접 파싱
-    const device = new URLSearchParams(window.location.search).get('device');
-    if (device === 'phone' || device === 'desktop') {
-      setView(device);
-      history.replaceState(null, '', window.location.pathname);
-    }
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('view');
+    const device = params.get('device');
+    let initial: CollageView = 'desktop';
+    if (v === 'board' || v === 'phone' || v === 'desktop') initial = v;
+    else if (device === 'phone' || device === 'desktop') initial = device;
+    setView(initial);
+    history.replaceState(null, '', `${window.location.pathname}?view=${initial}`);
   }, []);
+
+  // 기기 뷰 첫 진입 — 프리셋 미선택이면 표준값 자동 선택 (v7.3, 빈 피커 화면 제거)
+  // 시드 id는 반드시 실존 프리셋만 ('phone', 'pc-fhd')
+  useEffect(() => {
+    if (!board) return;
+    if (view !== 'phone' && view !== 'desktop') return;
+    if (board.collageDevicePresets?.[view]) return;
+    saveCollageDevicePreset(view, view === 'phone' ? 'phone' : 'pc-fhd');
+    setBoard(loadBoard());
+  }, [view, board]);
 
   function dismissCoach() {
     localStorage.setItem(COACH_KEY, '1');
@@ -156,11 +180,12 @@ export default function CollagePage() {
     setBoard(loadBoard());
   }
 
-  // 탭 전환 — 사이즈 패널과 reseed 확인은 뷰 이동 시 접는다
+  // 탭 전환 — reseed 확인은 뷰 이동 시 접고, URL을 ?view=로 동기화 (분석 구분용)
   function switchView(v: CollageView) {
     setView(v);
-    setSizePanelOpen(false);
     setConfirmReseed(null);
+    history.replaceState(null, '', `${window.location.pathname}?view=${v}`);
+    track('collage_view', { view: v }); // Pro 플랜에서만 수집 — Hobby에선 무해한 no-op
   }
 
   // 사이즈 선택 — 비율이 거의 같으면 배치 유지, 다르면 리시드 확인
@@ -176,7 +201,6 @@ export default function CollagePage() {
     saveCollageDevicePreset(view, preset.id);
     setBoard(loadBoard());
     setConfirmReseed(null);
-    setSizePanelOpen(false);
   }
 
   function applyReseed() {
@@ -185,7 +209,6 @@ export default function CollagePage() {
     saveCollageDevicePreset(view, confirmReseed.id);
     setBoard(loadBoard());
     setConfirmReseed(null);
-    setSizePanelOpen(false);
   }
 
   const templateSelector = (
@@ -275,79 +298,68 @@ export default function CollagePage() {
             <p className="text-micro text-[#6E6962] text-center mt-2">
               위 탭에서 폰·PC를 고르면 배경화면으로 만들 수 있어.
             </p>
-          </>
-        ) : !devicePreset ? (
-          <>
-            {/* 사이즈 미선택 — 같은 화면에서 인라인 선택 (별도 스텝 아님) */}
-            <p className="text-caption text-[#6E6962] mb-3">
-              어떤 기기에 쓸지 사이즈를 골라줘. 고르면 바로 그 비율로 보여줄게.
-            </p>
-            <DevicePresetPicker
-              groups={view === 'phone' ? ['휴대폰', '태블릿'] : ['PC']}
-              selectedId={undefined}
-              onSelect={handleSelectPreset}
-            />
-          </>
-        ) : (
-          <>
-            {/* 사이즈 칩 행 — 선택값이 화면에 남아 바로 변경 가능 */}
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-caption text-[#6E6962]">
-                {devicePreset.label} · {devicePreset.w}×{devicePreset.h}
-              </p>
-              <button
-                onClick={() => setSizePanelOpen(!sizePanelOpen)}
-                className="text-caption text-[#1C1B19] underline active:opacity-70"
-              >
-                {sizePanelOpen ? '접기' : '사이즈 바꾸기'}
-              </button>
-            </div>
-            {sizePanelOpen && (
-              <div className="mb-4 animate-fadeIn">
-                <DevicePresetPicker
-                  groups={view === 'phone' ? ['휴대폰', '태블릿'] : ['PC']}
-                  selectedId={devicePreset.id}
-                  onSelect={handleSelectPreset}
-                />
-                {confirmReseed && (
-                  <div className="mt-4 rounded-xl bg-[#FEF9C3] px-4 py-3">
-                    <p className="text-caption text-[#92400E] mb-2">
-                      비율이 달라져서 배치를 새로 짜야 해. 지금까지 꾸민 배치는 사라져. 계속할까?
-                    </p>
-                    <div className="flex gap-3">
-                      <button onClick={applyReseed} className="text-caption font-semibold text-[#92400E]">
-                        계속
-                      </button>
-                      <button onClick={() => setConfirmReseed(null)} className="text-caption text-[#6E6962]">
-                        취소
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {templateSelector}
-            <CollageBoard
-              key={`${view}-${devicePreset.id}-${template}`}
-              template={template}
-              items={keyedItems}
-              layout={savedLayout}
-              aspect={aspect}
-              onLayoutChange={handleLayoutChange}
-              year={boardYear}
-              onYearChange={handleYearChange}
-            />
-            <p className="text-micro text-[#6E6962] text-center mt-2">
-              {view === 'phone'
-                ? '선택한 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
-                : '선택한 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
-            </p>
+            {/* 보드 뷰도 바로 저장 가능 (v7.3) — 화면과 같은 4:5 이미지로 */}
             <button
               onClick={() => setSheetOpen(true)}
               className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
             >
-              {view === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
+              🖼️ 이미지로 저장
             </button>
+          </>
+        ) : (
+          <>
+            {/* 표준 사이즈 칩 — 상단 상시 노출, 탭 즉시 적용 (v7.3, 구 '사이즈 바꾸기' 패널 대체) */}
+            <DevicePresetPicker
+              groups={view === 'phone' ? ['휴대폰', '태블릿'] : ['PC']}
+              selectedId={devicePreset?.id}
+              onSelect={handleSelectPreset}
+            />
+            {devicePreset && (
+              <p className="text-caption text-[#6E6962] mt-1.5 mb-3">
+                {devicePreset.label} · {devicePreset.w}×{devicePreset.h}
+              </p>
+            )}
+            {confirmReseed && (
+              <div className="mb-4 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
+                <p className="text-caption text-[#92400E] mb-2">
+                  비율이 달라져서 배치를 새로 짜야 해. 지금까지 꾸민 배치는 사라져. 계속할까?
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={applyReseed} className="text-caption font-semibold text-[#92400E]">
+                    계속
+                  </button>
+                  <button onClick={() => setConfirmReseed(null)} className="text-caption text-[#6E6962]">
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+            {devicePreset && (
+              <>
+                {templateSelector}
+                <CollageBoard
+                  key={`${view}-${devicePreset.id}-${template}`}
+                  template={template}
+                  items={keyedItems}
+                  layout={savedLayout}
+                  aspect={aspect}
+                  onLayoutChange={handleLayoutChange}
+                  year={boardYear}
+                  onYearChange={handleYearChange}
+                />
+                <p className="text-micro text-[#6E6962] text-center mt-2">
+                  {view === 'phone'
+                    ? '선택한 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
+                    : '선택한 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
+                </p>
+                <button
+                  onClick={() => setSheetOpen(true)}
+                  className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
+                >
+                  {view === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
+                </button>
+              </>
+            )}
           </>
         )}
 
@@ -432,10 +444,10 @@ export default function CollagePage() {
         </div>
       )}
 
-      {sheetOpen && (view === 'phone' || view === 'desktop') && devicePreset && (
+      {sheetOpen && (view === 'board' ? true : !!devicePreset) && (
         <WallpaperSheet
           year={boardYear}
-          preset={devicePreset}
+          preset={view === 'board' ? BOARD_EXPORT_PRESET : devicePreset!}
           board={{ template, layout: currentLayout, items: keyedItems }}
           onClose={() => setSheetOpen(false)}
         />

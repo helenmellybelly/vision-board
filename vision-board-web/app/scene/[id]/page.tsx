@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
 import { loadBoard, saveSectionScene, saveMiniStory, saveTargetDate } from '@/lib/storage';
-import { getTargetDate, formatDiaryDate } from '@/lib/targetDate';
+import { getTargetDate, getTargetYear, formatDiaryDate } from '@/lib/targetDate';
 import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import { SLOT_KEY_LABELS } from '@/lib/slotLabels';
 import ProcessBar from '@/components/ProcessBar';
@@ -137,9 +137,10 @@ export default function ScenePage() {
 
   const sceneStep = section.sceneStep;
   const keyword = slots.keyword || '';
+  const targetYear = getTargetYear(board);
   const cushionText = keyword
-    ? `질문은 끝났어. 이제 '${keyword}' 상태가 이루어진 3년 뒤의 하루를 그려볼 거야. 이 하루가 비전보드의 핵심이 될 거야.`
-    : '질문은 끝났어. 이제 지금까지 말해준 것들이 이루어진 3년 뒤의 하루를 그려볼 거야.';
+    ? `질문은 끝났어. 이제 '${keyword}' 상태가 이루어진 ${targetYear}년의 하루를 그려볼 거야. 이 하루가 비전보드의 핵심이 될 거야.`
+    : `질문은 끝났어. 이제 지금까지 말해준 것들이 이루어진 ${targetYear}년의 하루를 그려볼 거야.`;
 
   const sceneQuestion = '그날의 하루, 어디서 뭘 하고 있어? 느낌과 상황을 구체적으로 써봐.';
 
@@ -212,11 +213,22 @@ export default function ScenePage() {
 
         {!submitted && (
           <>
+            {/* 작성 가이드 카드 (v7.3) — 몇 개를 얼마나 구체적으로 쓸지 기준 제시 */}
+            <div className="mt-3 rounded-2xl bg-[#F5F5F3] px-4 py-3">
+              <p className="text-caption font-semibold text-[#1C1B19] mb-1">
+                ✍️ 이렇게 쓰면 일기가 진짜같아져
+              </p>
+              <p className="text-caption text-[#6B7280] leading-relaxed">
+                · 순간 2~3개면 충분해
+                <br />· 순간마다 「어디서 · 뭘 하고 · 뭐가 보이는지」까지
+              </p>
+            </div>
+
             {/* 순간 보태기 칩 — 탭하면 입력에 한 줄씩 추가 (선택사항) */}
             {chips.length > 0 && (
               <div className="mt-3">
                 <p className="text-micro text-[#6E6962] font-semibold mb-1.5">
-                  이런 순간을 보태도 좋아 (탭하면 추가돼)
+                  막막하면 탭해서 넣고, 네 상황에 맞게 고쳐 써봐
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {chips.map((chip) => (
@@ -239,7 +251,7 @@ export default function ScenePage() {
               onSubmit={handleSubmit}
               placeholder={sceneStep.placeholder || '구체적일수록 좋아. 장소, 행동, 감각까지.'}
               example={sceneStep.example}
-              hint="여러 순간이어도 좋아. 느낌, 장소, 상황 모두 담아봐."
+              hint="순간 2~3개, 각각 장소·행동까지 쓰면 딱 좋아."
               value={sceneInput}
               onChangeText={setSceneInput}
             />

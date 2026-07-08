@@ -66,7 +66,8 @@ const PIXEL =
   await page.goto(`${BASE}/scene/1`);
   await page.waitForTimeout(1500);
   const expectYear = String(new Date().getFullYear() + 3);
-  ok('R3-1a 일기 헤더 기본 날짜(+3년)', await page.getByText(`${expectYear}년`).isVisible().catch(() => false));
+  // v7.3: 쿠션 버블도 연도를 표기해 다중 매칭 — first()로 확인
+  ok('R3-1a 일기 헤더 기본 날짜(+3년)', await page.getByText(`${expectYear}년`).first().isVisible().catch(() => false));
   ok('R3-1b 요일 포함 포맷', await page.getByText(/요일/).first().isVisible().catch(() => false));
   ok('R3-1c 기존 miniStory 원형 렌더', await page.getByText('느긋하다').isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r3-diary-header.png`, fullPage: true });

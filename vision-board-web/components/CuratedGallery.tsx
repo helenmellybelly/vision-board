@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { track } from '@vercel/analytics';
 import { SectionId } from '@/lib/types';
 import { CURATED_CATEGORIES, defaultCategoryFor, CuratedPhoto } from '@/lib/curatedImages';
 import { pickRemotePhoto, unpickRemotePhoto, PICK_NOTICES } from '@/lib/imagePick';
+import ScrollRow from '@/components/ScrollRow';
 
 interface Props {
   sectionId: SectionId;
@@ -51,14 +53,14 @@ export default function CuratedGallery({ sectionId, color, pickedIds, onChanged 
         <p className="text-caption text-[#6E6962]">어울리는 사진을 탭하면 비전보드에 담아둘게.</p>
       </div>
 
-      {/* 카테고리 칩 */}
-      <div className="flex gap-1.5 overflow-x-auto scroll-hide pb-2 -mx-1 px-1">
+      {/* 카테고리 칩 — ScrollRow가 '옆으로 더 있음' 페이드·버튼 제공 (v7.3) */}
+      <ScrollRow className="flex gap-1.5 pb-2 -mx-1 px-1">
         {CURATED_CATEGORIES.map((cat) => {
           const active = cat.id === category.id;
           return (
             <button
               key={cat.id}
-              onClick={() => { setCatId(cat.id); setNotice(''); }}
+              onClick={() => { setCatId(cat.id); setNotice(''); track('curated_category', { category: cat.id }); }}
               className="flex-shrink-0 text-caption px-3 py-1.5 rounded-full border transition-colors"
               style={{
                 borderColor: active ? color : '#E5E3DF',
@@ -71,10 +73,10 @@ export default function CuratedGallery({ sectionId, color, pickedIds, onChanged 
             </button>
           );
         })}
-      </div>
+      </ScrollRow>
 
       {/* 사진 가로 스크롤 */}
-      <div className="flex gap-2 overflow-x-auto scroll-hide pb-1 -mx-1 px-1">
+      <ScrollRow className="flex gap-2 pb-1 -mx-1 px-1">
         {photos.map((photo) => {
           const picked = pickedIds.includes(photo.id);
           const saving = savingId === photo.id;
@@ -117,7 +119,7 @@ export default function CuratedGallery({ sectionId, color, pickedIds, onChanged 
             </button>
           );
         })}
-      </div>
+      </ScrollRow>
 
       {notice && <p className="text-micro text-[#B45309] mt-1">{notice}</p>}
       <p className="text-micro text-[#C4C2BE] mt-1">
