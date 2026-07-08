@@ -139,6 +139,16 @@ function MiniPolaroid({
           aria-hidden="true"
         />
       )}
+      {/* 토리가 추천 칸에서 기다린다 — 게임 맵의 현재 스테이지 문법 (v7.2) */}
+      {isNext && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/tori-profile-bust.png"
+          alt=""
+          aria-hidden="true"
+          className="absolute -top-2 -left-2 w-5 h-5 rounded-full object-cover z-10 shadow-md"
+        />
+      )}
       <div
         className="w-full aspect-square flex items-center justify-center overflow-hidden"
         style={{ backgroundColor: area.lightColor }}
@@ -147,18 +157,24 @@ function MiniPolaroid({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={area.photo} alt={area.label} className="w-full h-full object-cover" />
         ) : (
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: area.color }} />
+          <span className="text-heading leading-none" aria-hidden="true">
+            {area.status === 'not_started' ? '🌱' : '🌿'}
+          </span>
         )}
       </div>
-      {/* 완성 셀 ✓ 배지 — 대시보드 카드 상태 칩을 대신한다 (v7.1-r3) */}
-      {area.status === 'completed' && (
+      {/* 상태 뱃지 — ✓ 완성 / ✍️ 이야기만 / 📷 사진만 (v7.2 정원 맵) */}
+      {area.status === 'completed' ? (
         <span
           className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#1C1B19] text-white text-[9px] leading-none flex items-center justify-center"
           aria-hidden="true"
         >
           ✓
         </span>
-      )}
+      ) : area.status === 'text_complete' ? (
+        <span className="absolute -top-1 -right-1 text-[10px] leading-none" aria-hidden="true">✍️</span>
+      ) : area.status === 'in_progress' && area.photo ? (
+        <span className="absolute -top-1 -right-1 text-[10px] leading-none" aria-hidden="true">📷</span>
+      ) : null}
       <p className={`text-micro text-center text-[#57534E] ${compact ? 'py-0.5' : 'py-1'}`}>{area.label}</p>
     </div>
   );
