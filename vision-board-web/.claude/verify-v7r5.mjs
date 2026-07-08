@@ -80,7 +80,7 @@ const withPhoto = (extra = {}) =>
 // ── 3) 재방문: 저장된 프리셋 → 폰 탭에서 사이즈 칩 표시 (구 '지난번:' 부제를 재정의) ──
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }, {
-    collageDevicePresets: { phone: 'iphone-pro' },
+    collageDevicePresets: { phone: 'iphone' }, // 실존 프리셋 id — 구 'iphone-pro'는 미존재라 칩이 안 뜬다
   }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);

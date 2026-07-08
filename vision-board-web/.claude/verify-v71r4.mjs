@@ -118,7 +118,8 @@ const readBoard = (page) =>
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
   ok('R4-5a 열린 고리 부캡션', await page.getByText('사진은 담았는데 이야기가 비어 있어').isVisible().catch(() => false));
-  ok('R4-5b 추천 타깃 = 관계(3)', await page.getByText('관계 →').isVisible().catch(() => false));
+  // v7.2: 추천 카드 문장형 — 열린 고리(사진만)면 '이야기를 들려줄래?' 행동 문장
+  ok('R4-5b 추천 타깃 = 관계(3)', await page.getByText('관계, 이야기를 들려줄래?').isVisible().catch(() => false));
 
   // 미시작 셀(나, 1) 탭 → 양경로 시트
   await page.locator('button[aria-label="나 — 시작 전"]').click();
