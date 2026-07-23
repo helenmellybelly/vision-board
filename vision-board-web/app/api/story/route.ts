@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
 interface StorySection {
   title: string;
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
+  if (rateLimited(req)) return tooManyRequests();
 
   let body: StoryRequest;
   try {
@@ -29,17 +31,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { userName, oneSentence, sections } = body;
+  const userName = clampStr(body.userName, 100);
+  const oneSentence = clampStr(body.oneSentence, 500);
+  // sections가 배열이 아니어도 크래시하지 않게 방어(M7) + 개수·길이 상한
+  const sections = Array.isArray(body.sections) ? body.sections.slice(0, 6) : [];
 
   const sectionLines = sections
-    .filter((s) => s.keyword || s.want || s.sceneText)
+    .filter((s) => s && (s.keyword || s.want || s.sceneText))
     .map((s) => {
       const parts = [];
-      if (s.keyword) parts.push(`방향: ${s.keyword}`);
-      if (s.want) parts.push(`원하는 것: ${s.want}`);
-      if (s.sceneText) parts.push(`장면: ${s.sceneText}`);
-      if (s.situationText) parts.push(`원하는 순간들: ${s.situationText}`);
-      return `[${s.title}] ${parts.join(' / ')}`;
+      if (s.keyword) parts.push(`방향: ${clampStr(s.keyword, 200)}`);
+      if (s.want) parts.push(`원하는 것: ${clampStr(s.want, 2000)}`);
+      if (s.sceneText) parts.push(`장면: ${clampStr(s.sceneText, 4000)}`);
+      if (s.situationText) parts.push(`원하는 순간들: ${clampStr(s.situationText, 4000)}`);
+      return `[${clampStr(s.title, 100)}] ${parts.join(' / ')}`;
     })
     .join('\n');
 

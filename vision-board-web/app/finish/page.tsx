@@ -16,19 +16,26 @@ export default function FinishPage() {
   const [phase, setPhase] = useState<FinishPhase>('pattern');
   const [sentenceInput, setSentenceInput] = useState('');
   const [story, setStory] = useState('');
+  const [storyFailed, setStoryFailed] = useState(false);
   const [confirmRewrite, setConfirmRewrite] = useState(false);
 
   useEffect(() => {
     const b = loadBoard();
+    // 온보딩 전에 딥링크로 진입하면 빈 보드로 무의미한 스토리·완성이 만들어진다 — 온보딩으로 (v7.4 감사 M3)
+    if (!b.onboardingDone) {
+      router.replace('/onboarding');
+      return;
+    }
     setBoard(b);
     if (b.oneSentence) setSentenceInput(b.oneSentence);
     if (b.futureDayStory) {
       setStory(b.futureDayStory);
       setPhase('story');
     }
-  }, []);
+  }, [router]);
 
   async function generateStory(sentence: string, currentBoard: BoardData) {
+    setStoryFailed(false);
     setPhase('story-loading');
 
     const sectionData = SECTIONS.map((s) => {
@@ -43,6 +50,9 @@ export default function FinishPage() {
       };
     });
 
+    // 느린/멈춘 연결에서 무한 로딩을 막는 타임아웃 (v7.4 감사 M2)
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
     try {
       const res = await fetch('/api/story', {
         method: 'POST',
@@ -52,7 +62,9 @@ export default function FinishPage() {
           oneSentence: sentence,
           sections: sectionData,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timer);
 
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
@@ -60,7 +72,9 @@ export default function FinishPage() {
       saveFutureDayStory(data.story);
       setPhase('story');
     } catch {
-      setStory('글 생성에 실패했어. 다시 시도해볼게.');
+      clearTimeout(timer);
+      // 실패 문자열을 스토리로 저장/표시하지 않는다 — 재시도만 노출하고 '완성' CTA는 숨긴다 (v7.4 감사 M4)
+      setStoryFailed(true);
       setPhase('story');
     }
   }
@@ -174,10 +188,16 @@ export default function FinishPage() {
           </div>
 
           <div className="bg-[#F5F5F3] rounded-2xl p-5 flex-1">
-            <p className="text-body leading-relaxed whitespace-pre-wrap">{story}</p>
+            {storyFailed ? (
+              <p className="text-body leading-relaxed text-[#92400E]">
+                이야기를 쓰다가 문제가 생겼어. 잠시 후 다시 시도해줄래?
+              </p>
+            ) : (
+              <p className="text-body leading-relaxed whitespace-pre-wrap">{story}</p>
+            )}
           </div>
 
-          {confirmRewrite && (
+          {confirmRewrite && !storyFailed && (
             <div className="rounded-xl bg-[#FEF9C3] px-4 py-3">
               <p className="text-caption text-[#92400E] mb-2">지금 이야기를 새로 쓸까? 직접 수정한 내용은 사라져.</p>
               <div className="flex gap-3">
@@ -197,24 +217,33 @@ export default function FinishPage() {
             </div>
           )}
 
-          <div className="flex gap-2">
+          {storyFailed ? (
             <button
-              onClick={() => setConfirmRewrite(true)}
-              className="flex-1 py-3 rounded-xl text-body font-semibold border border-[#E5E3DF] text-[#6B7280]"
+              onClick={() => board && generateStory(sentenceInput, board)}
+              className="w-full py-3 rounded-xl text-body font-semibold bg-[#1C1B19] text-white"
             >
-              다시 써줘
+              다시 시도
             </button>
-            <button
-              onClick={() => {
-                // 완성을 실제로 확정하는 시점에만 기록 — 페이지 진입만으로 finishedAt이 찍히지 않게 (v6.21)
-                markBoardFinished();
-                setPhase('complete');
-              }}
-              className="flex-1 py-3 rounded-xl text-body font-semibold bg-[#1C1B19] text-white"
-            >
-              비전보드 완성 →
-            </button>
-          </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmRewrite(true)}
+                className="flex-1 py-3 rounded-xl text-body font-semibold border border-[#E5E3DF] text-[#6B7280]"
+              >
+                다시 써줘
+              </button>
+              <button
+                onClick={() => {
+                  // 완성을 실제로 확정하는 시점에만 기록 — 페이지 진입만으로 finishedAt이 찍히지 않게 (v6.21)
+                  markBoardFinished();
+                  setPhase('complete');
+                }}
+                className="flex-1 py-3 rounded-xl text-body font-semibold bg-[#1C1B19] text-white"
+              >
+                비전보드 완성 →
+              </button>
+            </div>
+          )}
         </div>
       )}
 

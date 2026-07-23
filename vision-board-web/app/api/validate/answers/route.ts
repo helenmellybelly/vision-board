@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
 // 섹션 답변 의미 검증 (v6.19) — 규칙 검증을 통과한 답변이 실제로 뜻이 통하는지 판별.
 // 실패(500)는 클라이언트가 fail-open으로 처리한다 — 인프라 문제로 진행을 막지 않는다.
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
+  if (rateLimited(req)) return tooManyRequests();
 
   let body: ValidateRequest;
   try {
@@ -54,10 +56,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const userPrompt = `[섹션] ${body.sectionTitle}
+  // 개수·길이 상한 — 무제한 items[] 증폭 차단
+  const items = body.items.slice(0, 8);
+  const userPrompt = `[섹션] ${clampStr(body.sectionTitle, 100)}
 
-${body.items
-  .map((item) => `[${item.key}]\n질문: ${item.question}\n답변: ${item.answer}`)
+${items
+  .map((item) => `[${clampStr(item?.key, 40)}]\n질문: ${clampStr(item?.question, 500)}\n답변: ${clampStr(item?.answer, 2000)}`)
   .join('\n\n')}
 
 각 답변이 이해 가능한지 판별해서 JSON으로 답해줘.`;

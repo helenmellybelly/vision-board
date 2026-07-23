@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { rateLimited, tooManyRequests, clampStr, clampStrArray } from '@/lib/apiGuard';
 
 interface KeywordsRequest {
   sectionTitle: string;
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
   if (!openaiKey) {
     return NextResponse.json({ error: 'OPENAI_API_KEY not configured', code: 'MISSING_KEY' }, { status: 500 });
   }
+  if (rateLimited(req)) return tooManyRequests();
 
   let body: KeywordsRequest;
   try {
@@ -29,14 +31,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { sectionTitle, descriptions } = body;
-  if (!Array.isArray(descriptions) || descriptions.filter(Boolean).length === 0) {
+  const sectionTitle = clampStr(body.sectionTitle, 100);
+  const descriptions = clampStrArray(body.descriptions, 3, 500);
+  if (descriptions.filter(Boolean).length === 0) {
     return NextResponse.json({ error: 'descriptions required' }, { status: 400 });
   }
 
   const userPrompt = `섹션: ${sectionTitle}
 장면 묘사:
-${descriptions.slice(0, 3).map((d, i) => `장면${i + 1}: ${d}`).join('\n')}`;
+${descriptions.map((d, i) => `장면${i + 1}: ${d}`).join('\n')}`;
 
   const openai = new OpenAI({ apiKey: openaiKey });
 

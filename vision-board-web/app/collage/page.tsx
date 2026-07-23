@@ -86,8 +86,17 @@ export default function CollagePage() {
 
   useEffect(() => {
     const b = loadBoard();
+    // 온보딩 전 딥링크 진입 시 온보딩으로 (v7.4 감사 M3)
+    if (!b.onboardingDone) {
+      router.replace('/onboarding');
+      return;
+    }
     setBoard(b);
-    if (!localStorage.getItem(COACH_KEY)) setShowCoach(true);
+    try {
+      if (!localStorage.getItem(COACH_KEY)) setShowCoach(true);
+    } catch {
+      // iOS 프라이빗 모드 등 localStorage 접근 불가 — 코치마크 없이 진행
+    }
     // ?view= 우선, 레거시 ?device=(/finish 딥링크) 호환 — URL은 ?view=로 정규화해
     // 페이지뷰 분석에서 서브뷰가 구분되게 남긴다 (v7.3)
     // useSearchParams는 Suspense 바운더리를 요구하므로 클라이언트 마운트에서 직접 파싱
@@ -99,7 +108,7 @@ export default function CollagePage() {
     else if (device === 'phone' || device === 'desktop') initial = device;
     setView(initial);
     history.replaceState(null, '', `${window.location.pathname}?view=${initial}`);
-  }, []);
+  }, [router]);
 
   // 기기 뷰 첫 진입 — 프리셋 미선택이면 표준값 자동 선택 (v7.3, 빈 피커 화면 제거)
   // 시드 id는 반드시 실존 프리셋만 ('phone', 'pc-fhd')
@@ -112,7 +121,12 @@ export default function CollagePage() {
   }, [view, board]);
 
   function dismissCoach() {
-    localStorage.setItem(COACH_KEY, '1');
+    // iOS 프라이빗 모드에서 setItem이 throw해도 오버레이는 닫히게 (v7.4 감사 M6)
+    try {
+      localStorage.setItem(COACH_KEY, '1');
+    } catch {
+      // 저장 실패해도 이번 세션 동안은 닫힌 상태 유지
+    }
     setShowCoach(false);
   }
 

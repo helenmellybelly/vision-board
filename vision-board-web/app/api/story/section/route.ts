@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { formatDiaryDate, seasonOf } from '@/lib/targetDate';
+import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
 interface SectionStoryRequest {
   sectionTitle: string;
@@ -116,6 +117,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
+  if (rateLimited(req)) return tooManyRequests();
 
   let body: SectionStoryRequest;
   try {
@@ -124,7 +126,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { extractedSlots, sceneText, targetDate, situationText, additionalInput } = body;
+  // 입력 길이 상한 — 프롬프트 토큰 비용 증폭 차단. extractedSlots가 없어도 안전.
+  const rawSlots = body.extractedSlots ?? {};
+  const extractedSlots = {
+    current: clampStr(rawSlots.current, 2000),
+    want: clampStr(rawSlots.want, 2000),
+    feeling: clampStr(rawSlots.feeling, 2000),
+    keyword: clampStr(rawSlots.keyword, 200),
+  };
+  const sceneText = clampStr(body.sceneText, 4000);
+  const targetDate = clampStr(body.targetDate, 40);
+  const situationText = clampStr(body.situationText, 4000);
+  const additionalInput = clampStr(body.additionalInput, 4000);
 
   // v7.0-r2: 순간 별도 입력이 사라짐 — 목록이 없으면 하루 서술에서 AI가 직접 골라 배치
   const momentText = [situationText, additionalInput]

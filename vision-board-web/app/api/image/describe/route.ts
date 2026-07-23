@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { IMAGE_DESCRIBE_CORE_RULES } from '@/lib/prompts';
+import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
 interface ImageDescribeRequest {
   sectionTitle: string;
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
   if (!openaiKey) {
     return NextResponse.json({ error: 'OPENAI_API_KEY not configured', code: 'MISSING_KEY' }, { status: 500 });
   }
+  if (rateLimited(req)) return tooManyRequests();
 
   let body: ImageDescribeRequest;
   try {
@@ -33,12 +35,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { sectionTitle, situationText, sceneText, story } = body;
+  // story가 문자열이 아니어도 크래시하지 않게 방어 + 길이 상한
+  const sectionTitle = clampStr(body.sectionTitle, 100);
+  const situationText = clampStr(body.situationText, 4000);
+  const sceneText = clampStr(body.sceneText, 4000);
 
   const userPrompt = `섹션: ${sectionTitle}
 장면: ${sceneText}
 구체적 순간들: ${situationText}
-하루 스토리 요약: ${story.slice(0, 300)}`;
+하루 스토리 요약: ${clampStr(body.story, 300)}`;
 
   const openai = new OpenAI({ apiKey: openaiKey });
 

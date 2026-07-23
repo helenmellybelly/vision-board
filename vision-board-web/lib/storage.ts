@@ -35,15 +35,22 @@ function createEmptyBoard(): BoardData {
 
 export function loadBoard(): BoardData {
   if (typeof window === 'undefined') return createEmptyBoard();
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return createEmptyBoard();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createEmptyBoard();
     const parsed = JSON.parse(raw) as BoardData;
     if (parsed.userName === undefined) parsed.userName = '';
     migrateCollage(parsed);
     migrateBoard(parsed);
     return parsed;
   } catch {
+    // 손상된 JSON(quota truncation·크래시 등) — 빈 보드를 돌려주면 곧 첫 저장이
+    // 이 값을 덮어써 영구 소멸한다. 원본 raw를 백업 키에 보관해 복구 여지를 남긴다 (v7.4 감사 H4).
+    try {
+      localStorage.setItem(`${STORAGE_KEY}-corrupt-backup`, raw);
+    } catch {
+      // 백업 저장조차 실패(공간 부족)하면 어쩔 수 없이 진행
+    }
     return createEmptyBoard();
   }
 }
@@ -342,10 +349,11 @@ export function saveMiniStory(sectionId: SectionId, story: string): void {
   saveBoard(board);
 }
 
-export function saveGeneratedImages(sectionId: SectionId, urls: string[]): void {
+// 성공 여부 반환(v7.4 감사 H1) — base64 이미지 누적으로 quota에 닿을 수 있어 호출부가 확인해야 한다
+export function saveGeneratedImages(sectionId: SectionId, urls: string[]): boolean {
   const board = loadBoard();
   board.sections[sectionId].generatedImages = urls;
-  saveBoard(board);
+  return trySaveBoard(board);
 }
 
 export function saveImageDescriptions(sectionId: SectionId, descriptions: string[]): void {
@@ -382,7 +390,8 @@ export function saveUploadedImage(
   return trySaveBoard(board);
 }
 
-export function saveUploadedImages(sectionId: SectionId, images: (string | null)[]): void {
+// 성공 여부 반환(v7.4 감사 H1) — quota 초과 시 false, 호출부가 완료 처리를 막아야 한다
+export function saveUploadedImages(sectionId: SectionId, images: (string | null)[]): boolean {
   const board = loadBoard();
   const sec = board.sections[sectionId];
   // 벌크 저장 시 출처 정합(v7.1-r2): 인덱스별로 이미지가 그대로면 출처 보존, 바뀌었으면 소거
@@ -392,7 +401,7 @@ export function saveUploadedImages(sectionId: SectionId, images: (string | null)
     img && img === prev[i] ? sources[i] ?? null : null
   );
   sec.uploadedImages = images;
-  saveBoard(board);
+  return trySaveBoard(board);
 }
 
 // AI 이미지만 초기화 (업로드 이미지 유지)

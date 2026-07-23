@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
 interface SectionInput {
   title: string;
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
+  if (rateLimited(req)) return tooManyRequests();
 
   let body: RequestBody;
   try {
@@ -27,17 +29,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { userName, sections } = body;
+  const userName = clampStr(body.userName, 100);
+  // sections가 배열이 아니어도 크래시하지 않게 방어(M7) + 개수·길이 상한
+  const sections = Array.isArray(body.sections) ? body.sections.slice(0, 6) : [];
 
   const sectionLines = sections
-    .filter((s) => s.keyword || s.bucketList || s.feeling)
+    .filter((s) => s && (s.keyword || s.bucketList || s.feeling))
     .map((s) => {
       const parts = [];
-      if (s.current) parts.push(`현재: ${s.current}`);
-      if (s.keyword) parts.push(`키워드: ${s.keyword}`);
-      if (s.bucketList) parts.push(`원하는 것: ${s.bucketList}`);
-      if (s.feeling) parts.push(`이뤄졌을 때 느낌: ${s.feeling}`);
-      return `[${s.title}]\n${parts.join(' / ')}`;
+      if (s.current) parts.push(`현재: ${clampStr(s.current, 2000)}`);
+      if (s.keyword) parts.push(`키워드: ${clampStr(s.keyword, 200)}`);
+      if (s.bucketList) parts.push(`원하는 것: ${clampStr(s.bucketList, 2000)}`);
+      if (s.feeling) parts.push(`이뤄졌을 때 느낌: ${clampStr(s.feeling, 2000)}`);
+      return `[${clampStr(s.title, 100)}]\n${parts.join(' / ')}`;
     })
     .join('\n\n');
 

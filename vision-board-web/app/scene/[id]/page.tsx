@@ -42,6 +42,11 @@ export default function ScenePage() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // 잘못된 id로 진입하면 b.sections[sectionId]가 undefined라 크래시 — 대시보드로 (v7.4 감사 H3)
+    if (!section) {
+      router.replace('/dashboard');
+      return;
+    }
     const b = loadBoard();
     setBoard(b);
     setTargetDate(getTargetDate(b));
@@ -69,6 +74,9 @@ export default function ScenePage() {
   }, [submitted, story, storyLoading]);
 
   async function generateStory(scene: string, additional?: string): Promise<string> {
+    // 느린/멈춘 연결에서 무한 로딩을 막는 타임아웃 (v7.4 감사 M2)
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
     try {
       const res = await fetch('/api/story/section', {
         method: 'POST',
@@ -80,11 +88,14 @@ export default function ScenePage() {
           targetDate,
           additionalInput: additional,
         }),
+        signal: controller.signal,
       });
       const data = await res.json();
       return (data.story as string) ?? '';
     } catch {
       return '';
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -147,6 +158,8 @@ export default function ScenePage() {
   const slotEntries = (Object.keys(SLOT_KEY_LABELS) as Array<keyof ExtractedSlots>).filter(
     (k) => slots[k]
   );
+  if (!section) return null;
+
   const chips = section.situationChips ?? [];
   const sectionName = section.title.split(' — ')[0];
 

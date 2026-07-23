@@ -48,6 +48,12 @@ export default function SectionChatPage() {
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // 잘못된 id(범위 밖·NaN)로 진입하면 b.sections[sectionId]가 undefined라 크래시한다.
+    // 유효 섹션이 아니면 대시보드로 돌려보낸다 (v7.4 감사 H3)
+    if (!section) {
+      router.replace('/dashboard');
+      return;
+    }
     const b = loadBoard();
     setBoard(b);
     const sec = b.sections[sectionId];
@@ -222,6 +228,8 @@ export default function SectionChatPage() {
   }
 
   const scrollClass = chatHovered ? 'scroll-show' : 'scroll-hide';
+
+  if (!section) return null;
 
   return (
     <div className="h-dvh flex flex-col max-w-md md:max-w-xl mx-auto w-full">

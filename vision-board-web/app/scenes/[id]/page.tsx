@@ -79,6 +79,11 @@ export default function ScenesPage() {
   const [nudgeBannerClosed, setNudgeBannerClosed] = useState(false);
 
   useEffect(() => {
+    // 잘못된 id로 진입하면 b.sections[sectionId]가 undefined라 크래시 — 대시보드로 (v7.4 감사 H3)
+    if (!section) {
+      router.replace('/dashboard');
+      return;
+    }
     const b = loadBoard();
     setBoard(b);
     const sec = b.sections[sectionId];
@@ -178,10 +183,25 @@ export default function ScenesPage() {
     reader.onload = async (e) => {
       const raw = e.target?.result as string;
       const compressed = await compressImage(raw, 0.60, 800);
+      // compressImage는 성공 시 JPEG로 재인코딩한다. 결과가 JPEG가 아니면 브라우저가
+      // 디코드 못 한 포맷(HEIC 등) — 저장하면 깨진 썸네일이 되므로 막는다 (v7.4 감사 M5)
+      if (!compressed.startsWith('data:image/jpeg')) {
+        setSlotNotice('이 사진 형식은 지원하지 않아. JPG나 PNG로 다시 올려줄래?');
+        return;
+      }
+      // quota 초과 시 저장 실패를 사용자에게 알리고 슬롯에 반영하지 않는다 (v7.4 감사 H1)
+      const ok = saveUploadedImage(sectionId, index, compressed);
+      if (!ok) {
+        setSlotNotice('저장 공간이 부족해 사진을 담지 못했어. 다른 사진을 지우고 다시 시도해줘.');
+        return;
+      }
       const updated = [...uploadedImages];
       updated[index] = compressed;
       setUploadedImages(updated);
-      saveUploadedImage(sectionId, index, compressed);
+      setSlotNotice('');
+    };
+    reader.onerror = () => {
+      setSlotNotice('사진을 읽지 못했어. 다른 사진으로 다시 시도해줘.');
     };
     reader.readAsDataURL(file);
   }
@@ -202,11 +222,16 @@ export default function ScenesPage() {
     if (!url) return;
     const emptyIdx = [0, 1, 2].find((i) => !getSlotUrl(i));
     if (emptyIdx === undefined) return;
+    const ok = saveUploadedImage(sectionId, emptyIdx, url);
+    if (!ok) {
+      setSlotNotice('저장 공간이 부족해 담지 못했어. 사진을 지우고 다시 시도해줘.');
+      return;
+    }
     const updated = [...uploadedImages];
     updated[emptyIdx] = url;
     setUploadedImages(updated);
-    saveUploadedImage(sectionId, emptyIdx, url);
     setUrlInput('');
+    setSlotNotice('');
   }
 
   function handleRemoveSlot(index: number) {
@@ -235,11 +260,18 @@ export default function ScenesPage() {
   async function handleSave() {
     setSaving(true);
     const validAiUrls = generatedImages.filter((img) => img.url).map((img) => img.url);
+    let saveOk = true;
     if (validAiUrls.length > 0) {
       const compressed = await Promise.all(validAiUrls.map((url) => compressImage(url)));
-      saveGeneratedImages(sectionId, compressed);
+      saveOk = saveGeneratedImages(sectionId, compressed) && saveOk;
     }
-    saveUploadedImages(sectionId, uploadedImages);
+    saveOk = saveUploadedImages(sectionId, uploadedImages) && saveOk;
+    // quota 초과로 저장이 실패하면 '완성' 처리를 막고 사용자에게 알린다 (v7.4 감사 H1)
+    if (!saveOk) {
+      setSaving(false);
+      setSlotNotice('저장 공간이 부족해 사진을 다 담지 못했어. 사진 수를 줄이거나 한 장 지우고 다시 시도해줘.');
+      return;
+    }
     if (hasAnswers) {
       markSectionComplete(sectionId);
       setBoard(loadBoard());

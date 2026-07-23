@@ -29,14 +29,22 @@ function AISummaryCard({ board }: { board: BoardData }) {
           feeling: slots.feeling || '',
         };
       });
-      const res = await fetch('/api/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName: board.userName, sections }),
-      });
-      if (!res.ok) throw new Error('API error');
-      const data = await res.json();
-      setSummary(data.summary);
+      // 느린/멈춘 연결에서 무한 스켈레톤을 막는 타임아웃 (v7.4 감사 M2)
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      try {
+        const res = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userName: board.userName, sections }),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        setSummary(data.summary);
+      } finally {
+        clearTimeout(timer);
+      }
     } catch {
       setError(true);
     } finally {
@@ -93,8 +101,14 @@ export default function ReviewPage() {
   const [board, setBoard] = useState<BoardData | null>(null);
 
   useEffect(() => {
-    setBoard(loadBoard());
-  }, []);
+    const b = loadBoard();
+    // 온보딩 전 딥링크 진입 시 빈 답변으로 AI 요약을 호출하지 않게 온보딩으로 (v7.4 감사 M3)
+    if (!b.onboardingDone) {
+      router.replace('/onboarding');
+      return;
+    }
+    setBoard(b);
+  }, [router]);
 
   if (!board) return null;
 
