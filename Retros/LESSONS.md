@@ -208,7 +208,7 @@ HANDOFF.md에 "구현 완료"라고 적혀 있어도, `git diff HEAD --stat`로 
 
 ## Deployment
 
-### PowerShell 파이프로 `vercel env add`에 값을 넘기면 빈 값으로 등록된다 — 검증은 실측으로 #coding #deployment #vercel #powershell
+### PowerShell 파이프로 `vercel env add`에 값을 넘기면 빈 값으로 등록된다 — 검증은 실측으로 #coding #deployment #vercel #powershell (✅ 전역 CLAUDE.md 승급 2026-07-23)
 `$val | npx vercel env add NAME production`이 에러 없이 "Added"를 찍지만 실제로는 **빈 문자열**이 저장됐다(v7.4 실측 — 빈 키 탓에 Gemini가 조용히 Groq 폴백으로 빠짐). 개행 포함 임시 파일을 만들어 `cmd /c "npx vercel env add NAME production < file"`로 등록할 것. 또 `vercel env pull`은 시크릿 값을 `""`로 마스킹하므로(정상 키도 전부 빈 값으로 보임) 등록 검증은 pull 비교가 아니라 **재배포 후 해당 기능 실호출**(응답 시그니처·로그)로 해야 한다. env 변경은 재배포 전 기존 배포에 반영되지 않는다.
 
 ### CSR 페이지의 배포 검증은 HTML 문자열 매칭이 안 된다 — vercel inspect로 확인 #coding #deployment #vercel
@@ -233,7 +233,7 @@ OpenAI/DALL-E URL은 24시간 후 만료되어 localStorage에 URL 문자열로 
 
 ## AI API
 
-### Gemini 고정 버전 모델명은 신규 키에서 404로 부패한다 — latest 별칭을 기본값으로 #coding #ai-api #gemini
+### Gemini 고정 버전 모델명은 신규 키에서 404로 부패한다 — latest 별칭을 기본값으로 #coding #ai-api #gemini (✅ 전역 CLAUDE.md 승급 2026-07-23)
 `gemini-2.5-flash(-lite)`가 ListModels에는 나오는데 generateContent에서 "This model is no longer available to new users" 404를 반환했다(v7.4 실측 — 신규 발급 키 기준). 목록 존재 ≠ 호출 가능. 무료 티어 기본값은 `gemini-flash-latest`/`gemini-flash-lite-latest` 별칭으로 두고, 실패 시 무료 폴백(Groq) 체인을 항상 함께 둘 것.
 
 ### 새 OpenAI 계정은 dall-e-3가 없고 gpt-image-1이 기본이다 #coding #openai #ai-api

@@ -26,6 +26,7 @@
 - 온보딩 몰입(스킵 없이): Step1 실시간 호명 미리보기, Step2 도토리 심기 인터랙션(CSS 키프레임 낙하+새싹), Step3 막연→선명 슬라이더 직접 조작
 - LLM 0원화: lib/llm.ts(Gemini flash 무료 티어 1차→Groq 2차), OpenAI 라우트 4개 전환, @anthropic-ai/sdk·openai 제거. 고정 모델명(gemini-2.5-*)이 "no longer available to new users" 404로 부패 → `gemini-flash(-lite)-latest` 별칭 채택. Vercel env는 파이프 stdin이 빈 값으로 등록되는 함정 → 개행 포함 파일 리다이렉트로 재등록+재배포
 - 검증·배포: 사전 v7.4 감사 변경분 별도 커밋(b67d75b) → R1 커밋(cbc733a) → verify-v74r1 신설(32케이스)+구 스위트 5종 신 UX 갱신 → 13스위트 290/290 PASS, 일기 3편 기계 검증(450~650자·볼드 1곳), 프로덕션 스모크(11경로 200·번들 카피 grep·Gemini 시그니처 실측)
+- 전역 규칙 승급 2건(HITL 승인): Gemini latest 별칭 규칙 + Vercel env 파이프 함정 → `~/.claude/CLAUDE.md` (LESSONS에 승급 표기)
 - 온보딩: 스텝1 누락 문장("우리가 함께 비전보드를 만들어 갈 거야") 추가 — 프로덕션 번들 grep으로 '배포 문제 아님·카피 부재'로 판별. 스텝2 도토리 문안 반말 교체 + CTA "그래, 함께 해보자!"
 - 대시보드: "질문 없이, 사진부터 담아볼래?" 시트(섹션별 /scenes 직행), 연도 캡션+스테퍼 편집. 하드코딩 "3년 뒤" → targetDate 파생(scene 쿠션·review·finish)
 - collage 재구성: 기본 뷰 PC, 사이즈 칩 상시 노출('사이즈 바꾸기' 패널 삭제·프리셋 자동 시드), 보드 뷰 이미지 저장(4:5), ?view= URL 동기화(?device= 호환)
