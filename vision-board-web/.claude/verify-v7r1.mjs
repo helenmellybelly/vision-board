@@ -109,8 +109,13 @@ const readBoard = (page) =>
   await page.getByText('계속하려면 탭').click();
   await page.waitForTimeout(500);
   ok('R1-5b 탭 2회 → 마지막 메시지(함께 만들자)', await page.getByText('우리 함께 비전보드를 만들어 볼까?').isVisible().catch(() => false));
+  // v7.4 심기 인터랙션: 심기 버튼 → 낙하·새싹 후 CTA
+  const plantBtn = page.getByText('도토리 심기');
+  ok('R1-5c 탭 2회 → 심기 버튼 노출', await plantBtn.isVisible().catch(() => false));
+  await plantBtn.click();
+  await page.waitForTimeout(1600);
   const cta2 = page.getByText('그래, 함께 해보자!');
-  ok('R1-5c 탭 2회 → CTA 노출', await cta2.isVisible().catch(() => false));
+  ok('R1-5c2 심기 → CTA 노출', await cta2.isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r1-step2.png`, fullPage: true });
   await cta2.click();
   await page.waitForTimeout(1200);

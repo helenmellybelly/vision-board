@@ -75,7 +75,8 @@ async function newPage(seed) {
   const { ctx, page } = await newPage(doneBoard({}, { dashboardIntroSeen: false }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('V2-2d-1 첫 진입 시트: 순서 자유', await page.getByText('순서는 네 마음').isVisible().catch(() => false));
+  // v7.4: '순서는 네 마음' → 코어 경로 라이트('먼저 마음 가는 세 칸부터')로 교체
+  ok('V2-2d-1 첫 진입 시트: 코어 경로', await page.getByText('먼저 마음 가는 세 칸부터').isVisible().catch(() => false));
   ok('V2-2d-2 첫 진입 시트: 질문 추천', await page.getByText('먼저 찾아보는 걸 추천해').isVisible().catch(() => false));
   await ctx.close();
 }

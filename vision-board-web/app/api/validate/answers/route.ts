@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { freeChat, freeLlmConfigured } from '@/lib/llm';
 import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
 // 섹션 답변 의미 검증 (v6.19) — 규칙 검증을 통과한 답변이 실제로 뜻이 통하는지 판별.
@@ -39,8 +39,8 @@ reason은 사용자에게 그대로 보여줍니다. 따뜻한 반말 한 문장
 판단하거나 꾸짖는 톤 금지.`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  // v7.4 LLM 무료화 — gpt-4o-mini → Gemini flash-lite(1차)·Groq(2차). 실패는 기존대로 fail-open
+  if (!freeLlmConfigured()) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
   if (rateLimited(req)) return tooManyRequests();
@@ -67,18 +67,12 @@ ${items
 각 답변이 이해 가능한지 판별해서 JSON으로 답해줘.`;
 
   try {
-    const openai = new OpenAI({ apiKey });
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
+    const raw = await freeChat({
+      system: SYSTEM_PROMPT,
+      user: userPrompt,
       temperature: 0,
-      response_format: { type: 'json_object' },
+      json: true,
     });
-
-    const raw = completion.choices[0]?.message?.content ?? '';
     const parsed = JSON.parse(raw) as { results?: Record<string, { valid: boolean; reason?: string }> };
     if (!parsed.results) {
       return NextResponse.json({ error: 'Malformed model output' }, { status: 500 });

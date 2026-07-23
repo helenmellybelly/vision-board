@@ -414,6 +414,41 @@ export function resetAiImages(sectionId: SectionId): void {
   saveBoard(board);
 }
 
+// ── v7.4: 일기 재생성 제한 · 슬롯 유예 · pathSheet 선택 기억 ──
+
+/** 일기 재생성 1회 기록 후 누적 횟수 반환 — "하루 다시 쓰기"·"더 담고 싶은 장면" 합산 */
+export function incrementDiaryRegen(sectionId: SectionId): number {
+  const board = loadBoard();
+  const sec = board.sections[sectionId];
+  sec.diaryRegenCount = (sec.diaryRegenCount ?? 0) + 1;
+  saveBoard(board);
+  return sec.diaryRegenCount;
+}
+
+/** 슬롯 유예 설정/해제 — keyword는 장면·finish 재료라 유예 불가(호출부에서 차단, 여기서도 무시) */
+export function setSlotDeferred(
+  sectionId: SectionId,
+  key: keyof ExtractedSlots,
+  deferred: boolean
+): void {
+  if (key === 'keyword') return;
+  const board = loadBoard();
+  const sec = board.sections[sectionId];
+  const list = (sec.deferredSlots ?? []).filter((k) => k !== key);
+  if (deferred) list.push(key);
+  sec.deferredSlots = list.length > 0 ? list : undefined;
+  saveBoard(board);
+}
+
+/** 양경로 시트 선택 기록 — 같은 선택이 이어지면 streak 증가, 다르면 1로 리셋 */
+export function recordPathChoice(kind: 'question' | 'photo'): void {
+  const board = loadBoard();
+  const prev = board.pathChoice;
+  board.pathChoice =
+    prev?.kind === kind ? { kind, streak: prev.streak + 1 } : { kind, streak: 1 };
+  saveBoard(board);
+}
+
 // C1: 수정 캐스케이드 리셋 함수들
 
 export function resetImages(sectionId: SectionId): void {

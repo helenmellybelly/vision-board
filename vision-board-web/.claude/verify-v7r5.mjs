@@ -109,8 +109,8 @@ const withPhoto = (extra = {}) =>
   ok('R5-5a 미니보드 렌더 (Vision Board)', await page.getByText('Vision Board').isVisible().catch(() => false));
   // v7.3: 연도 캡션('2029년의 나를...')과 다중 매칭 — first()로 확인
   ok('R5-5b 중앙 연도 = targetDate', await page.getByText('2029').first().isVisible().catch(() => false));
-  // v7.2 정원 캡션: '이제 N칸 남았어' → 'N/6 피었어'
-  ok('R5-5c goal-gradient 카피', await page.getByText('1/6 피었어').isVisible().catch(() => false));
+  // v7.2 'N/6 피었어' → v7.4 개화 카피 제거 + 부분 가치('1칸만 있어도 네 보드야')
+  ok('R5-5c 진행 캡션(부분 가치)', await page.getByText('1칸만 있어도 네 보드야').isVisible().catch(() => false));
   const photoCount = await page.locator('img[alt="나"]').count();
   ok('R5-5d 완료 섹션 칸에 사진', photoCount >= 1, `imgs=${photoCount}`);
   // v7.2: 단일 진입 버튼 '내 비전보드 보기' → 보드 뷰 직행

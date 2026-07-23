@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { freeChat, freeLlmConfigured } from '@/lib/llm';
 import { formatDiaryDate, seasonOf } from '@/lib/targetDate';
 import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
@@ -113,8 +113,8 @@ const SYSTEM_PROMPT = `당신은 사용자가 원하는 삶이 이미 이루어�
 - 감정 단어 나열`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  // v7.4 LLM 무료화 — gpt-4o-mini → Gemini flash(1차)·Groq(2차). 프롬프트는 불변
+  if (!freeLlmConfigured()) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
   if (rateLimited(req)) return tooManyRequests();
@@ -177,17 +177,13 @@ ${extractedSlots.feeling || ''}
 [그려낸 장면]이 하루의 중심이 되게.`;
 
   try {
-    const openai = new OpenAI({ apiKey });
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
+    // 일기는 결과물 품질이 핵심 — flash 상위 모델 사용 (나머지 유틸 라우트는 flash-lite)
+    const story = await freeChat({
+      system: SYSTEM_PROMPT,
+      user: userPrompt,
       temperature: 0.9,
+      geminiModel: 'gemini-flash-latest',
     });
-
-    const story = completion.choices[0]?.message?.content?.trim() ?? '';
     return NextResponse.json({ story });
   } catch (err) {
     console.error('Section story API error:', err);

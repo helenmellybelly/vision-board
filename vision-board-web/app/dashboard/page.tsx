@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { track } from '@vercel/analytics';
-import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate } from '@/lib/storage';
+import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice } from '@/lib/storage';
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, SectionId } from '@/lib/types';
@@ -55,10 +55,23 @@ export default function DashboardPage() {
   function handleSelectSection(id: SectionId) {
     if (!board) return;
     if (board.sections[id].status === 'not_started') {
+      // 같은 경로 3연속 선택이면 시트 생략 직행 (v7.4) — 반복 유저의 탭 1회 절약
+      const choice = board.pathChoice;
+      if (choice && choice.streak >= 3) {
+        recordPathChoice(choice.kind);
+        router.push(choice.kind === 'photo' ? `/scenes/${id}` : `/section/${id}`);
+        return;
+      }
       setPathSheetId(id);
       return;
     }
     router.push(getSectionRoute(board.sections[id], id));
+  }
+
+  // 양경로 시트에서 경로 확정 — 선택을 기록(3연속 판정용)하고 이동
+  function handlePathChoice(id: SectionId, kind: 'question' | 'photo') {
+    recordPathChoice(kind);
+    router.push(kind === 'photo' ? `/scenes/${id}` : `/section/${id}`);
   }
 
   function handleCloseIntro() {
@@ -86,12 +99,18 @@ export default function DashboardPage() {
   const hasAnyImage = SECTIONS.some((section) => sectionHasPhoto(board.sections[section.id]));
   // 미니보드 goal-gradient — '칸'의 정의는 사진이 1장이라도 담긴 섹션 (v7.0-r5)
   const photoSectionCount = SECTIONS.filter((section) => sectionHasPhoto(board.sections[section.id])).length;
+  // v7.4: 개화 카피 제거(중립 진행 카피로) + 부분 가치 노출 + 초반 구간 분모 완화 —
+  // 결핍 프레임("아직 N/6") 대신 성취 프레임. 4칸 이상부터는 goal-gradient로 분모 복귀
   const boardCaption =
     photoSectionCount === 0
-      ? '질문에 답하고 사진을 담으면 이 정원이 피어나 🌰'
+      ? '질문에 답하고 사진을 담으면 보드가 채워져 🌰'
+      : photoSectionCount === 1
+      ? '1칸이 채워졌어 — 1칸만 있어도 네 보드야 🌰'
+      : photoSectionCount < 4
+      ? `벌써 ${photoSectionCount}칸이 채워졌어 — 보드가 자라고 있어 🌰`
       : photoSectionCount < 6
-      ? `${photoSectionCount}/6 피었어 🌰`
-      : '다 피었다! 배경화면으로 만들어봐 🐿️';
+      ? `${photoSectionCount}/6 채웠어 🌰`
+      : '다 채웠다! 배경화면으로 만들어봐 🐿️';
 
   // 추천 카드 — 다음 할 일 1개만 (v7.1-r3 → v7.2 문장형: 섹션명 단독 노출이 어색하다는 피드백)
   const recommendedId = getRecommendedSection(board);
@@ -204,7 +223,10 @@ export default function DashboardPage() {
                 style={{ width: `${(textCompleteCount / 6) * 100}%` }}
               />
             </div>
-            <span className="text-caption text-[#6B7280]">{textCompleteCount}/6 채워짐</span>
+            <span className="text-caption text-[#6B7280]">
+              {/* 초반 구간은 분모 생략 — "6개나 남았다"가 아니라 "N칸 했다"로 읽히게 (v7.4) */}
+              {textCompleteCount < 4 ? `${textCompleteCount}칸 채워짐` : `${textCompleteCount}/6 채워짐`}
+            </span>
           </div>
         )}
 
@@ -242,9 +264,15 @@ export default function DashboardPage() {
           {hasAnyImage && (
             <button
               onClick={() => router.push('/collage')}
-              className="w-full py-3.5 rounded-2xl border border-[#E5E3DF] bg-white text-body font-semibold text-[#1C1B19] active:opacity-70 transition-opacity"
+              className="w-full py-3 rounded-2xl border border-[#E5E3DF] bg-white text-[#1C1B19] active:opacity-70 transition-opacity"
             >
-              🖼️ 내 비전보드 보기
+              <span className="block text-body font-semibold">🖼️ 내 비전보드 보기</span>
+              {/* 부분 가치 노출 (v7.4) — 완주 전에도 보드·배경화면이 이미 만들어진다는 걸 알린다 */}
+              {photoSectionCount < 6 && (
+                <span className="block text-micro text-[#6E6962] mt-0.5">
+                  지금 담긴 사진만으로도 배경화면까지 만들 수 있어
+                </span>
+              )}
             </button>
           )}
           {/* 인터뷰 없이 사진부터 — 섹션 선택 시트로 /scenes 직행 (v7.3) */}
@@ -262,6 +290,11 @@ export default function DashboardPage() {
         const sheetSection = getSection(pathSheetId);
         if (!sheetSection) return null;
         const label = sheetSection.shortTitle ?? sheetSection.title.split(' — ')[0];
+        // 직전 선택 프리하이라이트 (v7.4) — 기본은 질문 먼저, 사진을 골라왔다면 사진 쪽을 주 버튼으로
+        const preferPhoto = board.pathChoice?.kind === 'photo';
+        const primaryCls = 'w-full py-3.5 rounded-xl text-body font-semibold text-white active:opacity-80';
+        const secondaryCls =
+          'w-full py-3.5 rounded-xl text-body font-semibold border border-[#E5E3DF] text-[#1C1B19] active:opacity-70';
         return (
           <div
             className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center"
@@ -277,18 +310,19 @@ export default function DashboardPage() {
             >
               <p className="text-title font-bold mb-1">{label}, 어떻게 시작할까?</p>
               <p className="text-body text-[#6B7280] leading-relaxed mb-4">
-                순서는 네 마음이야. 이야기부터 해도, 사진부터 골라도 돼.
+                이야기부터 해도, 사진부터 골라도 돼.
               </p>
               <button
-                onClick={() => router.push(`/section/${pathSheetId}`)}
-                className="w-full py-3.5 rounded-xl text-body font-semibold text-white active:opacity-80"
-                style={{ backgroundColor: sheetSection.color }}
+                onClick={() => handlePathChoice(pathSheetId, 'question')}
+                className={preferPhoto ? secondaryCls : primaryCls}
+                style={preferPhoto ? undefined : { backgroundColor: sheetSection.color }}
               >
                 ✍️ 질문에 답하며 시작 →
               </button>
               <button
-                onClick={() => router.push(`/scenes/${pathSheetId}`)}
-                className="w-full mt-2.5 py-3.5 rounded-xl text-body font-semibold border border-[#E5E3DF] text-[#1C1B19] active:opacity-70"
+                onClick={() => handlePathChoice(pathSheetId, 'photo')}
+                className={`mt-2.5 ${preferPhoto ? primaryCls : secondaryCls}`}
+                style={preferPhoto ? { backgroundColor: sheetSection.color } : undefined}
               >
                 📷 사진부터 골라볼래 →
               </button>

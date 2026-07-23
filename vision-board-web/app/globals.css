@@ -120,10 +120,33 @@ textarea {
   animation: breath 3s ease-in-out infinite;
 }
 
+/* 온보딩 도토리 심기 마이크로 인터랙션 (v7.4) — 탭하면 도토리가 흙에 떨어지고 새싹이 튀어오른다 */
+@keyframes acornDrop {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  70% { transform: translateY(52px) rotate(24deg); opacity: 1; }
+  100% { transform: translateY(52px) rotate(24deg) scale(0.6); opacity: 0; }
+}
+
+.animate-acornDrop {
+  animation: acornDrop 0.7s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes sproutPop {
+  0% { transform: translateY(10px) scale(0); opacity: 0; }
+  60% { transform: translateY(-4px) scale(1.15); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.animate-sproutPop {
+  animation: sproutPop 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.55s both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fadeIn,
   .animate-slideUp,
-  .animate-breath {
+  .animate-breath,
+  .animate-acornDrop,
+  .animate-sproutPop {
     animation: none;
   }
 }

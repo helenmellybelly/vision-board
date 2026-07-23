@@ -37,11 +37,14 @@ export default function DashboardIntroSheet({
           <p className="text-body font-semibold text-[#1C1B19]">토리</p>
         </div>
 
+        {/* v7.4 코어 경로 라이트 — "한 번에 6칸"이 아니라 "마음 가는 세 칸부터"로 첫 허들을 낮춘다.
+            부분 가치("다 채우기 전에도 배경화면")도 여기서 선언 */}
         <p className="text-body leading-relaxed mb-4">
-          좋아{userName ? `, ${josa(userName, '아/야')}` : ''}. 비전보드는 6칸짜리 정원이야. <span className="font-semibold">순서는 네 마음!</span><br />
-          각 칸은 <span className="font-semibold">질문에 답하고 → 어울리는 사진을 담으면</span> 완성돼.<br />
+          좋아{userName ? `, ${josa(userName, '아/야')}` : ''}. 비전보드는 6칸짜리 정원이야.<br />
+          각 칸은 <span className="font-semibold">질문에 답하고 → 어울리는 사진을 담으면</span> 완성돼.
           사진부터 담아도 되지만, 질문으로 진짜 원하는 걸 먼저 찾아보는 걸 추천해 🌰<br />
-          6칸이 다 피면 폰·PC 배경화면으로 만들 수 있어.
+          한 번에 다 채우는 게 아니야. <span className="font-semibold">먼저 마음 가는 세 칸부터</span> 골라봐 —
+          다 채우기 전에도 보드는 자라고, 언제든 폰·PC 배경화면으로 만들 수 있어.
         </p>
 
         <div className="grid grid-cols-2 gap-2 mb-5">

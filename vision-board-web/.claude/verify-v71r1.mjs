@@ -48,16 +48,20 @@ const noScroll = (page) =>
   await page.getByText('우리도 도토리랑 같아').click();
   await page.waitForTimeout(400);
   ok('R1-2c 세번째 버블(함께 만들자)', (await page.getByText('우리 함께 비전보드를 만들어 볼까?').count()) > 0);
+  // v7.4: 심기 인터랙션 — 심기 버튼 → 낙하·새싹 애니메이션 후 CTA 활성화
+  await page.getByText('도토리 심기').click();
+  await page.waitForTimeout(1600);
   await page.getByText('그래, 함께 해보자!').click();
   await page.waitForTimeout(1200);
   ok('R1-2d 스텝3 진입', new URL(page.url()).pathname === '/onboarding/3', page.url());
 
-  // ── 3) 스텝3: 두 라벨 동시 visible + 무스크롤 → 완료 → 대시보드 인트로 시트 ──
-  const vagueVisible = await page.getByText('막연한 바람').isVisible().catch(() => false);
-  const vividVisible = await page.getByText('생생한 장면').isVisible().catch(() => false);
-  ok('R1-3a 두 라벨 동시 표시', vagueVisible && vividVisible, `vague=${vagueVisible} vivid=${vividVisible}`);
+  // ── 3) 스텝3 (v7.4 슬라이더 리워크): 막연 상태 → 끝까지 밀면 생생·핵심 메시지 ──
+  ok('R1-3a 막연 라벨 초기 표시', await page.getByText('막연한 바람').isVisible().catch(() => false));
   ok('R1-3b 새 제목', (await page.getByText('막연함과 선명함, 뭐가 다를까?').count()) > 0);
-  ok('R1-3c 커넥터', (await page.getByText('선명하게 바꾸면').count()) > 0);
+  await page.locator('input[type="range"]').fill('100');
+  await page.waitForTimeout(600);
+  ok('R1-3c 슬라이더 끝 → 생생 라벨', await page.getByText('생생한 장면').isVisible().catch(() => false));
+  ok('R1-3d 핵심 메시지 공개', await page.getByText('그게 비전보드의 힘이야').isVisible().catch(() => false));
   ok('R1-4c 스텝3 무스크롤', await noScroll(page));
   await page.getByText('비전보드 시작하기').click();
   await page.waitForTimeout(1500);

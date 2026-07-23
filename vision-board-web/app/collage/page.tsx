@@ -412,6 +412,11 @@ export default function CollagePage() {
               완성하면 미래의 하루 이야기를 써줄게.
             </p>
           </div>
+        ) : view === 'board' && collageImages.length > 0 ? (
+          // 부분 완성 상태 (v7.4) — 다 채우기 전에도 배경화면 저장이 이미 가능하다는 걸 알린다
+          <p className="mt-8 text-micro text-[#6E6962] text-center">
+            지금 이대로도 폰·PC 배경화면으로 저장할 수 있어 — 위에서 탭을 골라봐 🐿️
+          </p>
         ) : null}
       </div>
 

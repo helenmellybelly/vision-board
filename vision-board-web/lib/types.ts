@@ -75,6 +75,12 @@ export interface SectionData {
   uploadedImageSources?: (string | null)[];
   /** '사진 먼저' 넛지 배너 닫음 여부 (v7.1-r4) — 한 번 닫으면 재노출 없음 */
   photoFirstNudgeDismissed?: boolean;
+  /** 일기 재생성 횟수 합산 — "하루 다시 쓰기"+"더 담고 싶은 장면" 공용 카운터 (v7.4).
+   *  2회 이후에는 재생성 대신 직접 수정을 권한다. 첫 생성은 세지 않는다 */
+  diaryRegenCount?: number;
+  /** "나중에 답할게요" 유예 슬롯 키 목록 (v7.4) — keyword는 장면·finish 재료라 유예 불가.
+   *  답변이 채워지면 해당 키를 목록에서 제거한다 */
+  deferredSlots?: (keyof ExtractedSlots)[];
 }
 
 // 콜라주(한눈에 보기) 템플릿 — v6.15: '내 배치' 탭 제거, 모든 템플릿이 자유 편집 가능
@@ -142,4 +148,6 @@ export interface BoardData {
   >;
   // 기기별 선택 사이즈 — lib/wallpaper.ts WALLPAPER_PRESETS의 id (v6.19 사이즈 우선 플로우)
   collageDevicePresets?: { phone?: string; desktop?: string };
+  /** 양경로(pathSheet) 직전 선택 기억 (v7.4) — 같은 선택 3연속이면 시트를 생략하고 직행한다 */
+  pathChoice?: { kind: 'question' | 'photo'; streak: number };
 }

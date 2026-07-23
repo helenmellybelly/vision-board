@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { josa } from '@/lib/josa';
 
 // 스텝1: 토리 인사 + 이름 입력 한 화면 (v7.0-r1 — 구 Act0 소개 + Act1 이름을 통합, 클릭 2→1회)
+// v7.4: 입력 중 토리가 실시간으로 이름을 불러보는 미리보기 — 첫 화면에서 "관계 맺기"를 체감시킨다
 export default function Step1Name({
   initialName,
   onComplete,
@@ -66,6 +68,15 @@ export default function Step1Name({
             placeholder="이름 또는 닉네임"
             className="w-full px-4 py-3 rounded-xl border border-[#E5E3DF] text-body outline-none focus:border-[#1C1B19] transition-colors bg-white"
           />
+          {/* 실시간 호명 미리보기 — 높이를 미리 확보해 입력 중 레이아웃 점프 방지 */}
+          <p className="text-caption text-center min-h-[1.25rem] transition-opacity duration-300"
+            style={{ opacity: nameInput.trim() ? 1 : 0, color: '#6E6962' }}
+            aria-live="polite"
+          >
+            {nameInput.trim()
+              ? `"${josa(nameInput.trim(), '아/야')}, 만나서 반가워!" — 토리가 이렇게 부를 거야 🌰`
+              : ' '}
+          </p>
           <button
             onClick={submit}
             disabled={!nameInput.trim()}

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
-import { loadBoard, saveSectionScene, saveMiniStory, saveTargetDate } from '@/lib/storage';
+import { loadBoard, saveSectionScene, saveMiniStory, saveTargetDate, incrementDiaryRegen } from '@/lib/storage';
 import { getTargetDate, getTargetYear, formatDiaryDate } from '@/lib/targetDate';
 import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import { SLOT_KEY_LABELS } from '@/lib/slotLabels';
@@ -38,6 +38,9 @@ export default function ScenePage() {
   const [storyDraft, setStoryDraft] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [editingDate, setEditingDate] = useState(false);
+  // 재생성("하루 다시 쓰기"+"더 담고 싶은 장면") 합산 카운터 — 2회 이후엔 직접 수정만 권한다 (v7.4)
+  const [regenCount, setRegenCount] = useState(0);
+  const isRewriteRef = useRef(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +54,7 @@ export default function ScenePage() {
     setBoard(b);
     setTargetDate(getTargetDate(b));
     const sec = b.sections[sectionId];
+    setRegenCount(sec.diaryRegenCount ?? 0);
     if (sec.extractedSlots) setSlots(sec.extractedSlots);
     if (sec.sceneText) {
       if (sec.miniStory) {
@@ -118,6 +122,11 @@ export default function ScenePage() {
     setSceneText(text);
     setSubmitted(true);
     saveSectionScene(sectionId, text);
+    // 다시 쓰기 경유 재제출은 재생성으로 합산 — 첫 생성·실패 재시도는 세지 않는다
+    if (isRewriteRef.current) {
+      isRewriteRef.current = false;
+      setRegenCount(incrementDiaryRegen(sectionId));
+    }
     runStory(text);
   }
 
@@ -131,12 +140,14 @@ export default function ScenePage() {
       setAdditionalInput('');
       setShowAdditional(false);
       setUsedAdditional(true);
+      setRegenCount(incrementDiaryRegen(sectionId));
     }
     setRegenerating(false);
   }
 
   function handleRewriteScene() {
     // 하루 다시 쓰기 — 입력으로 복귀 (스토리는 다시 제출 시 재생성)
+    isRewriteRef.current = true;
     setSceneInput(sceneText);
     setSubmitted(false);
     setStory('');
@@ -226,16 +237,17 @@ export default function ScenePage() {
 
         {!submitted && (
           <>
-            {/* 작성 가이드 카드 (v7.3) — 몇 개를 얼마나 구체적으로 쓸지 기준 제시 */}
-            <div className="mt-3 rounded-2xl bg-[#F5F5F3] px-4 py-3">
-              <p className="text-caption font-semibold text-[#1C1B19] mb-1">
-                ✍️ 이렇게 쓰면 일기가 진짜같아져
-              </p>
-              <p className="text-caption text-[#6B7280] leading-relaxed">
+            {/* 작성 가이드 카드 (v7.3 → v7.4 접힘) — 안내 5겹 완화: 기본은 한 줄 토글, 필요할 때만 펼친다 */}
+            <details className="mt-3 rounded-2xl bg-[#F5F5F3] px-4 py-3 group">
+              <summary className="text-caption font-semibold text-[#1C1B19] cursor-pointer list-none flex items-center justify-between">
+                <span>✍️ 이렇게 쓰면 일기가 진짜같아져</span>
+                <span className="text-micro text-[#9CA3AF] transition-transform duration-200 group-open:rotate-180" aria-hidden="true">▾</span>
+              </summary>
+              <p className="text-caption text-[#6B7280] leading-relaxed mt-1">
                 · 순간 2~3개면 충분해
                 <br />· 순간마다 「어디서 · 뭘 하고 · 뭐가 보이는지」까지
               </p>
-            </div>
+            </details>
 
             {/* 순간 보태기 칩 — 탭하면 입력에 한 줄씩 추가 (선택사항) */}
             {chips.length > 0 && (
@@ -373,27 +385,40 @@ export default function ScenePage() {
                 </div>
 
                 {!editingStory && (
-                  <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1">
-                    <button
-                      onClick={() => { setStoryDraft(story); setEditingStory(true); setShowAdditional(false); }}
-                      className="text-caption text-[#6E6962] underline"
-                    >
-                      직접 수정하기
-                    </button>
-                    {!usedAdditional && !showAdditional && (
+                  <div className="mb-3">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
                       <button
-                        onClick={() => setShowAdditional(true)}
+                        onClick={() => { setStoryDraft(story); setEditingStory(true); setShowAdditional(false); }}
                         className="text-caption text-[#6E6962] underline"
                       >
-                        더 담고 싶은 장면이 있어요
+                        직접 수정하기
                       </button>
+                      {/* 재생성은 합산 2회까지 — 이후엔 직접 수정이 더 정확하다 (v7.4) */}
+                      {regenCount < 2 && (
+                        <>
+                          {!usedAdditional && !showAdditional && (
+                            <button
+                              onClick={() => setShowAdditional(true)}
+                              className="text-caption text-[#6E6962] underline"
+                            >
+                              더 담고 싶은 장면이 있어요
+                            </button>
+                          )}
+                          <button
+                            onClick={handleRewriteScene}
+                            className="text-caption text-[#6E6962] underline"
+                          >
+                            하루 다시 쓰기
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {regenCount >= 2 && (
+                      <p className="text-micro text-[#9CA3AF] mt-1.5 leading-relaxed">
+                        새로 쓰기는 여기까지. 이제부터는 네 손으로 다듬는 게 제일 정확해 — 위의
+                        &lsquo;직접 수정하기&rsquo;로 고쳐봐.
+                      </p>
                     )}
-                    <button
-                      onClick={handleRewriteScene}
-                      className="text-caption text-[#6E6962] underline"
-                    >
-                      하루 다시 쓰기
-                    </button>
                   </div>
                 )}
 

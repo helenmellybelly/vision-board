@@ -161,15 +161,16 @@ export default function ReviewPage() {
                 </button>
               </div>
 
-              {/* 4개 슬롯 */}
+              {/* 4개 슬롯 — 유예 슬롯은 '—' 대신 유예 표시로 회수 동선을 알린다 (v7.4) */}
               <div className="bg-white divide-y divide-[#F3F4F6]">
                 {SLOT_KEY_ORDER.map((key) => {
                   const text = slots[key]?.trim();
+                  const deferred = !text && (board.sections[section.id].deferredSlots ?? []).includes(key);
                   return (
                     <div key={key} className="px-4 py-2.5 flex gap-3">
                       <p className="text-micro text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">{SLOT_KEY_LABELS[key]}</p>
                       <p className={`text-body leading-relaxed flex-1 ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
-                        {text || '—'}
+                        {text || (deferred ? '나중에 답하기로 했어 🌰' : '—')}
                       </p>
                     </div>
                   );

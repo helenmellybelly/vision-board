@@ -178,32 +178,58 @@ export default function ScenesPage() {
     }
   }
 
-  async function handleUploadFile(index: number, file: File) {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const raw = e.target?.result as string;
-      const compressed = await compressImage(raw, 0.60, 800);
-      // compressImage는 성공 시 JPEG로 재인코딩한다. 결과가 JPEG가 아니면 브라우저가
-      // 디코드 못 한 포맷(HEIC 등) — 저장하면 깨진 썸네일이 되므로 막는다 (v7.4 감사 M5)
-      if (!compressed.startsWith('data:image/jpeg')) {
-        setSlotNotice('이 사진 형식은 지원하지 않아. JPG나 PNG로 다시 올려줄래?');
-        return;
+  function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = () => reject(new Error('read-failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 다중 업로드 (v7.4) — 여러 장을 고르면 탭한 슬롯부터 빈 슬롯 순서대로 압축·저장한다.
+  // 순차 처리인 이유: saveUploadedImage가 매번 loadBoard→save라 동시 실행하면 서로를 덮는다
+  async function handleUploadFiles(startIndex: number, files: File[]) {
+    setSlotNotice('');
+    const local = [...uploadedImages];
+    const isFree = (i: number) => !local[i] && !(i < generatedImages.length && generatedImages[i]?.url);
+    const order = [startIndex, ...[0, 1, 2].filter((i) => i !== startIndex)];
+    let badFormat = false;
+    let quotaFull = false;
+    let overflow = 0;
+    for (const file of files) {
+      const slot = order.find(isFree);
+      if (slot === undefined) {
+        overflow += 1;
+        continue;
       }
-      // quota 초과 시 저장 실패를 사용자에게 알리고 슬롯에 반영하지 않는다 (v7.4 감사 H1)
-      const ok = saveUploadedImage(sectionId, index, compressed);
-      if (!ok) {
-        setSlotNotice('저장 공간이 부족해 사진을 담지 못했어. 다른 사진을 지우고 다시 시도해줘.');
-        return;
+      try {
+        const raw = await readFileAsDataUrl(file);
+        const compressed = await compressImage(raw, 0.60, 800);
+        // compressImage는 성공 시 JPEG로 재인코딩한다. 결과가 JPEG가 아니면 브라우저가
+        // 디코드 못 한 포맷(HEIC 등) — 저장하면 깨진 썸네일이 되므로 막는다 (v7.4 감사 M5)
+        if (!compressed.startsWith('data:image/jpeg')) {
+          badFormat = true;
+          continue;
+        }
+        // quota 초과 시 저장 실패를 사용자에게 알리고 슬롯에 반영하지 않는다 (v7.4 감사 H1)
+        if (!saveUploadedImage(sectionId, slot, compressed)) {
+          quotaFull = true;
+          break;
+        }
+        local[slot] = compressed;
+      } catch {
+        badFormat = true;
       }
-      const updated = [...uploadedImages];
-      updated[index] = compressed;
-      setUploadedImages(updated);
-      setSlotNotice('');
-    };
-    reader.onerror = () => {
-      setSlotNotice('사진을 읽지 못했어. 다른 사진으로 다시 시도해줘.');
-    };
-    reader.readAsDataURL(file);
+    }
+    setUploadedImages(local);
+    if (quotaFull) {
+      setSlotNotice('저장 공간이 부족해 일부 사진을 담지 못했어. 사진을 지우고 다시 시도해줘.');
+    } else if (badFormat) {
+      setSlotNotice('일부 사진은 형식을 지원하지 않아 담지 못했어. JPG나 PNG로 다시 올려줄래?');
+    } else if (overflow > 0) {
+      setSlotNotice('사진은 3장까지야 — 빈 슬롯만큼만 담았어.');
+    }
   }
 
   // 큰 '내 사진 올리기' — 첫 빈 슬롯의 파일 선택을 연다
@@ -337,10 +363,11 @@ export default function ScenesPage() {
           ref={uploadRefs[i]}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleUploadFile(i, file);
+            const files = Array.from(e.target.files ?? []);
+            if (files.length > 0) handleUploadFiles(i, files);
             e.target.value = '';
           }}
         />
@@ -426,6 +453,10 @@ export default function ScenesPage() {
           >
             📷 직접 사진 올리기
           </button>
+          {/* Pinterest 등에서 모아둔 사진을 한 번에 — 다중 선택 안내 (v7.4) */}
+          <p className="text-micro text-[#9CA3AF] text-center mt-1">
+            여러 장을 한 번에 골라도 돼 (최대 3장)
+          </p>
           {slotNotice && <p className="text-micro text-[#B45309] mt-1">{slotNotice}</p>}
           {/* URL로 담기 — ③ 접힘 패널에서 업로드 바로 아래로 이동 (v7.3) */}
           <button
@@ -591,8 +622,10 @@ export default function ScenesPage() {
                 ×
               </button>
               <p className="text-title font-bold mb-1">🐿️ {sectionName} 완성! {completedCount}/6이야.</p>
+              {/* 세션 분할 공식화 (v7.4) — 한 칸 = 한 호흡. 이어가기는 강요가 아니라 선택지 */}
               <p className="text-body text-[#6B7280] leading-relaxed mb-3">
-                방금 이 칸이 채워졌어. 잠깐 숨 돌려도 좋고, 흐름 탔으면 이어가자.
+                방금 이 칸이 채워졌어. 한 칸이 한 호흡이야 —{' '}
+                <span className="font-semibold">오늘은 여기까지도 충분해.</span> 흐름 탔으면 이어가도 좋고.
               </p>
               {/* 방금 채워진 칸 강조 미니보드 (v7.0-r5 peak) */}
               <div className="mb-4">
@@ -618,7 +651,7 @@ export default function ScenesPage() {
                 onClick={() => router.push('/dashboard')}
                 className="w-full mt-3 py-2 text-caption text-[#6E6962] text-center active:opacity-70"
               >
-                대시보드로
+                오늘은 여기까지 — 대시보드로
               </button>
             </div>
           </div>

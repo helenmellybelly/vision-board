@@ -65,6 +65,9 @@ async function newPage(seed) {
   await page.getByText('계속하려면 탭').click();
   await page.waitForTimeout(400);
   ok('V3-1e 도토리 3: 함께 만들자', (await page.getByText('우리 함께 비전보드를 만들어 볼까?').count()) > 0);
+  // v7.4 심기 인터랙션 — 심기 버튼을 눌러야 CTA가 나온다
+  await page.getByText('도토리 심기').click();
+  await page.waitForTimeout(1600);
   ok('V3-1f 새 CTA 버튼', await page.getByText('그래, 함께 해보자!').isVisible().catch(() => false));
   ok('V3-1g 구 CTA 부재', (await page.getByText('그 가능성, 꺼내볼게').count()) === 0);
   await ctx.close();
@@ -164,7 +167,10 @@ async function newPage(seed) {
   await page.goto(`${BASE}/scene/1`);
   await page.waitForTimeout(1500);
   ok('V3-5a 가이드 카드', await page.getByText('이렇게 쓰면 일기가 진짜같아져').isVisible().catch(() => false));
-  ok('V3-5b 가이드: 순간 2~3개', await page.getByText('순간 2~3개면 충분해').isVisible().catch(() => false));
+  // v7.4: 가이드 카드가 기본 접힘(details) — 펼친 뒤 본문 확인
+  await page.getByText('이렇게 쓰면 일기가 진짜같아져').click();
+  await page.waitForTimeout(300);
+  ok('V3-5b 가이드: 순간 2~3개(펼침)', await page.getByText('순간 2~3개면 충분해').isVisible().catch(() => false));
   ok('V3-5c 칩 힌트(고쳐 써봐)', await page.getByText('막막하면 탭해서 넣고').isVisible().catch(() => false));
   ok('V3-5d 쿠션 연도 파생 (2029년)', await page.getByText('2029년의 하루를 그려볼 거야').isVisible().catch(() => false));
   ok('V3-5e 구 하드코딩(3년 뒤) 부재', (await page.getByText('3년 뒤의 하루를 그려볼 거야').count()) === 0);

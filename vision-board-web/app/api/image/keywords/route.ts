@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { freeChat, freeLlmConfigured } from '@/lib/llm';
 import { rateLimited, tooManyRequests, clampStr, clampStrArray } from '@/lib/apiGuard';
 
 interface KeywordsRequest {
@@ -18,9 +18,9 @@ Rules:
 - Output ONLY a JSON array of 3 strings: ["query1", "query2", "query3"]`;
 
 export async function POST(req: NextRequest) {
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (!openaiKey) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY not configured', code: 'MISSING_KEY' }, { status: 500 });
+  // v7.4 LLM 무료화 — gpt-4o-mini → Gemini flash-lite(1차)·Groq(2차)
+  if (!freeLlmConfigured()) {
+    return NextResponse.json({ error: 'LLM key not configured', code: 'MISSING_KEY' }, { status: 500 });
   }
   if (rateLimited(req)) return tooManyRequests();
 
@@ -41,19 +41,12 @@ export async function POST(req: NextRequest) {
 장면 묘사:
 ${descriptions.map((d, i) => `장면${i + 1}: ${d}`).join('\n')}`;
 
-  const openai = new OpenAI({ apiKey: openaiKey });
-
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM },
-        { role: 'user', content: userPrompt },
-      ],
+    const raw = await freeChat({
+      system: SYSTEM,
+      user: userPrompt,
       temperature: 0.4,
     });
-
-    const raw = completion.choices[0]?.message?.content?.trim() ?? '[]';
     const jsonMatch = raw.match(/\[[\s\S]*\]/);
     const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
     if (!Array.isArray(parsed) || parsed.length < 3) {
