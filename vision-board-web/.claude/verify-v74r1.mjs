@@ -172,7 +172,8 @@ async function newPage(seed) {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('V4-6a 부분 가치 캡션(1칸)', await page.getByText('1칸만 있어도 네 보드야').isVisible().catch(() => false));
+  // v7.5: 산책길 카피로 교체 — 완료 1섹션이면 '1/6 스테이션을 지났어'
+  ok('V4-6a 산책길 진행 캡션(1스테이션)', await page.getByText('1/6 스테이션을 지났어').isVisible().catch(() => false));
   ok('V4-6b 보드 버튼 부제(배경화면)', await page.getByText('지금 담긴 사진만으로도 배경화면까지').isVisible().catch(() => false));
   const bodyText = await page.locator('body').innerText();
   ok('V4-6c 개화 카피 부재', !bodyText.includes('피었') && !bodyText.includes('피어나'), '');
@@ -188,11 +189,12 @@ async function newPage(seed) {
   await ctx.close();
 }
 {
-  // collage 보드 뷰 부분 상태 — 배경화면 저장 유도 1줄
+  // v7.5: 보드 뷰 제거 — 레거시 ?view=board는 desktop으로 흡수, 저장 버튼이 곧 부분 가치
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage?view=board`);
   await page.waitForTimeout(1800);
-  ok('V4-6f collage 부분 가치 카피', await page.getByText('지금 이대로도 폰·PC 배경화면으로 저장할 수 있어').isVisible().catch(() => false));
+  ok('V4-6f 레거시 board → PC 뷰 저장 버튼', await page.getByText('PC 배경화면 저장').isVisible().catch(() => false));
+  ok('V4-6g 구 보드 뷰 카피 부재', (await page.getByText('지금 이대로도 폰·PC 배경화면으로 저장할 수 있어').count()) === 0);
   await ctx.close();
 }
 

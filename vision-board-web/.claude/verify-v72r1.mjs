@@ -63,8 +63,9 @@ async function newPage(seed) {
   const { ctx, page } = await newPage(doneBoard({}));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  const seedCount = await page.getByText('🌱').count();
-  ok('V2-2a 미시작 칸 씨앗 🌱', seedCount >= 1, `count=${seedCount}`);
+  // v7.5: 정원 씨앗 🌱 → 산책길 스테이션 도토리 🌰
+  const seedCount = await page.getByText('🌰').count();
+  ok('V2-2a 미시작 스테이션 도토리 🌰', seedCount >= 1, `count=${seedCount}`);
   ok('V2-2b 추천 카드 부캡션(토리 대기)', await page.getByText('토리가 여기서 기다려').isVisible().catch(() => false));
   ok('V2-2c 추천 카드 문장형(섹션1 명칭)', await page.getByText('원하는 내 모습, 이야기부터 시작해볼까?').isVisible().catch(() => false));
   ok('V2-2e 사진 없음 → 보드 버튼 숨김', (await page.getByText('내 비전보드 보기').count()) === 0);
@@ -75,8 +76,8 @@ async function newPage(seed) {
   const { ctx, page } = await newPage(doneBoard({}, { dashboardIntroSeen: false }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  // v7.4: '순서는 네 마음' → 코어 경로 라이트('먼저 마음 가는 세 칸부터')로 교체
-  ok('V2-2d-1 첫 진입 시트: 코어 경로', await page.getByText('먼저 마음 가는 세 칸부터').isVisible().catch(() => false));
+  // v7.4 코어 경로 라이트 → v7.5 산책길 어휘('먼저 마음 가는 세 곳부터')
+  ok('V2-2d-1 첫 진입 시트: 코어 경로', await page.getByText('먼저 마음 가는 세 곳부터').isVisible().catch(() => false));
   ok('V2-2d-2 첫 진입 시트: 질문 추천', await page.getByText('먼저 찾아보는 걸 추천해').isVisible().catch(() => false));
   await ctx.close();
 }
@@ -115,11 +116,11 @@ async function newPage(seed) {
   ok('V2-3d-1 사이즈 바꾸기 패널 부재', (await page.getByText('사이즈 바꾸기').count()) === 0);
   ok('V2-3d-2 칩 상시 노출 (Galaxy S)', (await page.getByRole('radio', { name: 'Galaxy S' }).count()) > 0);
 
-  // 보드 탭 복귀 → 템플릿 셀렉터 + 보드 안내
-  await page.getByRole('radio', { name: '보드' }).click();
+  // v7.5: 보드 탭 제거 — PC 탭 복귀로 템플릿 셀렉터·저장 버튼 확인
+  await page.getByRole('radio', { name: '🖥️ PC' }).click();
   await page.waitForTimeout(500);
-  ok('V2-3f-1 보드 복귀 → 템플릿 셀렉터', await page.getByText('폴라로이드').isVisible().catch(() => false));
-  ok('V2-3f-2 보드 안내 카피', await page.getByText('위 탭에서 폰·PC를 고르면').isVisible().catch(() => false));
+  ok('V2-3f-1 PC 복귀 → 템플릿 셀렉터', await page.getByText('폴라로이드').isVisible().catch(() => false));
+  ok('V2-3f-2 보드 탭 부재', (await page.getByRole('radio', { name: '보드', exact: true }).count()) === 0);
   await ctx.close();
 }
 // 딥링크 직접 진입 → PC 탭 활성

@@ -55,7 +55,8 @@ async function newPage(seed) {
   ok('R3-1a 구 상태 칩 텍스트 부재', (await page.getByText('글 완료').count()) === 0 && (await page.getByText('●●').count()) === 0);
   const h = await page.evaluate(() => document.documentElement.scrollHeight / window.innerHeight);
   ok('R3-1b 대시보드 ≤1.2뷰포트', h <= 1.2, `ratio=${h.toFixed(2)}`);
-  ok('R3-1c 미니보드 렌더', await page.getByText('Vision Board').isVisible().catch(() => false));
+  // v7.5: 미니보드 → 산책길 지도
+  ok('R3-1c 산책길 렌더', await page.getByText('참나무 언덕').isVisible().catch(() => false));
 
   // 6) 셀 터치 타깃 ≥44px
   const rect = await page.locator('button[aria-label*=" — "]').first().boundingBox();

@@ -106,13 +106,15 @@ const withPhoto = (extra = {}) =>
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('R5-5a 미니보드 렌더 (Vision Board)', await page.getByText('Vision Board').isVisible().catch(() => false));
-  // v7.3: 연도 캡션('2029년의 나를...')과 다중 매칭 — first()로 확인
-  ok('R5-5b 중앙 연도 = targetDate', await page.getByText('2029').first().isVisible().catch(() => false));
-  // v7.2 'N/6 피었어' → v7.4 개화 카피 제거 + 부분 가치('1칸만 있어도 네 보드야')
-  ok('R5-5c 진행 캡션(부분 가치)', await page.getByText('1칸만 있어도 네 보드야').isVisible().catch(() => false));
-  const photoCount = await page.locator('img[alt="나"]').count();
-  ok('R5-5d 완료 섹션 칸에 사진', photoCount >= 1, `imgs=${photoCount}`);
+  // v7.5: 미니보드 → 산책길 지도(WalkPathMap) — 사진 대신 상태만
+  ok('R5-5a 산책길 렌더 (참나무 언덕)', await page.getByText('참나무 언덕').isVisible().catch(() => false));
+  // 연도 캡션('2029년의 나를...')은 유지 — first()로 확인
+  ok('R5-5b 연도 = targetDate', await page.getByText('2029').first().isVisible().catch(() => false));
+  // v7.4 부분 가치 카피 → v7.5 산책길 진행 카피
+  ok('R5-5c 진행 캡션(스테이션)', await page.getByText('1/6 스테이션을 지났어').isVisible().catch(() => false));
+  // 사진 썸네일 미표시 확정 — 완료 스테이션은 '완료' 칩으로만
+  ok('R5-5d 완료 칩 표시(사진 대신)', await page.getByText('완료', { exact: true }).first().isVisible().catch(() => false));
+  ok('R5-5d-2 사진 썸네일 부재', (await page.locator('img[alt="나"]').count()) === 0);
   // v7.2: 단일 진입 버튼 '내 비전보드 보기' → 보드 뷰 직행
   await page.getByText('내 비전보드 보기').click();
   await page.waitForTimeout(1500);
@@ -123,7 +125,8 @@ const withPhoto = (extra = {}) =>
   const { ctx, page } = await newPage(doneBoard({}));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('R5-5f 0칸 카피', await page.getByText('질문에 답하고 사진을 담으면').isVisible().catch(() => false));
+  // v7.5: 0칸 카피 → 산책길 카피 (이 스위트 시드는 전 섹션 in_progress → 중간 카피)
+  ok('R5-5f 진행 중 카피', await page.getByText('산책을 시작했어').isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r5-dashboard-miniboard.png`, fullPage: true });
   await ctx.close();
 }

@@ -12,7 +12,7 @@ import { josa } from '@/lib/josa';
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
 import DashboardIntroSheet from '@/components/DashboardIntroSheet';
-import MiniBoardPreview from '@/components/MiniBoardPreview';
+import WalkPathMap from '@/components/WalkPathMap';
 import useFocusTrap from '@/components/useFocusTrap';
 
 const RETURN_GAP_MS = 48 * 60 * 60 * 1000; // 복귀 인사 갭 (v7.1-r4)
@@ -97,20 +97,18 @@ export default function DashboardPage() {
   const userName = board.userName;
   // 보드 CTA·퀵 버튼은 담긴 사진이 1장이라도 있을 때만 — 빈 보드로 가는 선택지를 치워 주 동선에 집중 (v6.21)
   const hasAnyImage = SECTIONS.some((section) => sectionHasPhoto(board.sections[section.id]));
-  // 미니보드 goal-gradient — '칸'의 정의는 사진이 1장이라도 담긴 섹션 (v7.0-r5)
   const photoSectionCount = SECTIONS.filter((section) => sectionHasPhoto(board.sections[section.id])).length;
-  // v7.4: 개화 카피 제거(중립 진행 카피로) + 부분 가치 노출 + 초반 구간 분모 완화 —
-  // 결핍 프레임("아직 N/6") 대신 성취 프레임. 4칸 이상부터는 goal-gradient로 분모 복귀
-  const boardCaption =
-    photoSectionCount === 0
-      ? '질문에 답하고 사진을 담으면 보드가 채워져 🌰'
-      : photoSectionCount === 1
-      ? '1칸이 채워졌어 — 1칸만 있어도 네 보드야 🌰'
-      : photoSectionCount < 4
-      ? `벌써 ${photoSectionCount}칸이 채워졌어 — 보드가 자라고 있어 🌰`
-      : photoSectionCount < 6
-      ? `${photoSectionCount}/6 채웠어 🌰`
-      : '다 채웠다! 배경화면으로 만들어봐 🐿️';
+  // 산책길 진행 카피 (v7.5) — '지났어'의 분자는 완료(completed) 스테이션 수.
+  // 사진만 담긴 진행은 📷 마커 + 중간 카피가 담당(체감 진행 0으로 읽히지 않게)
+  const completedCount = statuses.filter((s) => s === 'completed').length;
+  const hasAnyProgress = photoSectionCount > 0 || statuses.some((s) => s !== 'not_started');
+  const walkCaption = !hasAnyProgress
+    ? '토리랑 첫 스테이션부터 걸어보자 🌰'
+    : completedCount === 0
+    ? '산책을 시작했어 — 토리가 다음 표지판에서 기다려 🐿️'
+    : completedCount < 6
+    ? `${completedCount}/6 스테이션을 지났어 🐿️`
+    : '길 끝에 도착! 이제 배경화면으로 만들어보자 🐿️';
 
   // 추천 카드 — 다음 할 일 1개만 (v7.1-r3 → v7.2 문장형: 섹션명 단독 노출이 어색하다는 피드백)
   const recommendedId = getRecommendedSection(board);
@@ -120,7 +118,6 @@ export default function DashboardPage() {
     ? recommended.shortTitle ?? recommended.title.split(' — ')[0]
     : '';
   // 부캡션: 열린 고리(사진有·답변無) > 막판 goal-gradient > 토리 대기
-  const completedCount = statuses.filter((s) => s === 'completed').length;
   const recommendCaption =
     recommendedId && isPhotoOnlySection(board.sections[recommendedId])
       ? '사진은 담았는데 이야기가 비어 있어 🌰'
@@ -162,15 +159,84 @@ export default function DashboardPage() {
           </h1>
         </div>
 
-        {/* 미니 비전보드 = 내비 허브 (v7.1-r3) — 셀 탭이 곧 섹션 이동 */}
+        {/* CTA 묶음 — 타이틀 바로 아래 (v7.5): 다음 행동이 스크롤 없이 먼저 보이게 */}
+        {/* 추천 카드 — 다음 할 일 하나만 (Hick's law) */}
+        {recommended ? (
+          <button
+            onClick={() => handleSelectSection(recommended.id)}
+            className="w-full text-left rounded-2xl border p-4 mb-3 transition-all active:scale-[0.98] animate-slideUp"
+            style={{ backgroundColor: recommended.lightColor, borderColor: recommended.color + '40' }}
+          >
+            <p className="text-caption text-[#6E6962] mb-0.5">{recommendCaption}</p>
+            <p className="font-semibold text-body">{recommendAction}</p>
+          </button>
+        ) : (
+          <button
+            onClick={() => router.push('/finish')}
+            className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity mb-3"
+            style={{ backgroundColor: '#1C1B19' }}
+          >
+            비전보드 완성하러 가기 →
+          </button>
+        )}
+
+        <div className="mb-5 space-y-3">
+          {allTextDone && recommended && (
+            <button
+              onClick={() => router.push('/review')}
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
+              style={{ backgroundColor: '#1C1B19' }}
+            >
+              다 됐다, 이제 미래의 하루를 그리러 가자 →
+            </button>
+          )}
+          {hasAnyImage && (
+            <button
+              onClick={() => router.push('/collage')}
+              className="w-full py-3 rounded-2xl border border-[#E5E3DF] bg-white text-[#1C1B19] active:opacity-70 transition-opacity"
+            >
+              <span className="block text-body font-semibold">🖼️ 내 비전보드 보기</span>
+              {/* 부분 가치 노출 (v7.4) — 완주 전에도 보드·배경화면이 이미 만들어진다는 걸 알린다 */}
+              {photoSectionCount < 6 && (
+                <span className="block text-micro text-[#6E6962] mt-0.5">
+                  지금 담긴 사진만으로도 배경화면까지 만들 수 있어
+                </span>
+              )}
+            </button>
+          )}
+          {/* 인터뷰 없이 사진부터 — 섹션 선택 시트로 /scenes 직행 (v7.3) */}
+          <button
+            onClick={() => setPhotoSheetOpen(true)}
+            className="w-full py-2 text-caption text-[#6E6962] underline active:opacity-70"
+          >
+            📷 질문 없이, 사진부터 담아볼래? →
+          </button>
+        </div>
+
+        {/* 진행 현황 */}
+        {textCompleteCount > 0 && !allTextDone && (
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex-1 bg-[#E5E3DF] rounded-full h-1.5 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#1C1B19] transition-all duration-500"
+                style={{ width: `${(textCompleteCount / 6) * 100}%` }}
+              />
+            </div>
+            <span className="text-caption text-[#6B7280]">
+              {/* 초반 구간은 분모 생략 — "6개나 남았다"가 아니라 "N칸 했다"로 읽히게 (v7.4) */}
+              {textCompleteCount < 4 ? `${textCompleteCount}칸 채워짐` : `${textCompleteCount}/6 채워짐`}
+            </span>
+          </div>
+        )}
+
+        {/* 산책길 지도 (v7.5) — 스테이션 탭이 곧 섹션 이동 (구 미니보드 허브 계약 유지) */}
         <div className="mb-5 animate-slideUp">
-          <MiniBoardPreview
+          <WalkPathMap
             board={board}
-            interactive
             nextSectionId={recommendedId}
             onSelectSection={handleSelectSection}
           />
-          <p className="text-caption text-[#6E6962] text-center mt-2">{boardCaption}</p>
+          <p className="text-caption text-[#6E6962] text-center mt-2">{walkCaption}</p>
           {/* 보드 연도 — 고정처럼 보인다는 피드백에 편집 진입점 노출 (v7.3) */}
           <div className="text-center mt-1">
             {!yearEditOpen ? (
@@ -212,76 +278,6 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* 진행 현황 */}
-        {textCompleteCount > 0 && !allTextDone && (
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex-1 bg-[#E5E3DF] rounded-full h-1.5 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[#1C1B19] transition-all duration-500"
-                style={{ width: `${(textCompleteCount / 6) * 100}%` }}
-              />
-            </div>
-            <span className="text-caption text-[#6B7280]">
-              {/* 초반 구간은 분모 생략 — "6개나 남았다"가 아니라 "N칸 했다"로 읽히게 (v7.4) */}
-              {textCompleteCount < 4 ? `${textCompleteCount}칸 채워짐` : `${textCompleteCount}/6 채워짐`}
-            </span>
-          </div>
-        )}
-
-        {/* 추천 카드 — 다음 할 일 하나만 (Hick's law) */}
-        {recommended ? (
-          <button
-            onClick={() => handleSelectSection(recommended.id)}
-            className="w-full text-left rounded-2xl border p-4 mb-3 transition-all active:scale-[0.98] animate-slideUp"
-            style={{ backgroundColor: recommended.lightColor, borderColor: recommended.color + '40' }}
-          >
-            <p className="text-caption text-[#6E6962] mb-0.5">{recommendCaption}</p>
-            <p className="font-semibold text-body">{recommendAction}</p>
-          </button>
-        ) : (
-          <button
-            onClick={() => router.push('/finish')}
-            className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity mb-3"
-            style={{ backgroundColor: '#1C1B19' }}
-          >
-            비전보드 완성하러 가기 →
-          </button>
-        )}
-
-        {/* 하단 액션 */}
-        <div className="mt-2 space-y-3">
-          {allTextDone && recommended && (
-            <button
-              onClick={() => router.push('/review')}
-              className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
-              style={{ backgroundColor: '#1C1B19' }}
-            >
-              다 됐다, 이제 미래의 하루를 그리러 가자 →
-            </button>
-          )}
-          {hasAnyImage && (
-            <button
-              onClick={() => router.push('/collage')}
-              className="w-full py-3 rounded-2xl border border-[#E5E3DF] bg-white text-[#1C1B19] active:opacity-70 transition-opacity"
-            >
-              <span className="block text-body font-semibold">🖼️ 내 비전보드 보기</span>
-              {/* 부분 가치 노출 (v7.4) — 완주 전에도 보드·배경화면이 이미 만들어진다는 걸 알린다 */}
-              {photoSectionCount < 6 && (
-                <span className="block text-micro text-[#6E6962] mt-0.5">
-                  지금 담긴 사진만으로도 배경화면까지 만들 수 있어
-                </span>
-              )}
-            </button>
-          )}
-          {/* 인터뷰 없이 사진부터 — 섹션 선택 시트로 /scenes 직행 (v7.3) */}
-          <button
-            onClick={() => setPhotoSheetOpen(true)}
-            className="w-full py-2 text-caption text-[#6E6962] underline active:opacity-70"
-          >
-            📷 질문 없이, 사진부터 담아볼래? →
-          </button>
         </div>
       </div>
 

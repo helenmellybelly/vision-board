@@ -10,7 +10,8 @@ import { getTargetYear } from '@/lib/targetDate';
 // v7.1-r3: interactive 모드 — 셀이 곧 섹션 내비 버튼 (대시보드 = 미니보드 허브)
 const ROTATIONS = [-2.5, 1.5, -1.5, 2, -2, 2.5];
 
-const STATUS_LABEL: Record<SectionStatus, string> = {
+// WalkPathMap(대시보드 산책길)과 aria-label 계약 공유 — `${label} — ${STATUS_LABEL[status]}`
+export const STATUS_LABEL: Record<SectionStatus, string> = {
   not_started: '시작 전',
   in_progress: '진행 중',
   text_complete: '글 완료',

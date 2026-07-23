@@ -66,7 +66,7 @@ const noScroll = (page) =>
   await page.getByText('비전보드 시작하기').click();
   await page.waitForTimeout(1500);
   ok('R1-5a 완료 → /dashboard', new URL(page.url()).pathname === '/dashboard', page.url());
-  ok('R1-5b 인트로 시트(첫 진입)', (await page.getByText('6칸짜리 정원이야').count()) > 0);
+  ok('R1-5b 인트로 시트(첫 진입)', (await page.getByText('6개 스테이션이 있는 산책길이야').count()) > 0);
   await ctx.close();
 }
 

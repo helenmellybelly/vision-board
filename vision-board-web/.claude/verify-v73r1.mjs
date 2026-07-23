@@ -84,7 +84,8 @@ async function newPage(seed) {
   await page.waitForTimeout(300);
   await page.getByLabel('연도 늘리기').click();
   await page.waitForTimeout(300);
-  await page.getByText('완료', { exact: true }).click();
+  // v7.5: 산책길 '완료' 칩과 다중 매칭 방지 — 연도 편집 완료 버튼은 role로
+  await page.getByRole('button', { name: '완료', exact: true }).click();
   await page.waitForTimeout(300);
   ok('V3-2b 연도 +1 반영', await page.getByText('2030년의 나를 그리는 보드야').isVisible().catch(() => false));
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('vision-board-data') ?? '{}').targetDate);
@@ -114,14 +115,10 @@ async function newPage(seed) {
   await page.getByRole('radio', { name: 'QHD', exact: true }).click();
   await page.waitForTimeout(500);
   ok('V3-3e 칩 탭 → 즉시 적용', await page.getByText('PC QHD (16:9)').isVisible().catch(() => false));
-  // 보드 뷰 전환 → ?view=board + 이미지로 저장 버튼
-  await page.getByRole('radio', { name: '보드', exact: true }).click();
-  await page.waitForTimeout(500);
-  ok('V3-3f 탭 전환 → ?view=board', new URL(page.url()).search === '?view=board', page.url());
-  ok('V3-3g 보드 뷰 저장 버튼', await page.getByText('🖼️ 이미지로 저장').isVisible().catch(() => false));
-  await page.getByText('🖼️ 이미지로 저장').click();
-  await page.waitForTimeout(1500);
-  ok('V3-3h 보드 저장 시트 (4:5)', await page.getByText('보드 이미지 저장').isVisible().catch(() => false));
+  // v7.5: 보드 탭 제거 — 폰/PC 2탭만, 보드 뷰 저장 버튼도 함께 제거
+  ok('V3-3f 보드 탭 부재', (await page.getByRole('radio', { name: '보드', exact: true }).count()) === 0);
+  ok('V3-3g 이미지로 저장 버튼 부재', (await page.getByText('🖼️ 이미지로 저장').count()) === 0);
+  ok('V3-3h 뷰 라디오 2개 (폰/PC)', (await page.getByRole('radiogroup', { name: '보기 방식' }).getByRole('radio').count()) === 2);
   await ctx.close();
 }
 // 레거시 ?device= 딥링크 호환 + ?view= 딥링크
@@ -132,9 +129,11 @@ async function newPage(seed) {
   ok('V3-3i 레거시 ?device=phone → 폰 탭', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   ok('V3-3j URL이 ?view=phone으로 정규화', new URL(page.url()).search === '?view=phone', page.url());
   ok('V3-3k 폰 프리셋 자동 시드 (기본 폰)', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // v7.5: 레거시 ?view=board 딥링크는 desktop으로 흡수·정규화
   await page.goto(`${BASE}/collage?view=board`);
   await page.waitForTimeout(1200);
-  ok('V3-3l ?view=board 딥링크', await page.getByRole('radio', { name: '보드', exact: true }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  const pcChecked = await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false);
+  ok('V3-3l 레거시 ?view=board → PC 탭 + ?view=desktop 정규화', pcChecked && new URL(page.url()).search === '?view=desktop', page.url());
   await ctx.close();
 }
 

@@ -9,7 +9,6 @@ import {
   saveTargetDate,
   saveCollageDeviceLayout,
   saveCollageDevicePreset,
-  saveCollageLayout,
   saveCollageTemplate,
   saveFutureDayStory,
 } from '@/lib/storage';
@@ -23,18 +22,10 @@ import WallpaperSheet from '@/components/WallpaperSheet';
 import CollageBoard from '@/components/collage/CollageBoard';
 import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 
-// 화면 구조 (v7.2) — choose 뷰 제거, 한 화면에서 [보드|폰|PC] 토글 + 인라인 사이즈 선택
-// v7.3 — 기본 뷰 PC, 사이즈는 패널 대신 상단 칩 상시 노출, 모든 뷰에서 저장 가능, ?view= URL 동기화
-type CollageView = 'board' | 'phone' | 'desktop';
-
-// 보드 뷰 저장용 임시 프리셋 — 화면과 같은 4:5 비율이라 WYSIWYG (WallpaperSheet는 id/label/w/h만 사용)
-const BOARD_EXPORT_PRESET: WallpaperPreset = {
-  id: 'board',
-  label: '보드 이미지 (4:5)',
-  w: 1600,
-  h: 2000,
-  group: 'PC',
-};
+// 화면 구조 (v7.2) — choose 뷰 제거, 한 화면에서 뷰 토글 + 인라인 사이즈 선택
+// v7.3 — 기본 뷰 PC, 사이즈는 패널 대신 상단 칩 상시 노출, ?view= URL 동기화
+// v7.5 — 보드 탭 제거(폰/PC 2탭): 결과물은 결국 배경화면이라 중간 산출물 뷰를 치움
+type CollageView = 'phone' | 'desktop';
 
 const TEMPLATES: { id: CollageTemplate; label: string }[] = [
   { id: 'polaroid', label: '폴라로이드' },
@@ -104,8 +95,9 @@ export default function CollagePage() {
     const v = params.get('view');
     const device = params.get('device');
     let initial: CollageView = 'desktop';
-    if (v === 'board' || v === 'phone' || v === 'desktop') initial = v;
+    if (v === 'phone' || v === 'desktop') initial = v;
     else if (device === 'phone' || device === 'desktop') initial = device;
+    // 레거시 ?view=board (v7.3 이전 북마크·공유 URL)는 desktop으로 흡수
     setView(initial);
     history.replaceState(null, '', `${window.location.pathname}?view=${initial}`);
   }, [router]);
@@ -114,7 +106,6 @@ export default function CollagePage() {
   // 시드 id는 반드시 실존 프리셋만 ('phone', 'pc-fhd')
   useEffect(() => {
     if (!board) return;
-    if (view !== 'phone' && view !== 'desktop') return;
     if (board.collageDevicePresets?.[view]) return;
     saveCollageDevicePreset(view, view === 'phone' ? 'phone' : 'pc-fhd');
     setBoard(loadBoard());
@@ -162,17 +153,12 @@ export default function CollagePage() {
   const boardYear = getTargetYear(board);
 
   // 기기 뷰의 선택 사이즈 — 편집·내보내기 비율을 이 프리셋이 결정한다 (v6.19)
-  const isDevice = view === 'phone' || view === 'desktop';
-  const devicePresetId =
-    view === 'phone' || view === 'desktop' ? board.collageDevicePresets?.[view] : undefined;
+  const devicePresetId = board.collageDevicePresets?.[view];
   const devicePreset = WALLPAPER_PRESETS.find((p) => p.id === devicePresetId);
-  const aspect = !isDevice || !devicePreset ? ASPECT : devicePreset.w / devicePreset.h;
+  const aspect = !devicePreset ? ASPECT : devicePreset.w / devicePreset.h;
 
-  // 뷰별 저장된 배치 — 보드는 collageLayouts, 폰/PC는 collageDeviceLayouts
-  const savedLayout =
-    view === 'phone' || view === 'desktop'
-      ? board.collageDeviceLayouts?.[view]?.[template]
-      : board.collageLayouts?.[template];
+  // 뷰별 저장된 배치 — 폰/PC collageDeviceLayouts (구 보드 뷰의 collageLayouts는 데이터만 보존)
+  const savedLayout = board.collageDeviceLayouts?.[view]?.[template];
 
   // 화면에 보이는 배치 그대로 — 배경화면 내보내기와 공유
   const currentLayout = resolveLayout(template, keyedItems, savedLayout, aspect);
@@ -183,9 +169,7 @@ export default function CollagePage() {
   }
 
   function handleLayoutChange(l: CollageLayout) {
-    const stamped = { ...l, aspect };
-    if (view === 'phone' || view === 'desktop') saveCollageDeviceLayout(view, template, stamped);
-    else saveCollageLayout(template, stamped);
+    saveCollageDeviceLayout(view, template, { ...l, aspect });
     setBoard(loadBoard());
   }
 
@@ -204,7 +188,7 @@ export default function CollagePage() {
 
   // 사이즈 선택 — 비율이 거의 같으면 배치 유지, 다르면 리시드 확인
   function handleSelectPreset(preset: WallpaperPreset) {
-    if ((view !== 'phone' && view !== 'desktop') || !board) return;
+    if (!board) return;
     const hasLayouts =
       Object.keys(board.collageDeviceLayouts?.[view] ?? {}).length > 0;
     const newAspect = preset.w / preset.h;
@@ -218,7 +202,7 @@ export default function CollagePage() {
   }
 
   function applyReseed() {
-    if (!confirmReseed || (view !== 'phone' && view !== 'desktop')) return;
+    if (!confirmReseed) return;
     clearCollageDeviceLayouts(view);
     saveCollageDevicePreset(view, confirmReseed.id);
     setBoard(loadBoard());
@@ -260,7 +244,6 @@ export default function CollagePage() {
         </div>
         <div className="flex gap-1.5 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="보기 방식">
           {([
-            { id: 'board' as const, label: '보드' },
             { id: 'phone' as const, label: '📱 폰' },
             { id: 'desktop' as const, label: '🖥️ PC' },
           ]).map((v) => (
@@ -294,32 +277,6 @@ export default function CollagePage() {
               사진 담으러 가기 →
             </button>
           </div>
-        ) : view === 'board' ? (
-          <>
-            {templateSelector}
-
-            {/* 보드 — 탭하면 바로 편집 */}
-            <CollageBoard
-              key={`board-${template}`}
-              template={template}
-              items={keyedItems}
-              layout={savedLayout}
-              aspect={ASPECT}
-              onLayoutChange={handleLayoutChange}
-              year={boardYear}
-              onYearChange={handleYearChange}
-            />
-            <p className="text-micro text-[#6E6962] text-center mt-2">
-              위 탭에서 폰·PC를 고르면 배경화면으로 만들 수 있어.
-            </p>
-            {/* 보드 뷰도 바로 저장 가능 (v7.3) — 화면과 같은 4:5 이미지로 */}
-            <button
-              onClick={() => setSheetOpen(true)}
-              className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
-            >
-              🖼️ 이미지로 저장
-            </button>
-          </>
         ) : (
           <>
             {/* 표준 사이즈 칩 — 상단 상시 노출, 탭 즉시 적용 (v7.3, 구 '사이즈 바꾸기' 패널 대체) */}
@@ -377,8 +334,8 @@ export default function CollagePage() {
           </>
         )}
 
-        {/* 미래의 하루 이야기 — 보드 뷰에서 / 6개 영역 완성 시에만 노출 */}
-        {view === 'board' && board.futureDayStory ? (
+        {/* 미래의 하루 이야기 / 완성 CTA — 구 보드 뷰 전용에서 공통 노출로 (v7.5 보드 탭 제거) */}
+        {collageImages.length > 0 && board.futureDayStory ? (
           <div className="mt-8 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-body">미래의 하루 이야기</span>
@@ -400,7 +357,7 @@ export default function CollagePage() {
               }}
             />
           </div>
-        ) : view === 'board' && completedCount === 6 ? (
+        ) : collageImages.length > 0 && completedCount === 6 ? (
           <div className="mt-8 space-y-2">
             <button
               onClick={() => router.push('/finish')}
@@ -412,11 +369,6 @@ export default function CollagePage() {
               완성하면 미래의 하루 이야기를 써줄게.
             </p>
           </div>
-        ) : view === 'board' && collageImages.length > 0 ? (
-          // 부분 완성 상태 (v7.4) — 다 채우기 전에도 배경화면 저장이 이미 가능하다는 걸 알린다
-          <p className="mt-8 text-micro text-[#6E6962] text-center">
-            지금 이대로도 폰·PC 배경화면으로 저장할 수 있어 — 위에서 탭을 골라봐 🐿️
-          </p>
         ) : null}
       </div>
 
@@ -449,7 +401,7 @@ export default function CollagePage() {
               <div className="flex items-start gap-3">
                 <span className="w-8 h-8 rounded-xl bg-[#F5F5F3] flex items-center justify-center flex-shrink-0 text-body" aria-hidden="true">📱</span>
                 <p className="text-body text-[#1C1B19] leading-snug">
-                  위 <span className="font-semibold">보드·폰·PC 탭</span>에서 기기 사이즈를 고르면, 그 비율 그대로 꾸며서 저장할 수 있어.
+                  위 <span className="font-semibold">폰·PC 탭</span>에서 기기 사이즈를 고르면, 그 비율 그대로 꾸며서 저장할 수 있어.
                 </p>
               </div>
             </div>
@@ -463,10 +415,10 @@ export default function CollagePage() {
         </div>
       )}
 
-      {sheetOpen && (view === 'board' ? true : !!devicePreset) && (
+      {sheetOpen && devicePreset && (
         <WallpaperSheet
           year={boardYear}
-          preset={view === 'board' ? BOARD_EXPORT_PRESET : devicePreset!}
+          preset={devicePreset}
           board={{ template, layout: currentLayout, items: keyedItems }}
           onClose={() => setSheetOpen(false)}
         />

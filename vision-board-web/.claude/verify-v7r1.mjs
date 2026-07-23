@@ -74,7 +74,7 @@ const readBoard = (page) =>
   await page.goto(`${BASE}/`);
   await page.waitForTimeout(1500);
   ok('R1-3a 완료자 / → /dashboard', new URL(page.url()).pathname === '/dashboard', page.url());
-  const introVisible = await page.getByText('6칸짜리 정원이야').isVisible().catch(() => false);
+  const introVisible = await page.getByText('6개 스테이션이 있는 산책길이야').isVisible().catch(() => false);
   ok('R1-3b 기존 완료자에게 인트로 시트 미노출 (v1 스탬프)', !introVisible);
   const board = await readBoard(page);
   ok('R1-3c dashboardIntroSeen=true 마이그레이션', board?.dashboardIntroSeen === true);
@@ -130,17 +130,17 @@ const readBoard = (page) =>
   await page.getByText('비전보드 시작하기').click();
   await page.waitForTimeout(1500);
   ok('R1-6e 완료 → /dashboard', new URL(page.url()).pathname === '/dashboard', page.url());
-  ok('R1-6f 인트로 시트 노출(6칸짜리 정원)', await page.getByText('6칸짜리 정원이야').isVisible().catch(() => false));
+  ok('R1-6f 인트로 시트 노출(6칸짜리 정원)', await page.getByText('6개 스테이션이 있는 산책길이야').isVisible().catch(() => false));
   // 시트와 대시보드 카드 양쪽에 같은 부제가 있어 다중 매칭 — first()로 확인
   ok('R1-6g 6영역 카드(몸·마음·에너지)', await page.getByText('몸·마음·에너지').first().isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r1-dashboard-intro.png`, fullPage: true });
 
   await page.getByText('좋아, 시작할게').click();
   await page.waitForTimeout(800);
-  ok('R1-6h 시트 닫힘', !(await page.getByText('6칸짜리 정원이야').isVisible().catch(() => false)));
+  ok('R1-6h 시트 닫힘', !(await page.getByText('6개 스테이션이 있는 산책길이야').isVisible().catch(() => false)));
   await page.reload();
   await page.waitForTimeout(1500);
-  ok('R1-6i 새로고침 후 재노출 없음', !(await page.getByText('6칸짜리 정원이야').isVisible().catch(() => false)));
+  ok('R1-6i 새로고침 후 재노출 없음', !(await page.getByText('6개 스테이션이 있는 산책길이야').isVisible().catch(() => false)));
   await ctx.close();
 }
 
