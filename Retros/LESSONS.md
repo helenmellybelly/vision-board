@@ -208,6 +208,9 @@ HANDOFF.md에 "구현 완료"라고 적혀 있어도, `git diff HEAD --stat`로 
 
 ## Deployment
 
+### PowerShell 파이프로 `vercel env add`에 값을 넘기면 빈 값으로 등록된다 — 검증은 실측으로 #coding #deployment #vercel #powershell
+`$val | npx vercel env add NAME production`이 에러 없이 "Added"를 찍지만 실제로는 **빈 문자열**이 저장됐다(v7.4 실측 — 빈 키 탓에 Gemini가 조용히 Groq 폴백으로 빠짐). 개행 포함 임시 파일을 만들어 `cmd /c "npx vercel env add NAME production < file"`로 등록할 것. 또 `vercel env pull`은 시크릿 값을 `""`로 마스킹하므로(정상 키도 전부 빈 값으로 보임) 등록 검증은 pull 비교가 아니라 **재배포 후 해당 기능 실호출**(응답 시그니처·로그)로 해야 한다. env 변경은 재배포 전 기존 배포에 반영되지 않는다.
+
 ### CSR 페이지의 배포 검증은 HTML 문자열 매칭이 안 된다 — vercel inspect로 확인 #coding #deployment #vercel
 `'use client'` + 클라이언트 상태 로딩(localStorage 등) 페이지는 SSR HTML에 신규 UI 문자열이 없어 `Invoke-WebRequest` 본문 grep이 거짓 경고를 낸다. 신버전 반영 확인은 ① 경로별 200 ② `npx vercel inspect <배포URL>`의 `target=production`·`status=Ready` 조합으로 한다.
 
@@ -229,6 +232,9 @@ OpenAI/DALL-E URL은 24시간 후 만료되어 localStorage에 URL 문자열로 
 `SectionData.images`(레거시 `[null, null, null]`)와 `SectionData.generatedImages`가 공존하는 상황에서 board 페이지가 `images`를 읽어 항상 빈 화면을 보여주는 버그가 있었다. 동일한 목적의 필드가 여러 개일 때, 쓰는 코드(write path)와 읽는 코드(read path)가 같은 필드를 가리키는지 한 번에 추적 확인해야 한다.
 
 ## AI API
+
+### Gemini 고정 버전 모델명은 신규 키에서 404로 부패한다 — latest 별칭을 기본값으로 #coding #ai-api #gemini
+`gemini-2.5-flash(-lite)`가 ListModels에는 나오는데 generateContent에서 "This model is no longer available to new users" 404를 반환했다(v7.4 실측 — 신규 발급 키 기준). 목록 존재 ≠ 호출 가능. 무료 티어 기본값은 `gemini-flash-latest`/`gemini-flash-lite-latest` 별칭으로 두고, 실패 시 무료 폴백(Groq) 체인을 항상 함께 둘 것.
 
 ### 새 OpenAI 계정은 dall-e-3가 없고 gpt-image-1이 기본이다 #coding #openai #ai-api
 2025년 이후 생성된 OpenAI 계정은 `dall-e-3` 모델이 없거나 접근 불가한 경우가 있음 (400 "The model does not exist"). 신규 계정용 이미지 생성 모델은 `gpt-image-1`이며 응답이 b64_json 형식. 새 프로젝트에 OpenAI 이미지 생성을 붙일 때는 dall-e-3보다 gpt-image-1부터 시도할 것. gpt-image-1이 작동하던 계정에서 dall-e-2/dall-e-3로 전환해도 실패할 수 있음 — 모델 다운그레이드가 오히려 더 좁은 접근 권한을 요구하는 경우가 있다.
