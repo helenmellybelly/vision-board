@@ -315,6 +315,10 @@ export default function DashboardPage() {
               >
                 ✍️ 질문에 답하며 시작 →
               </button>
+              {/* 선택지별 기대값 (v7.6) — 무엇을 하면 무엇을 얻는지 미리 보여준다 */}
+              <p className="text-caption text-[#6E6962] text-center mt-1">
+                질문 4개에 답하면 → 미래의 하루 일기
+              </p>
               <button
                 onClick={() => handlePathChoice(pathSheetId, 'photo')}
                 className={`mt-2.5 ${preferPhoto ? primaryCls : secondaryCls}`}
@@ -322,6 +326,9 @@ export default function DashboardPage() {
               >
                 📷 사진부터 골라볼래 →
               </button>
+              <p className="text-caption text-[#6E6962] text-center mt-1">
+                사진 3장을 담으면 → 이 칸의 절반 완성
+              </p>
             </div>
           </div>
         );

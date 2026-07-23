@@ -7,6 +7,7 @@ import {
   CollageTemplate,
   StickerStyle,
 } from './types';
+import { FOREST } from './colors';
 
 export interface CollageItem {
   key: string; // `${sectionId}-${slotIdx}` — 사진 교체·삭제에도 안정적
@@ -29,15 +30,24 @@ export const STICKER_MIN_W = 0.18;
 
 export interface CollageTheme {
   bg: string;
-  /** 사진 프레임 — polaroid = 흰 테두리+턱, rounded = 라운드 모서리 */
-  frame: 'polaroid' | 'rounded';
+  /** 세로 그라디언트 [상단, 하단] — 있으면 bg 대신 그라디언트로 칠한다 (DOM·canvas 동일 적용) */
+  bgGradient?: [string, string];
+  /** 사진 프레임 — v7.6: 흰 폴라로이드 프레임 제거, 전 템플릿 rounded(사진만 + 라운드·그림자) */
+  frame: 'rounded';
   /** 타이틀 위치 — center = 중앙 연도 카드(사진 위), top = 상단 밴드 */
   titlePos: 'center' | 'top';
   dark: boolean;
 }
 
 export const COLLAGE_THEMES: Record<CollageTemplate, CollageTheme> = {
-  polaroid: { bg: '#2D2B29', frame: 'polaroid', titlePos: 'center', dark: true },
+  // 구 '폴라로이드' 템플릿 → '숲' 테마 (id는 localStorage 키라 유지, UI 라벨만 '숲')
+  polaroid: {
+    bg: FOREST.base,
+    bgGradient: [FOREST.deep, FOREST.light],
+    frame: 'rounded',
+    titlePos: 'center',
+    dark: true,
+  },
   mosaic: { bg: '#FAF9F7', frame: 'rounded', titlePos: 'top', dark: false },
   minimal: { bg: '#FFFFFF', frame: 'rounded', titlePos: 'top', dark: false },
 };
@@ -49,16 +59,27 @@ export const STICKER_FONT_RATIO: Record<StickerStyle, number> = {
   outline: 0.15,
 };
 
-// 스티커 시트 프리셋 문구 — 샘플 무드보드의 어퍼메이션 레퍼런스
+// 스티커 시트 프리셋 문구 — 샘플 무드보드의 어퍼메이션 레퍼런스 (v7.6 다양화)
+// 이모지는 chip/script만 — outline은 strokeText 외곽선이 이모지 글리프를 깨뜨린다
 export const STICKER_PRESETS: { text: string; style: StickerStyle }[] = [
   { text: '잘 될 거야', style: 'chip' },
   { text: '될 일은 된다', style: 'chip' },
   { text: '그러니까 감사', style: 'chip' },
-  { text: '일단 시작', style: 'chip' },
+  { text: '일단 시작 🔥', style: 'chip' },
+  { text: '자라나는 중 🌱', style: 'chip' },
+  { text: '올해는 내 해 🍀', style: 'chip' },
+  { text: '매일 조금씩', style: 'chip' },
+  { text: '나는 내 편', style: 'chip' },
+  { text: '가볍게, 꾸준히', style: 'chip' },
+  { text: '운을 심는 중 🍀', style: 'chip' },
   { text: "It's my year", style: 'script' },
   { text: 'lucky me', style: 'script' },
+  { text: 'bloom ✨', style: 'script' },
+  { text: 'growing 🌱', style: 'script' },
+  { text: 'all is well', style: 'script' },
   { text: 'YOU CAN AND YOU WILL', style: 'outline' },
   { text: 'DO IT NOW', style: 'outline' },
+  { text: 'MAKE IT HAPPEN', style: 'outline' },
 ];
 
 export const stickerKey = (id: string) => `sticker:${id}`;
@@ -72,15 +93,16 @@ const POLAROID_SLOTS: [number, number][] = [
   [0.01, 0.21], [0.69, 0.22], [0.05, 0.78], [0.64, 0.79], [0.35, 0.82], [0.01, 0.40],
   [0.70, 0.41], [0.20, 0.18], [0.48, 0.20], [0.20, 0.62], [0.48, 0.63], [0.34, 0.24],
 ];
-const POLAROID_WIDTHS = [0.30, 0.27, 0.32, 0.26, 0.29, 0.31];
+// v7.6 프레임리스 — 흰 테두리·턱이 사라진 만큼 사진 폭을 ~8% 키운다
+const POLAROID_WIDTHS = [0.32, 0.29, 0.34, 0.28, 0.31, 0.33];
 const POLAROID_ROTS = [-7, 5, -4, 8, -6, 4, 7, -5];
 
 function seedPolaroid(items: CollageItem[], aspect: number): CollageLayout {
-  // 세로로 긴 화면은 상단 ~15%를 시계·위젯 영역으로 비우고, 가로형(PC)은 폴라로이드 폭을 줄여 과대화를 막는다
+  // 세로로 긴 화면은 상단 ~15%를 시계·위젯 영역으로 비우고, 가로형(PC)은 사진 폭을 줄여 과대화를 막는다
   const topReserve = hasTopReserve(aspect) ? 0.15 : 0;
   const wScale = isLandscape(aspect) ? 0.42 : 1;
-  // 폴라로이드 프레임은 사진보다 길다(턱 포함 ≈ 폭×1.115) — 가로형에선 하단 잘림이 커서 프레임 기준으로 클램프
-  const frameH = (w: number) => w * (aspect > 1 ? 1.115 : 1) * aspect;
+  // 프레임리스 정사각 사진 — 정규화 높이 = 폭 × aspect
+  const frameH = (w: number) => w * aspect;
   const remapY = (y: number) => topReserve + y * (1 - topReserve);
   const result: Record<string, CollageLayoutItem> = {};
   items.forEach((item, i) => {

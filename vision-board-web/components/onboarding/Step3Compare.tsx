@@ -126,6 +126,10 @@ export default function Step3Compare({ onComplete }: { onComplete: () => void })
         >
           비전보드 시작하기 →
         </button>
+        {/* 시간 기대값 (v7.6) — 시작 전에 걸리는 시간을 미리 알려 진입 부담을 낮춘다 */}
+        <p className="text-caption text-[#6E6962] text-center mt-2 flex-shrink-0">
+          첫 스테이션은 5분이면 돼.
+        </p>
       </div>
     </div>
   );

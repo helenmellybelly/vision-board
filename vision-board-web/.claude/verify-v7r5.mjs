@@ -66,7 +66,7 @@ const withPhoto = (extra = {}) =>
   await page.waitForTimeout(1500);
   // v7.3: 기본 뷰가 PC
   ok('R5-1a 진입 즉시 PC 탭 활성 (v7.3 기본)', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
-  ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('폴라로이드').isVisible().catch(() => false));
+  ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('숲').first().isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r5-collage-unified.png`, fullPage: true });
   await page.getByRole('radio', { name: '📱 폰' }).click();
   await page.waitForTimeout(500);

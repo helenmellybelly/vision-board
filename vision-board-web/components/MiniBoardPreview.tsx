@@ -3,6 +3,7 @@
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionId, SectionStatus } from '@/lib/types';
 import { getTargetYear } from '@/lib/targetDate';
+import { FOREST } from '@/lib/colors';
 
 // 미니 비전보드 (v7.0-r5) — 구 랜딩 HeroBoard를 진행 피드백으로 확장.
 // 사진이 담긴 섹션은 첫 사진이 채워지고, 미완은 파스텔 placeholder(goal-gradient).
@@ -89,7 +90,7 @@ export default function MiniBoardPreview({
   };
 
   return (
-    <div className={`rounded-3xl ${compact ? 'px-3 py-3' : 'px-4 py-5'}`} style={{ backgroundColor: '#2D2B29' }}>
+    <div className={`rounded-3xl ${compact ? 'px-3 py-3' : 'px-4 py-5'}`} style={{ background: FOREST.gradientCss }}>
       <div className={`grid grid-cols-3 items-center ${compact ? 'gap-2' : 'gap-3'}`}>
         {areas.slice(0, 3).map((area, i) => renderCell(area, i))}
         <div className={`col-span-3 flex flex-col items-center justify-center text-center select-none ${compact ? 'py-1' : 'py-2.5'}`}>

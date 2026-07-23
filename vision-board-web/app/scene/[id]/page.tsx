@@ -7,6 +7,7 @@ import { loadBoard, saveSectionScene, saveMiniStory, saveTargetDate, incrementDi
 import { getTargetDate, getTargetYear, formatDiaryDate } from '@/lib/targetDate';
 import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import { SLOT_KEY_LABELS } from '@/lib/slotLabels';
+import { josaOnly } from '@/lib/josa';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 import InlineInput from '@/components/InlineInput';
@@ -160,9 +161,10 @@ export default function ScenePage() {
   const sceneStep = section.sceneStep;
   const keyword = slots.keyword || '';
   const targetYear = getTargetYear(board);
+  // v7.6 — "질문은 끝났어" 예고는 섹션 채팅의 브리지 버블로 이동, 여기선 짧은 재인사만
   const cushionText = keyword
-    ? `질문은 끝났어. 이제 '${keyword}' 상태가 이루어진 ${targetYear}년의 하루를 그려볼 거야. 이 하루가 비전보드의 핵심이 될 거야.`
-    : `질문은 끝났어. 이제 지금까지 말해준 것들이 이루어진 ${targetYear}년의 하루를 그려볼 거야.`;
+    ? `좋아, '${keyword}'${josaOnly(keyword, '이/가')} 이루어진 ${targetYear}년의 하루야. 이 하루가 비전보드의 핵심이 될 거야.`
+    : `좋아, 지금까지 말해준 것들이 이루어진 ${targetYear}년의 하루야. 이 하루가 비전보드의 핵심이 될 거야.`;
 
   const sceneQuestion = '그날의 하루, 어디서 뭘 하고 있어? 느낌과 상황을 구체적으로 써봐.';
 
@@ -246,6 +248,7 @@ export default function ScenePage() {
               <p className="text-caption text-[#6B7280] leading-relaxed mt-1">
                 · 순간 2~3개면 충분해
                 <br />· 순간마다 「어디서 · 뭘 하고 · 뭐가 보이는지」까지
+                <br />· 문장으로 써도, 장면 단어만 나열해도 좋아
               </p>
             </details>
 
@@ -275,7 +278,7 @@ export default function ScenePage() {
             <InlineInput
               onSubmit={handleSubmit}
               placeholder={sceneStep.placeholder || '구체적일수록 좋아. 장소, 행동, 감각까지.'}
-              example={sceneStep.example}
+              examples={sceneStep.examples}
               hint="순간 2~3개, 각각 장소·행동까지 쓰면 딱 좋아."
               value={sceneInput}
               onChangeText={setSceneInput}

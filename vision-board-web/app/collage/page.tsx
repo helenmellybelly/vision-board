@@ -28,7 +28,8 @@ import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 type CollageView = 'phone' | 'desktop';
 
 const TEMPLATES: { id: CollageTemplate; label: string }[] = [
-  { id: 'polaroid', label: '폴라로이드' },
+  // id 'polaroid'는 localStorage 키 계약이라 유지 — v7.6에서 UI 라벨만 '숲'으로
+  { id: 'polaroid', label: '숲' },
   { id: 'mosaic', label: '모자이크' },
   { id: 'minimal', label: '미니멀' },
 ];
@@ -40,8 +41,8 @@ const COACH_KEY = 'vb-collage-coach-v1';
 function TemplateSwatch({ id }: { id: CollageTemplate }) {
   if (id === 'polaroid') {
     return (
-      <span className="inline-block w-4 h-4 rounded-[3px] bg-[#2D2B29] relative flex-shrink-0" aria-hidden="true">
-        <span className="absolute left-[3px] top-[3px] w-2 h-2.5 bg-white rounded-[1px] rotate-[-8deg]" />
+      <span className="inline-block w-4 h-4 rounded-[3px] bg-[#1F2E22] relative flex-shrink-0" aria-hidden="true">
+        <span className="absolute left-[3px] top-[3px] w-2 h-2 bg-white/90 rounded-[2px] rotate-[-8deg]" />
       </span>
     );
   }
@@ -395,7 +396,7 @@ export default function CollagePage() {
               <div className="flex items-start gap-3">
                 <span className="w-8 h-8 rounded-xl bg-[#F5F5F3] flex items-center justify-center flex-shrink-0 text-body" aria-hidden="true">🖼️</span>
                 <p className="text-body text-[#1C1B19] leading-snug">
-                  위 탭에서 <span className="font-semibold">폴라로이드·모자이크·미니멀</span> 스타일을 바꿔봐.
+                  위 탭에서 <span className="font-semibold">숲·모자이크·미니멀</span> 스타일을 바꿔봐.
                 </p>
               </div>
               <div className="flex items-start gap-3">

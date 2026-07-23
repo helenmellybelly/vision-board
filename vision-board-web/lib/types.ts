@@ -24,7 +24,8 @@ export interface SectionQuestion {
   cushionText: string;
   questionText: string;
   placeholder: string;
-  example: string;
+  /** v7.6 — 예시 세트 배열. 원소 1개 = 한 사람의 완결 답변(복수 항목은 \n), "다른 예시 보기"로 순환 */
+  examples: string[];
   helpQuestions: string[];
 }
 
@@ -32,7 +33,8 @@ export interface SectionQuestion {
 export interface SceneStep {
   question: string;
   placeholder: string;
-  example: string;
+  /** v7.6 — 세트 0 = 산문 일기체, 세트 1 = 장면 불릿체. 두 형식 모두 유효함을 보여준다 */
+  examples: string[];
   helpQuestions: string[];
 }
 

@@ -44,7 +44,8 @@ export default function DashboardIntroSheet({
           각 스테이션은 <span className="font-semibold">질문에 답하고 → 어울리는 사진을 담으면</span> 완성돼.
           사진부터 담아도 되지만, 질문으로 진짜 원하는 걸 먼저 찾아보는 걸 추천해 🌰<br />
           한 번에 다 걷는 게 아니야. <span className="font-semibold">먼저 마음 가는 세 곳부터</span> 들러봐 —
-          다 걷기 전에도 보드는 자라고, 언제든 폰·PC 배경화면으로 만들 수 있어.
+          다 걷기 전에도 보드는 자라고, 언제든 폰·PC 배경화면으로 만들 수 있어.<br />
+          여섯 스테이션을 다 걸으면 <span className="font-semibold">참나무 언덕에서 완성된 비전보드 배경화면</span>을 받아 🌳
         </p>
 
         <div className="grid grid-cols-2 gap-2 mb-5">

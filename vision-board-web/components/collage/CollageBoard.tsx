@@ -17,6 +17,7 @@ import {
   seedLayout,
   stickerKey,
 } from '@/lib/collageTemplates';
+import { FOREST } from '@/lib/colors';
 import EditableYear from './EditableYear';
 import StickerSheet from './StickerSheet';
 
@@ -246,7 +247,10 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
         className="relative w-full mx-auto rounded-3xl overflow-hidden select-none"
         style={{
           aspectRatio: String(aspect),
-          backgroundColor: theme.bg,
+          // 숲 테마 — bgGradient 있으면 세로 그라디언트 (canvas renderBoardLayout과 동일 수치)
+          background: theme.bgGradient
+            ? `linear-gradient(180deg, ${theme.bgGradient[0]} 0%, ${theme.bgGradient[1]} 100%)`
+            : theme.bg,
           border: theme.dark ? 'none' : '1px solid #E5E3DF',
           containerType: 'size',
           // 보드 + 버튼이 한 화면에 들어오게 — 세로가 짧은 기기에선 보드 폭이 줄어든다.
@@ -307,12 +311,9 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
               >
                 {sticker ? (
                   <StickerView sticker={sticker} it={it} dark={theme.dark} />
-                ) : theme.frame === 'polaroid' ? (
-                  <div className={`bg-white p-1 pb-3 rounded-sm shadow-lg ${editing ? 'ring-1 ring-white/30' : ''}`}>
-                    <img src={src} alt="" draggable={false} className="w-full aspect-square object-cover pointer-events-none" />
-                  </div>
                 ) : (
-                  <div className={`w-full h-full rounded-xl overflow-hidden shadow-sm ${editing ? 'ring-1 ring-black/15' : ''}`}>
+                  // v7.6 프레임리스 — 흰 폴라로이드 프레임 제거, 전 템플릿 사진만 + 라운드·그림자
+                  <div className={`w-full h-full rounded-xl overflow-hidden ${theme.dark ? 'shadow-lg' : 'shadow-sm'} ${editing ? (theme.dark ? 'ring-1 ring-white/30' : 'ring-1 ring-black/15') : ''}`}>
                     <img
                       src={src}
                       alt=""
@@ -349,7 +350,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
             <div
               className="rounded-xl px-[6cqmin] py-[4cqmin] text-center border border-white/10 shadow-xl"
-              style={{ backgroundColor: '#3A3734' }}
+              style={{ backgroundColor: FOREST.card }}
             >
               <p className="font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase" style={{ fontSize: '2.6cqmin' }}>
                 Vision Board

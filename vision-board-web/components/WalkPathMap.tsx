@@ -4,6 +4,7 @@ import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionId, SectionStatus } from '@/lib/types';
 import { sectionHasPhoto } from '@/lib/sectionRoute';
 import { STATUS_LABEL } from '@/components/MiniBoardPreview';
+import { FOREST } from '@/lib/colors';
 
 // 산책길 지도 (v7.5) — 대시보드 전용. 정원(미니보드) 대신 "토리와 걷는 산책길"로
 // 진행을 여정으로 보여준다 (docs/산책길-대시보드-기획서.md R1: 정적 렌더·이모지 기반).
@@ -53,6 +54,11 @@ export default function WalkPathMap({
   onSelectSection: (id: SectionId) => void;
 }) {
   const allDone = SECTIONS.every((s) => board.sections[s.id].status === 'completed');
+  // 첫 방문(전부 시작 전·사진도 없음)에만 "여기서 시작" 라벨 — 진행이 생기면 글로우+토리만 남긴다.
+  // 사진 먼저 경로는 status가 not_started인 채 사진만 담기므로 사진 유무도 진행으로 본다 (저장 없이 파생)
+  const showStartNudge = SECTIONS.every(
+    (s) => board.sections[s.id].status === 'not_started' && !sectionHasPhoto(board.sections[s.id])
+  );
 
   const tori = (
     <img
@@ -66,7 +72,7 @@ export default function WalkPathMap({
   return (
     <div
       className="relative rounded-3xl overflow-hidden h-[440px]"
-      style={{ backgroundColor: '#2D2B29' }}
+      style={{ background: FOREST.gradientCss }}
     >
       {/* 산책길 — 점선 경로 */}
       <svg
@@ -112,19 +118,46 @@ export default function WalkPathMap({
             className="absolute active:opacity-80 transition-opacity"
             style={{ left: `${anchor.x}%`, top: `${anchor.y}%`, transform: 'translate(-50%,-50%)' }}
           >
+            {/* 첫 방문 시작 라벨 — 버튼 내부라 터치 타깃이 커질 뿐 줄지 않는다 */}
+            {isNext && showStartNudge && (
+              <span
+                aria-hidden="true"
+                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20"
+              >
+                <span className="block animate-nudgeBounce whitespace-nowrap rounded-full bg-white text-[#1F2E22] text-caption font-bold px-2.5 py-1 shadow-lg">
+                  여기서 시작 ▾
+                </span>
+              </span>
+            )}
             <span
               className="relative flex w-11 h-11 rounded-full items-center justify-center shadow-md"
               style={{ backgroundColor: section.lightColor, border: `2px solid ${section.color}` }}
             >
-              {/* 다음 스테이션 — 펄스 링 + 토리가 표지판 앞에서 기다린다 */}
+              {/* 다음 스테이션 — 정적 링 + 확산 글로우 링 2겹, 토리가 표지판 앞에서 기다린다 (v7.6 시작 어포던스) */}
               {isNext && (
-                <span
-                  className="absolute -inset-1 rounded-full animate-pulse pointer-events-none"
-                  style={{ boxShadow: `0 0 0 2px ${section.color}` }}
-                  aria-hidden="true"
-                />
+                <>
+                  <span
+                    className="absolute -inset-1 rounded-full pointer-events-none"
+                    style={{ boxShadow: `0 0 0 2px ${section.color}` }}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="absolute -inset-1 rounded-full animate-glowRing pointer-events-none"
+                    style={{ boxShadow: `0 0 0 3px ${section.color}`, willChange: 'transform' }}
+                    aria-hidden="true"
+                  />
+                </>
               )}
               {isNext && tori}
+              {/* 완료 스테이션 — 수풀 장식: 완료할수록 산책길이 우거진다 */}
+              {completed && (
+                <span
+                  className="absolute -bottom-1.5 -right-2 text-caption leading-none pointer-events-none select-none"
+                  aria-hidden="true"
+                >
+                  🌿
+                </span>
+              )}
               <span className="text-heading leading-none" aria-hidden="true">
                 {stationEmoji(sec.status, hasPhoto)}
               </span>
@@ -135,7 +168,7 @@ export default function WalkPathMap({
             >
               <span className="text-caption font-semibold text-white">{label}</span>
               {completed && (
-                <span className="text-[10px] leading-none font-semibold text-[#2D2B29] bg-[#A7F3D0] rounded-full px-1.5 py-0.5">
+                <span className="text-[10px] leading-none font-semibold text-[#1F2E22] bg-[#A7F3D0] rounded-full px-1.5 py-0.5">
                   완료
                 </span>
               )}

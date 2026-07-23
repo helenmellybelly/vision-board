@@ -62,11 +62,10 @@ export default function Step2Acorn({
           {Array.from({ length: acornStep + 1 }, (_, i) => (
             <div
               key={i}
-              className={
-                i === acornStep
-                  ? 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 animate-fadeIn'
-                  : 'bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3 opacity-60'
-              }
+              // v7.6 — 이전 버블 딤(opacity-60) 제거: 지난 내용도 또렷하게 남긴다
+              className={`bg-[#F5F5F3] rounded-2xl rounded-tl-sm px-4 py-3${
+                i === acornStep ? ' animate-fadeIn' : ''
+              }`}
             >
               <p className="text-body leading-relaxed whitespace-pre-line">
                 {ACORN_MESSAGES[i](name)}

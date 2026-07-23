@@ -4,7 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getSection } from '@/lib/questions';
 import { loadBoard, saveExtractedSlots, markSectionTextComplete, setSlotDeferred } from '@/lib/storage';
+import { getTargetYear } from '@/lib/targetDate';
 import { validateAnswer, AnswerKey, ValidationResult } from '@/lib/answerValidation';
+import { josaOnly } from '@/lib/josa';
 import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
@@ -47,6 +49,8 @@ export default function SectionChatPage() {
 
   const [savedIndicator, setSavedIndicator] = useState(false);
   const [chatHovered, setChatHovered] = useState(false);
+  // 씬 브리지 (v7.6) — 검증 통과 후 바로 이동하지 않고, 다음 단계의 기대값을 먼저 보여준다
+  const [showBridge, setShowBridge] = useState(false);
 
   const chatRef = useRef<HTMLDivElement>(null);
 
@@ -169,7 +173,9 @@ export default function SectionChatPage() {
   }
 
   function exampleFor(key: keyof ExtractedSlots): string {
-    return section?.phaseOneQuestions.find((q) => q.key === key)?.example ?? '';
+    // 리뷰 힌트는 한 줄 문맥("예: …")이라 세트 0의 첫 줄만 — 로테이션은 InlineInput 패널에서만
+    const set = section?.phaseOneQuestions.find((q) => q.key === key)?.examples[0] ?? '';
+    return set.split('\n')[0];
   }
 
   function openFirstInvalidEdit(keys: AnswerKey[]) {
@@ -247,14 +253,18 @@ export default function SectionChatPage() {
       // 네트워크 오류/타임아웃 — 진행을 막지 않는다
     }
     setAiChecking(false);
-    handleComplete();
+    // v7.6 씬 브리지 — 검증 통과 즉시 이동하는 대신, 다음에 뭘 하고 뭘 얻는지 먼저 보여준다
+    setShowBridge(true);
   }
 
   if (!section || !board) return null;
 
   const currentQ = phase === 'questions' && qIdx < 4 ? section.phaseOneQuestions[qIdx] : null;
   const helpQs = currentQ?.helpQuestions ?? [];
-  const currentExample = currentQ?.example ?? '';
+
+  // 브리지 버블 카피 — 행동(장면 쓰기)과 기대값(미래의 하루 일기)을 함께 예고
+  const bridgeKeyword = answers.keyword ?? '';
+  const bridgeText = `여기까지가 질문이야. 이제 '${bridgeKeyword}'${josaOnly(bridgeKeyword, '이/가')} 이뤄진 ${getTargetYear(board)}년의 하루를 같이 그려볼 거야.\n네가 장면을 적어주면 내가 '미래의 하루 일기'로 다듬어줄게. 구체적일수록 진짜같아져 — 시간, 장소, 감각까지 담아봐.`;
 
   const msgs: MsgItem[] = [
     { type: 'lumi', text: section.introText },
@@ -536,19 +546,34 @@ export default function SectionChatPage() {
                 </div>
               )}
 
-              <button
-                onClick={handleProceed}
-                disabled={aiChecking}
-                className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80 disabled:opacity-60"
-              >
-                {aiChecking ? '잠깐, 확인해볼게…' : '이 답들로 미래의 하루 그려보기 →'}
-              </button>
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="w-full mt-3 py-2 text-caption text-[#C9C5BE] text-center active:opacity-70"
-              >
-                다른 섹션 먼저 할게
-              </button>
+              {showBridge ? (
+                <div className="animate-fadeIn">
+                  {/* 씬 브리지 (v7.6) — '방향 키워드' 답변과 '미래의 하루' 사이의 안내 단계 */}
+                  <ChatBubble role="assistant" content={bridgeText} />
+                  <button
+                    onClick={handleComplete}
+                    className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80"
+                  >
+                    미래의 하루 그려보기 →
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handleProceed}
+                    disabled={aiChecking}
+                    className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80 disabled:opacity-60"
+                  >
+                    {aiChecking ? '잠깐, 확인해볼게…' : '이 답들로 미래의 하루 그려보기 →'}
+                  </button>
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="w-full mt-3 py-2 text-caption text-[#C9C5BE] text-center active:opacity-70"
+                  >
+                    다른 섹션 먼저 할게
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -582,8 +607,9 @@ export default function SectionChatPage() {
           <InlineInput
             onSubmit={handleAnswer}
             placeholder={currentQ.placeholder}
-            example={currentExample}
+            examples={currentQ.examples}
             hint={currentQ.key === 'want' ? '여러 개여도 좋아. 줄 바꿔서 써봐.' : undefined}
+            rows={currentQ.key === 'want' ? 3 : 2}
             onHelp={helpQs.length > 0 ? () => setShowHelp(true) : undefined}
             error={answerError}
           />

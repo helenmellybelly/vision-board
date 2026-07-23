@@ -171,8 +171,9 @@ async function newPage(seed) {
   await page.waitForTimeout(300);
   ok('V3-5b 가이드: 순간 2~3개(펼침)', await page.getByText('순간 2~3개면 충분해').isVisible().catch(() => false));
   ok('V3-5c 칩 힌트(고쳐 써봐)', await page.getByText('막막하면 탭해서 넣고').isVisible().catch(() => false));
-  ok('V3-5d 쿠션 연도 파생 (2029년)', await page.getByText('2029년의 하루를 그려볼 거야').isVisible().catch(() => false));
-  ok('V3-5e 구 하드코딩(3년 뒤) 부재', (await page.getByText('3년 뒤의 하루를 그려볼 거야').count()) === 0);
+  // v7.6 쿠션 카피 교체("…년의 하루야") — 예고문은 섹션 채팅 브리지로 이동
+  ok('V3-5d 쿠션 연도 파생 (2029년)', await page.getByText('2029년의 하루야').isVisible().catch(() => false));
+  ok('V3-5e 구 하드코딩(3년 뒤) 부재', (await page.getByText('3년 뒤의 하루').count()) === 0);
   ok('V3-5f 연결형 예문 렌더', await page.getByText('이런 식으로 써봐').isVisible().catch(() => false));
   await ctx.close();
 }

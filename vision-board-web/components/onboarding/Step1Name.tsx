@@ -70,12 +70,12 @@ export default function Step1Name({
           />
           {/* 실시간 호명 미리보기 — 높이를 미리 확보해 입력 중 레이아웃 점프 방지 */}
           <p className="text-caption text-center min-h-[1.25rem] transition-opacity duration-300"
-            style={{ opacity: nameInput.trim() ? 1 : 0, color: '#6E6962' }}
+            style={{ color: '#6E6962' }}
             aria-live="polite"
           >
             {nameInput.trim()
               ? `"${josa(nameInput.trim(), '아/야')}, 만나서 반가워!" — 토리가 이렇게 부를 거야 🌰`
-              : ' '}
+              : '토리가 부를 이름이면 돼. 닉네임도 좋아.'}
           </p>
           <button
             onClick={submit}

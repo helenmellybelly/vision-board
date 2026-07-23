@@ -3,6 +3,7 @@
 // 사이즈를 먼저 고르고 그 비율 그대로 편집하므로, 선택한 해상도로 직접 그린다(무크롭 WYSIWYG, v6.19).
 import { CollageLayout, CollageSticker, CollageTemplate } from './types';
 import { COLLAGE_THEMES, CollageItem, STICKER_FONT_RATIO, hasTopReserve } from './collageTemplates';
+import { FOREST } from './colors';
 
 // ── 기기별 사이즈 프리셋 — 편집 진입 전에 고르고, 편집·내보내기 모두 이 비율을 쓴다 (v6.19) ──
 export interface WallpaperPreset {
@@ -107,35 +108,7 @@ function drawCover(
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
-function drawPolaroid(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  cx: number,
-  cy: number,
-  size: number,
-  rotDeg: number
-) {
-  const pad = size * 0.045;
-  const chin = size * 0.16;
-  const imgSize = size - pad * 2;
-  const frameH = pad + imgSize + chin;
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate((rotDeg * Math.PI) / 180);
-  ctx.shadowColor = 'rgba(0,0,0,0.45)';
-  ctx.shadowBlur = 28;
-  ctx.shadowOffsetY = 12;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(-size / 2, -frameH / 2, size, frameH);
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
-  drawCover(ctx, img, -imgSize / 2, -frameH / 2 + pad, imgSize, imgSize);
-  ctx.restore();
-}
-
-// 라운드 코너 사진 — 회전 없이 정렬, 부드러운 그림자
+// 라운드 코너 사진 — v7.6 프레임리스 공통 경로. dark 테마는 DOM shadow-lg에 맞춰 그림자를 강하게
 function drawRoundedPhoto(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -143,12 +116,13 @@ function drawRoundedPhoto(
   y: number,
   w: number,
   h: number,
-  r: number
+  r: number,
+  dark = false
 ) {
   ctx.save();
-  ctx.shadowColor = 'rgba(28,27,25,0.14)';
-  ctx.shadowBlur = 22;
-  ctx.shadowOffsetY = 8;
+  ctx.shadowColor = dark ? 'rgba(0,0,0,0.45)' : 'rgba(28,27,25,0.14)';
+  ctx.shadowBlur = dark ? 28 : 22;
+  ctx.shadowOffsetY = dark ? 12 : 8;
   ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, r);
@@ -262,6 +236,15 @@ export async function renderBoardLayout(
   const theme = COLLAGE_THEMES[template];
   const { canvas, ctx, w, h } = newCanvas(theme.bg, size.w, size.h);
 
+  // 숲 테마 — 세로 그라디언트 덧칠 (DOM CollageBoard와 동일 수치)
+  if (theme.bgGradient) {
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, theme.bgGradient[0]);
+    grad.addColorStop(1, theme.bgGradient[1]);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
   // 풀블리드 — 편집 보드가 곧 캔버스
   const bx = 0;
   const by = 0;
@@ -316,20 +299,16 @@ export async function renderBoardLayout(
     const px = bx + it.x * bw;
     const py = by + it.y * bh;
     const pw = it.w * bw;
-    if (theme.frame === 'polaroid') {
-      const frameH = pw * 1.115;
-      drawPolaroid(ctx, img, px + pw / 2, py + frameH / 2, pw, it.rot ?? 0);
+    // v7.6 프레임리스 — 전 템플릿 라운드 사진 단일 경로 (구 폴라로이드 흰 프레임 제거)
+    const ph = (it.h ?? it.w * aspect) * bh;
+    if (it.rot) {
+      ctx.save();
+      ctx.translate(px + pw / 2, py + ph / 2);
+      ctx.rotate((it.rot * Math.PI) / 180);
+      drawRoundedPhoto(ctx, img, -pw / 2, -ph / 2, pw, ph, pw * 0.06, theme.dark);
+      ctx.restore();
     } else {
-      const ph = (it.h ?? it.w * aspect) * bh;
-      if (it.rot) {
-        ctx.save();
-        ctx.translate(px + pw / 2, py + ph / 2);
-        ctx.rotate((it.rot * Math.PI) / 180);
-        drawRoundedPhoto(ctx, img, -pw / 2, -ph / 2, pw, ph, pw * 0.06);
-        ctx.restore();
-      } else {
-        drawRoundedPhoto(ctx, img, px, py, pw, ph, pw * 0.06);
-      }
+      drawRoundedPhoto(ctx, img, px, py, pw, ph, pw * 0.06, theme.dark);
     }
   }
 
@@ -343,7 +322,7 @@ export async function renderBoardLayout(
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 30;
     ctx.shadowOffsetY = 10;
-    ctx.fillStyle = '#3A3734';
+    ctx.fillStyle = FOREST.card;
     ctx.beginPath();
     ctx.roundRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, minDim * 0.03);
     ctx.fill();

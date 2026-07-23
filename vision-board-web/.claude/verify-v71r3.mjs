@@ -145,7 +145,7 @@ async function newPage(seed) {
   await page.goto(`${BASE}/collage?device=phone`);
   await page.waitForTimeout(1500);
   ok('R3-4f 프리셋 有 → iPhone 칩 선택', await page.getByRole('radio', { name: 'iPhone', exact: true }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
-  ok('R3-4g 템플릿 탭 노출', await page.getByText('폴라로이드').isVisible().catch(() => false));
+  ok('R3-4g 템플릿 탭 노출', await page.getByText('숲').first().isVisible().catch(() => false));
   await ctx.close();
 }
 

@@ -119,7 +119,7 @@ async function newPage(seed) {
   // v7.5: 보드 탭 제거 — PC 탭 복귀로 템플릿 셀렉터·저장 버튼 확인
   await page.getByRole('radio', { name: '🖥️ PC' }).click();
   await page.waitForTimeout(500);
-  ok('V2-3f-1 PC 복귀 → 템플릿 셀렉터', await page.getByText('폴라로이드').isVisible().catch(() => false));
+  ok('V2-3f-1 PC 복귀 → 템플릿 셀렉터', await page.getByText('숲').first().isVisible().catch(() => false));
   ok('V2-3f-2 보드 탭 부재', (await page.getByRole('radio', { name: '보드', exact: true }).count()) === 0);
   await ctx.close();
 }
