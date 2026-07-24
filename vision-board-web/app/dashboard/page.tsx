@@ -13,6 +13,7 @@ import { josa } from '@/lib/josa';
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
 import DashboardIntroSheet from '@/components/DashboardIntroSheet';
+import AccountButton from '@/components/AccountButton';
 import WalkPathMap from '@/components/WalkPathMap';
 import useFocusTrap from '@/components/useFocusTrap';
 
@@ -154,7 +155,10 @@ export default function DashboardPage() {
                   : '정원사 토리와 함께'}
               </span>
             </div>
-            <ProcessGuide />
+            <div className="flex items-center gap-1">
+              <AccountButton />
+              <ProcessGuide />
+            </div>
           </div>
           <h1 className="text-display font-bold">
             {userName ? `${userName}의 비전보드` : '내 비전보드'}
