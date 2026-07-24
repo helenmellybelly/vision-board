@@ -17,6 +17,7 @@ import { SECTIONS } from '@/lib/questions';
 import { BoardData, CollageLayout, CollageTemplate } from '@/lib/types';
 import { ASPECT, CollageItem, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
 import { WALLPAPER_PRESETS, WallpaperPreset } from '@/lib/wallpaper';
+import { FIRST_BOARD_THRESHOLD, isStoryStale } from '@/lib/milestone';
 import StoryModal from '@/components/StoryModal';
 import WallpaperSheet from '@/components/WallpaperSheet';
 import CollageBoard from '@/components/collage/CollageBoard';
@@ -344,7 +345,8 @@ export default function CollagePage() {
                 onClick={() => router.push('/finish')}
                 className="text-caption text-[#6E6962] active:opacity-70"
               >
-                다시 쓰러 가기 →
+                {/* 재작성 넛지 (v7.8) — 스토리 작성 후 보드가 더 자랐으면 라벨로 초대 */}
+                {isStoryStale(board) ? '보드가 자랐네 — 다시 써줄까? →' : '다시 쓰러 가기 →'}
               </button>
             </div>
             <StoryModal
@@ -358,16 +360,19 @@ export default function CollagePage() {
               }}
             />
           </div>
-        ) : collageImages.length > 0 && completedCount === 6 ? (
+        ) : collageImages.length > 0 && completedCount >= FIRST_BOARD_THRESHOLD ? (
+          // 첫 보드 조기 개방 (v7.8) — 임계값부터 최종 스토리로 초대. 6/6 라벨은 불변(v75r1 계약)
           <div className="mt-8 space-y-2">
             <button
               onClick={() => router.push('/finish')}
               className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity"
             >
-              내 비전보드 완성하기 🐿️
+              {completedCount === 6 ? '내 비전보드 완성하기 🐿️' : '첫 보드 완성하기 🐿️'}
             </button>
             <p className="text-micro text-[#6E6962] text-center">
-              완성하면 미래의 하루 이야기를 써줄게.
+              {completedCount === 6
+                ? '완성하면 미래의 하루 이야기를 써줄게.'
+                : '지금 자란 나무들로 첫 이야기를 써줄게. 보드가 자라면 다시 쓸 수도 있어.'}
             </p>
           </div>
         ) : null}

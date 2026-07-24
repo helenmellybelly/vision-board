@@ -136,6 +136,9 @@ export interface BoardData {
   lastVisitAt?: number;
   oneSentence?: string;
   futureDayStory?: string;
+  /** 최종 스토리가 저장된 시점의 completed 섹션 수 (v7.8 첫 보드) — 보드가 이보다 자라면
+   *  "이야기 다시 써줄까" 넛지를 띄운다. 없으면(구 데이터) 넛지 비노출 */
+  storyWrittenAtCount?: number;
   /** 목표 날짜(ISO YYYY-MM-DD) — 섹션 일기 헤더·콜라주 연도의 단일 소스 (v7.0-r3). 기본 오늘+3년 */
   targetDate?: string;
   /** @deprecated v7.0-r3 — targetDate로 통일. 마이그레이션 v3가 흡수, R6에서 제거 예정 */

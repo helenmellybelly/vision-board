@@ -8,6 +8,7 @@ import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, SectionId } from '@/lib/types';
 import { getSectionRoute, getRecommendedSection, isPhotoOnlySection, sectionHasPhoto } from '@/lib/sectionRoute';
+import { FIRST_BOARD_THRESHOLD, isStoryStale } from '@/lib/milestone';
 import { josa } from '@/lib/josa';
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
@@ -182,6 +183,27 @@ export default function DashboardPage() {
         )}
 
         <div className="mb-5 space-y-3">
+          {/* 첫 보드 조기 개방 (v7.8) — 임계값 도달 후 스토리가 아직 없으면 /finish로 초대.
+              allTextDone이면 /review CTA가 흐름을 이끄므로 중첩하지 않는다 */}
+          {recommended && !allTextDone && completedCount >= FIRST_BOARD_THRESHOLD && !board.futureDayStory && (
+            <button
+              onClick={() => router.push('/finish')}
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
+              style={{ backgroundColor: '#1C1B19' }}
+            >
+              🌳 첫 보드가 열렸어 — 미래의 하루 들으러 가기 →
+            </button>
+          )}
+          {/* 재작성 넛지 (v7.8) — 스토리 작성 후 보드가 더 자랐으면 */}
+          {recommended && isStoryStale(board) && (
+            <button
+              onClick={() => router.push('/finish')}
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
+              style={{ backgroundColor: '#1C1B19' }}
+            >
+              보드가 더 자랐네 — 이야기 다시 써줄까? →
+            </button>
+          )}
           {allTextDone && recommended && (
             <button
               onClick={() => router.push('/review')}

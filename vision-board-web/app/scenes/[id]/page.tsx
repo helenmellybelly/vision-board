@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getSection, SECTIONS } from '@/lib/questions';
 import { getSectionRoute } from '@/lib/sectionRoute';
+import { FIRST_BOARD_THRESHOLD } from '@/lib/milestone';
 import {
   dismissPhotoFirstNudge,
   loadBoard,
@@ -631,6 +632,15 @@ export default function ScenesPage() {
               <div className="mb-4">
                 <MiniBoardPreview board={board} highlightSectionId={sectionId} compact />
               </div>
+              {/* 첫 보드 조기 개방 (v7.8) — 임계값 도달의 보상 회수 지점: 방금 3번째 나무가 자란 순간 */}
+              {nextSection && completedCount >= FIRST_BOARD_THRESHOLD && !board.futureDayStory && (
+                <button
+                  onClick={() => router.push('/finish')}
+                  className="w-full mb-3 py-3.5 rounded-xl text-body font-semibold text-white bg-[#1C1B19] active:opacity-80"
+                >
+                  🎉 첫 보드가 열렸어 — 미래의 하루 들으러 가기 →
+                </button>
+              )}
               {nextSection ? (
                 <button
                   onClick={() => router.push(getSectionRoute(board.sections[nextSection.id], nextSection.id))}

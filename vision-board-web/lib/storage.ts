@@ -340,6 +340,11 @@ export function clearCollageDeviceLayouts(target: 'phone' | 'desktop'): void {
 export function saveFutureDayStory(story: string): void {
   const board = loadBoard();
   board.futureDayStory = story;
+  // 저장 시점의 완성 칸 수 스탬프 (v7.8) — 생성·수동 수정 모두 "현재 보드 기준 최신본"이므로
+  // 함께 갱신해 재작성 넛지를 접는다
+  board.storyWrittenAtCount = Object.values(board.sections).filter(
+    (s) => s.status === 'completed'
+  ).length;
   saveBoard(board);
 }
 

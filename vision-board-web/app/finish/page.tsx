@@ -6,6 +6,7 @@ import { loadBoard, markBoardFinished, saveOneSentence, saveFutureDayStory } fro
 import { getTargetYear } from '@/lib/targetDate';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
+import { countCompleted } from '@/lib/milestone';
 import MiniBoardPreview from '@/components/MiniBoardPreview';
 
 type FinishPhase = 'pattern' | 'sentence' | 'story-loading' | 'story' | 'complete';
@@ -88,6 +89,10 @@ export default function FinishPage() {
 
   if (!board) return null;
 
+  // 첫 보드 마일스톤 (v7.8) — 6/6 전 조기 진입이면 카피를 부분 상태에 맞춘다
+  const completedCount = countCompleted(board);
+  const isFirstBoard = completedCount < 6;
+
   const keywords = SECTIONS.map((s) => {
     const kw = board.sections[s.id].extractedSlots?.keyword;
     return { section: s, kw: kw || null };
@@ -102,9 +107,14 @@ export default function FinishPage() {
           <div className="text-center space-y-2">
             <img src="/tori-profile-bust.png" alt="토리" className="w-14 h-14 rounded-full object-cover mx-auto" />
             <h1 className="text-display font-bold">
-              {board.userName ? `${board.userName}, ` : ''}다 됐어.
+              {board.userName ? `${board.userName}, ` : ''}
+              {isFirstBoard ? '첫 보드가 열렸어.' : '다 됐어.'}
             </h1>
-            <p className="text-[#6B7280]">6가지 영역에서 네가 원하는 삶을 봐.</p>
+            <p className="text-[#6B7280]">
+              {isFirstBoard
+                ? `먼저 자란 ${completedCount}가지 영역에서 네가 원하는 삶을 봐.`
+                : '6가지 영역에서 네가 원하는 삶을 봐.'}
+            </p>
           </div>
 
           {keywords.length > 0 && (
@@ -253,7 +263,9 @@ export default function FinishPage() {
           <div className="space-y-3">
             <img src="/tori-profile-bust.png" alt="토리" className="w-16 h-16 rounded-full object-cover mx-auto" />
             <h1 className="text-display font-bold">
-              {board.userName ? `${board.userName}의 비전보드가 완성됐어 🐿️` : '비전보드가 완성됐어 🐿️'}
+              {board.userName
+                ? `${board.userName}의 ${isFirstBoard ? '첫 비전보드' : '비전보드'}가 완성됐어 🐿️`
+                : `${isFirstBoard ? '첫 비전보드' : '비전보드'}가 완성됐어 🐿️`}
             </h1>
           </div>
 
@@ -286,6 +298,12 @@ export default function FinishPage() {
 
           <p className="text-[#6B7280] leading-relaxed text-body">
             비전보드 + 미래의 하루 이야기.<br />원하는 삶을 이미지로도 보고 글로도 읽는 거야.
+            {/* 6/6 상향 목표화 (v7.8) — 첫 보드는 끝이 아니라 자라는 시작점 */}
+            {isFirstBoard && (
+              <>
+                <br />여섯 그루가 다 자라면 <span className="font-semibold">완전한 보드</span>가 돼 — 남은 칸은 천천히 채우면 돼.
+              </>
+            )}
           </p>
 
           <div className="w-full space-y-2.5">
