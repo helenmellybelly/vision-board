@@ -160,6 +160,7 @@ export function trySaveBoard(data: BoardData): boolean {
   if (typeof window === 'undefined') return false;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    window.dispatchEvent(new Event('vb:board-saved')); // 로그인 시 디바운스 서버 동기화 트리거 (R2-1)
     return true;
   } catch {
     return false;
