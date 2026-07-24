@@ -134,11 +134,16 @@ async function newPage(seed, ctxOpts = {}) {
   await rotate.click();
   await page.waitForTimeout(300);
   ok('V6-4d 세트 1로 순환', await page.getByText('새벽 한 시간에 글을 쓰면서').isVisible().catch(() => false));
+  // v7.7: 5세트(결핍·유지·성장·전환기·관계공동체)로 확대 — 5회 클릭에 세트 0으로 랩
+  await rotate.click();
+  await page.waitForTimeout(200);
+  await rotate.click();
+  await page.waitForTimeout(200);
   await rotate.click();
   await page.waitForTimeout(200);
   await rotate.click();
   await page.waitForTimeout(300);
-  ok('V6-4e 3회 클릭 → 세트 0 랩', await page.getByText('회사 다니면서 퇴근 후엔').isVisible().catch(() => false));
+  ok('V6-4e 5회 클릭 → 세트 0 랩', await page.getByText('회사 다니면서 퇴근 후엔').isVisible().catch(() => false));
   const ph = await page.locator('textarea').first().getAttribute('placeholder');
   ok('V6-4f 형식형 플레이스홀더', (ph ?? '').includes('한 문장이면 충분해'), ph ?? '');
   await ctx.close();

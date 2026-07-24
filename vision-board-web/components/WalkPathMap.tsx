@@ -1,14 +1,15 @@
 'use client';
 
 import { SECTIONS } from '@/lib/questions';
-import { BoardData, SectionId, SectionStatus } from '@/lib/types';
+import { BoardData, SectionId } from '@/lib/types';
 import { sectionHasPhoto } from '@/lib/sectionRoute';
 import { STATUS_LABEL } from '@/components/MiniBoardPreview';
+import { statusEmoji, statusTitle } from '@/lib/stationStatus';
 import { FOREST } from '@/lib/colors';
 
 // 산책길 지도 (v7.5) — 대시보드 전용. 정원(미니보드) 대신 "토리와 걷는 산책길"로
 // 진행을 여정으로 보여준다 (docs/산책길-대시보드-기획서.md R1: 정적 렌더·이모지 기반).
-// 사진 썸네일은 표시하지 않음 — 완료 상태만 (🌰 → 📷/✍️ → 🌳 완료).
+// 사진 썸네일은 표시하지 않음 — 상태 아이콘만 (🌰 → 💬 답하는 중 → 📷 사진 차례 → 🌳 완성, lib/stationStatus.ts 단일 소스).
 // aria-label은 MiniBoardPreview와 같은 계약: `${label} — ${STATUS_LABEL[status]}` —
 // 구 회귀 스위트(v7r2·v71r3)의 셀 라우팅 케이스가 이 형식에 의존한다.
 
@@ -25,22 +26,18 @@ const ANCHORS = [
   { x: 72, y: 93 }, // 도착 — 참나무 언덕
 ];
 
-// 세로 진행에 맞춘 부드러운 S자 — 세로 중간점을 제어점으로 한 cubic bezier
-function buildPath(): string {
-  return ANCHORS.map((p, i) => {
-    if (i === 0) return `M ${p.x} ${p.y}`;
-    const prev = ANCHORS[i - 1];
+// 세로 진행에 맞춘 부드러운 S자 — 세로 중간점을 제어점으로 한 cubic bezier.
+// 구간별 독립 path (v7.7) — 도착 스테이션이 완성된 구간은 실선으로 "걸어온 길"이 되고,
+// 건너뛴 구간은 점선("아직 안 걸은 길")으로 남는다. 경로 모양·순서는 지도처럼 고정.
+function buildSegments(walkedByIndex: boolean[]): { d: string; walked: boolean }[] {
+  return ANCHORS.slice(1).map((p, i) => {
+    const prev = ANCHORS[i];
     const midY = (prev.y + p.y) / 2;
-    return `C ${prev.x} ${midY}, ${p.x} ${midY}, ${p.x} ${p.y}`;
-  }).join(' ');
-}
-
-// 스테이션 시각 상태 — status에 사진 유무를 흡수(사진 먼저 경로가 🌰로 퇴행해 보이지 않게)
-function stationEmoji(status: SectionStatus, hasPhoto: boolean): string {
-  if (status === 'completed') return '🌳';
-  if (status === 'text_complete') return '✍️';
-  if (status === 'in_progress' || hasPhoto) return '📷';
-  return '🌰';
+    return {
+      d: `M ${prev.x} ${prev.y} C ${prev.x} ${midY}, ${p.x} ${midY}, ${p.x} ${p.y}`,
+      walked: walkedByIndex[i] ?? false,
+    };
+  });
 }
 
 export default function WalkPathMap({
@@ -74,22 +71,28 @@ export default function WalkPathMap({
       className="relative rounded-3xl overflow-hidden h-[440px]"
       style={{ background: FOREST.gradientCss }}
     >
-      {/* 산책길 — 점선 경로 */}
+      {/* 산책길 — 걸어온 구간은 실선, 나머지는 점선 */}
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
         className="absolute inset-0 w-full h-full"
         aria-hidden="true"
       >
-        <path
-          d={buildPath()}
-          fill="none"
-          stroke="rgba(255,255,255,0.28)"
-          strokeWidth="2"
-          strokeDasharray="1 7"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
+        {buildSegments([
+          ...SECTIONS.map((s) => board.sections[s.id].status === 'completed'),
+          allDone,
+        ]).map((seg, i) => (
+          <path
+            key={i}
+            d={seg.d}
+            fill="none"
+            stroke={seg.walked ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)'}
+            strokeWidth="2"
+            strokeDasharray={seg.walked ? undefined : '1 7'}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
       </svg>
 
       {/* 출발 — 온보딩에서 심은 도토리 */}
@@ -115,6 +118,7 @@ export default function WalkPathMap({
             key={section.id}
             onClick={() => onSelectSection(section.id)}
             aria-label={`${label} — ${STATUS_LABEL[sec.status]}`}
+            title={statusTitle(label, sec.status, hasPhoto)}
             className="absolute active:opacity-80 transition-opacity"
             style={{ left: `${anchor.x}%`, top: `${anchor.y}%`, transform: 'translate(-50%,-50%)' }}
           >
@@ -159,7 +163,7 @@ export default function WalkPathMap({
                 </span>
               )}
               <span className="text-heading leading-none" aria-hidden="true">
-                {stationEmoji(sec.status, hasPhoto)}
+                {statusEmoji(sec.status, hasPhoto)}
               </span>
             </span>
             {/* 섹션명 — 지그재그 반대편에 라벨 (겹침 방지) */}

@@ -385,7 +385,20 @@ export default function CollagePage() {
             className="w-full max-w-sm bg-white rounded-3xl p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-title font-bold text-[#1C1B19]">이 보드, 직접 꾸밀 수 있어 🐿️</p>
+            {/* v7.7: 정원사 토리가 안내하는 발화자 구도 — 아바타가 🐿️ 이모지를 대체 */}
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/tori-profile-bust.png"
+                alt=""
+                aria-hidden="true"
+                className="w-12 h-12 rounded-full object-cover shadow-md flex-shrink-0"
+              />
+              <div>
+                <p className="text-caption font-semibold text-[#78716C]">정원사 토리</p>
+                <p className="text-title font-bold text-[#1C1B19]">이 보드, 직접 꾸밀 수 있어</p>
+              </div>
+            </div>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <span className="w-8 h-8 rounded-xl bg-[#F5F5F3] flex items-center justify-center flex-shrink-0 text-body" aria-hidden="true">✋</span>

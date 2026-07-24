@@ -66,7 +66,8 @@ async function newPage(seed) {
   const body = await page.locator('body').innerText();
   const count = (s) => body.split(s).length - 1;
   ok('V5-2a completed → 🌳 (스테이션+도착=2)', count('🌳') === 2, `🌳=${count('🌳')}`);
-  ok('V5-2b text_complete → ✍️ 1개', count('✍️') === 1, `✍️=${count('✍️')}`);
+  // v7.7 재매핑: text_complete는 "사진 담을 차례" 📷, ✍️는 퇴역 (lib/stationStatus.ts)
+  ok('V5-2b text_complete → 📷 (✍️ 퇴역)', count('✍️') === 0 && count('📷') >= 2, `✍️=${count('✍️')} 📷=${count('📷')}`);
   ok('V5-2c 사진만(미시작) → 📷 1개', count('📷') >= 1, `📷=${count('📷')}`);
   ok('V5-2d 미시작 → 🌰 (출발+3스테이션=4)', count('🌰') >= 4, `🌰=${count('🌰')}`);
   ok('V5-2e 완료 칩', await page.getByText('완료', { exact: true }).first().isVisible().catch(() => false));

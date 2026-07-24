@@ -107,7 +107,8 @@ export default function DashboardPage() {
     : completedCount === 0
     ? '산책을 시작했어 — 토리가 다음 표지판에서 기다려 🐿️'
     : completedCount < 6
-    ? `${completedCount}/6 스테이션을 지났어 🐿️`
+    ? // v7.7 넛지: 진행 중반의 조급함을 낮추는 가치 카피 — 짧게 유지(대시보드 ≤1.2뷰포트 예산, v71r3 R3-1b)
+      `${completedCount}/6 스테이션을 지났어 — 서두르지 않아도 돼 🐿️`
     : '길 끝에 도착! 이제 배경화면으로 만들어보자 🐿️';
 
   // 추천 카드 — 다음 할 일 1개만 (v7.1-r3 → v7.2 문장형: 섹션명 단독 노출이 어색하다는 피드백)

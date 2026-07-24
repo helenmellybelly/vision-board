@@ -6,7 +6,7 @@ import { getTargetYear } from '@/lib/targetDate';
 import { FOREST } from '@/lib/colors';
 
 // 미니 비전보드 (v7.0-r5) — 구 랜딩 HeroBoard를 진행 피드백으로 확장.
-// 사진이 담긴 섹션은 첫 사진이 채워지고, 미완은 파스텔 placeholder(goal-gradient).
+// v7.7: 흰 폴라로이드 프레임 제거 — CollageBoard와 같은 프레임리스 숲 타일(FOREST.card placeholder).
 // 대시보드 상단·섹션 완료 시트·finish 피날레에서 공용.
 // v7.1-r3: interactive 모드 — 셀이 곧 섹션 내비 버튼 (대시보드 = 미니보드 허브)
 const ROTATIONS = [-2.5, 1.5, -1.5, 2, -2, 2.5];
@@ -34,7 +34,6 @@ interface Area {
   id: SectionId;
   label: string;
   color: string;
-  lightColor: string;
   photo: string | null;
   status: SectionStatus;
 }
@@ -61,7 +60,6 @@ export default function MiniBoardPreview({
     id: s.id,
     label: s.title.split(' — ')[0],
     color: s.color,
-    lightColor: s.lightColor,
     photo: board ? firstPhoto(board, s.id) : null,
     status: board ? board.sections[s.id].status : 'not_started',
   }));
@@ -120,23 +118,24 @@ function MiniPolaroid({
   isNext?: boolean;
   compact?: boolean;
 }) {
+  // v7.7: 흰 폴라로이드 프레임 제거 — CollageBoard(v7.6 숲 테마)와 같은 프레임리스 타일.
+  // overflow-hidden은 안쪽 사진 타일에만 — 토리·뱃지 오버레이(음수 오프셋)가 잘리지 않게.
   const boxShadow = highlighted
     ? `0 0 0 2px ${area.color}, 0 4px 10px rgba(0,0,0,0.3)`
     : undefined;
   return (
     <div
-      className="bg-white p-1 pb-0.5 rounded-sm shadow-md animate-slideUp relative"
+      className="animate-slideUp relative"
       style={{
         transform: `rotate(${ROTATIONS[index]}deg)`,
         animationDelay: `${200 + index * 130}ms`,
         animationFillMode: 'backwards',
-        boxShadow,
       }}
     >
       {/* 다음 할 일 셀 링 — slideUp과 애니메이션이 겹치지 않게 오버레이로 펄스 (v7.1-r3) */}
       {isNext && (
         <span
-          className="absolute -inset-0.5 rounded-sm animate-pulse pointer-events-none"
+          className="absolute -inset-0.5 rounded-xl animate-pulse pointer-events-none"
           style={{ boxShadow: `0 0 0 2px ${area.color}` }}
           aria-hidden="true"
         />
@@ -152,8 +151,8 @@ function MiniPolaroid({
         />
       )}
       <div
-        className="w-full aspect-square flex items-center justify-center overflow-hidden"
-        style={{ backgroundColor: area.lightColor }}
+        className="w-full aspect-square flex items-center justify-center overflow-hidden rounded-xl shadow-lg"
+        style={{ backgroundColor: FOREST.card, boxShadow }}
       >
         {area.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -164,20 +163,20 @@ function MiniPolaroid({
           </span>
         )}
       </div>
-      {/* 상태 뱃지 — ✓ 완성 / ✍️ 이야기만 / 📷 사진만 (v7.2 정원 맵) */}
+      {/* 상태 뱃지 — ✓ 완성 / 📷 사진 차례 / 💬 답하는 중 (v7.7: lib/stationStatus 매핑과 정합) */}
       {area.status === 'completed' ? (
         <span
-          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#1C1B19] text-white text-[9px] leading-none flex items-center justify-center"
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#A7F3D0] text-[#1F2E22] text-[9px] leading-none flex items-center justify-center"
           aria-hidden="true"
         >
           ✓
         </span>
       ) : area.status === 'text_complete' ? (
-        <span className="absolute -top-1 -right-1 text-[10px] leading-none" aria-hidden="true">✍️</span>
-      ) : area.status === 'in_progress' && area.photo ? (
         <span className="absolute -top-1 -right-1 text-[10px] leading-none" aria-hidden="true">📷</span>
+      ) : area.status === 'in_progress' && area.photo ? (
+        <span className="absolute -top-1 -right-1 text-[10px] leading-none" aria-hidden="true">💬</span>
       ) : null}
-      <p className={`text-micro text-center text-[#57534E] ${compact ? 'py-0.5' : 'py-1'}`}>{area.label}</p>
+      <p className={`text-micro text-center text-[#C4C2BE] ${compact ? 'py-0.5' : 'py-1'}`}>{area.label}</p>
     </div>
   );
 }
