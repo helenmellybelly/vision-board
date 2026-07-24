@@ -64,8 +64,12 @@ const noScroll = (page) =>
   ok('R1-3d 핵심 메시지 공개', await page.getByText('그게 비전보드의 힘이야').isVisible().catch(() => false));
   ok('R1-4c 스텝3 무스크롤', await noScroll(page));
   await page.getByText('비전보드 시작하기').click();
+  await page.waitForTimeout(1200);
+  // R2-1: 온보딩 종료 → Google/게스트 선택 화면 경유 (§2-1) → 게스트 선택 시 대시보드
+  ok('R1-5a 완료 → /onboarding/choice', new URL(page.url()).pathname === '/onboarding/choice', page.url());
+  await page.getByText('게스트로 시작하기').click();
   await page.waitForTimeout(1500);
-  ok('R1-5a 완료 → /dashboard', new URL(page.url()).pathname === '/dashboard', page.url());
+  ok('R1-5a2 게스트 선택 → /dashboard', new URL(page.url()).pathname === '/dashboard', page.url());
   ok('R1-5b 인트로 시트(첫 진입)', (await page.getByText('6개 스테이션이 있는 산책길이야').count()) > 0);
   await ctx.close();
 }

@@ -128,8 +128,12 @@ const readBoard = (page) =>
   await page.screenshot({ path: `${OUT}/v7r1-step3.png`, fullPage: true });
 
   await page.getByText('비전보드 시작하기').click();
+  await page.waitForTimeout(1200);
+  // R2-1: 온보딩 종료 → Google/게스트 선택 화면 경유 (§2-1)
+  ok('R1-6e 완료 → /onboarding/choice', new URL(page.url()).pathname === '/onboarding/choice', page.url());
+  await page.getByText('게스트로 시작하기').click();
   await page.waitForTimeout(1500);
-  ok('R1-6e 완료 → /dashboard', new URL(page.url()).pathname === '/dashboard', page.url());
+  ok('R1-6e2 게스트 선택 → /dashboard', new URL(page.url()).pathname === '/dashboard', page.url());
   ok('R1-6f 인트로 시트 노출(6칸짜리 정원)', await page.getByText('6개 스테이션이 있는 산책길이야').isVisible().catch(() => false));
   // 시트와 대시보드 카드 양쪽에 같은 부제가 있어 다중 매칭 — first()로 확인
   ok('R1-6g 6영역 카드(몸·마음·에너지)', await page.getByText('몸·마음·에너지').first().isVisible().catch(() => false));
