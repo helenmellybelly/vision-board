@@ -49,7 +49,7 @@ export default function OnboardingStepPage() {
 
   function handleFinish() {
     markOnboardingDone();
-    router.replace('/dashboard');
+    router.replace('/onboarding/choice'); // 대시보드 진입 전 Google/게스트 선택 (§2-1, R2-1)
   }
 
   return (
