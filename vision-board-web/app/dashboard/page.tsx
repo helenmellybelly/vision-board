@@ -17,6 +17,7 @@ import DashboardIntroSheet from '@/components/DashboardIntroSheet';
 import LoginNudgeSheet from '@/components/LoginNudgeSheet';
 import AccountButton from '@/components/AccountButton';
 import WalkPathMap from '@/components/WalkPathMap';
+import DiarySheet from '@/components/DiarySheet';
 import useFocusTrap from '@/components/useFocusTrap';
 
 const RETURN_GAP_MS = 48 * 60 * 60 * 1000; // 복귀 인사 갭 (v7.1-r4)
@@ -164,7 +165,8 @@ export default function DashboardPage() {
         {showLoginBanner && (
           <div className="mb-3 rounded-xl border border-[#E5E3DF] bg-[#FAFAF8] px-3 py-2 flex items-center gap-2 animate-fadeIn">
             <span className="flex-1 text-caption text-[#1C1B19] truncate">
-              🔒 보드가 아직 이 기기에만 있어
+              {/* v7.9: 손실 구체화 카피 — 상태 서술("이 기기에만 있어")보다 유실 리스크가 보이게 */}
+              🔒 브라우저를 정리하면 보드가 사라질 수 있어
             </span>
             <button
               onClick={() => {
@@ -262,7 +264,7 @@ export default function DashboardPage() {
               className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
               style={{ backgroundColor: '#1C1B19' }}
             >
-              다 됐다, 이제 미래의 하루를 그리러 가자 →
+              다 됐다, 이제 미래 일기를 쓰러 가자 →
             </button>
           )}
           {hasAnyImage && (
@@ -279,13 +281,16 @@ export default function DashboardPage() {
               )}
             </button>
           )}
-          {/* 인터뷰 없이 사진부터 — 섹션 선택 시트로 /scenes 직행 (v7.3) */}
-          <button
-            onClick={() => setPhotoSheetOpen(true)}
-            className="w-full py-2 text-caption text-[#6E6962] underline active:opacity-70"
-          >
-            📷 질문 없이, 사진부터 담아볼래? →
-          </button>
+          {/* 인터뷰 없이 사진부터(v7.3) + 미래 일기 모아 읽기(v7.9 A안) — 높이 예산상 한 행 공유, 일기 없으면 📷만 전체폭 */}
+          <div className="flex items-center">
+            <button
+              onClick={() => setPhotoSheetOpen(true)}
+              className="flex-1 py-2 text-caption text-[#6E6962] underline active:opacity-70"
+            >
+              📷 질문 없이, 사진부터 담아볼래? →
+            </button>
+            <DiarySheet board={board} />
+          </div>
         </div>
 
         {/* 진행 현황 */}
@@ -392,7 +397,7 @@ export default function DashboardPage() {
               </button>
               {/* 선택지별 기대값 (v7.6) — 무엇을 하면 무엇을 얻는지 미리 보여준다 */}
               <p className="text-caption text-[#6E6962] text-center mt-1">
-                질문 4개에 답하면 → 미래의 하루 일기
+                질문 4개에 답하면 → 미래 일기
               </p>
               <button
                 onClick={() => handlePathChoice(pathSheetId, 'photo')}

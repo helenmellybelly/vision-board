@@ -60,7 +60,7 @@ async function newPage(seed) {
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
   ok('V9-1a 재작성 넛지 부재(allTextDone)', (await page.getByText('이야기 다시 써줄까?').count()) === 0);
-  ok('V9-1b /review CTA 단독 노출', await page.getByText('다 됐다, 이제 미래의 하루를 그리러 가자').isVisible().catch(() => false));
+  ok('V9-1b /review CTA 단독 노출', await page.getByText('다 됐다, 이제 미래 일기를 쓰러 가자').isVisible().catch(() => false));
   ok('V9-1c 첫 보드 CTA 부재(스토리 있음)', (await page.getByText('첫 보드가 열렸어').count()) === 0);
   await ctx.close();
 }
@@ -98,6 +98,53 @@ async function newPage(seed) {
   const page = await ctx.newPage();
   const res = await page.goto(`${BASE}/admin`);
   ok('V9-4 /admin 비로그인 404', res?.status() === 404, `status=${res?.status()}`);
+  await ctx.close();
+}
+
+// ── 5) DiarySheet: 미래 일기 모아 읽기 (v7.9 A안) ──
+{
+  const { ctx, page } = await newPage(board({ 1: withPhoto(), 2: withPhoto() }));
+  await page.goto(`${BASE}/dashboard`);
+  await page.waitForTimeout(1500);
+  const trigger = page.getByText('미래 일기 2편');
+  ok('V9-5a 다시 읽기 트리거(2편)', await trigger.isVisible().catch(() => false));
+  await trigger.click();
+  await page.waitForTimeout(400);
+  ok('V9-5b 모아 읽기 모달', await page.getByRole('dialog', { name: '미래 일기 모아 읽기' }).isVisible().catch(() => false));
+  ok('V9-5c 일기 본문 렌더', await page.getByText('스토리.').first().isVisible().catch(() => false));
+  await ctx.close();
+}
+
+// ── 6) 다시 읽기 트리거 부재 — 일기 0편이면 비렌더 ──
+{
+  const { ctx, page } = await newPage(board({ 1: textComplete() }));
+  await page.goto(`${BASE}/dashboard`);
+  await page.waitForTimeout(1200);
+  ok('V9-6 일기 0편 → 트리거 부재', (await page.getByText(/미래 일기 \d+편/).count()) === 0);
+  await ctx.close();
+}
+
+// ── 7) 계정 진입점 확산 (P-1): 콜라주·완성 화면 ──
+{
+  const overrides = {};
+  for (let id = 1; id <= 3; id++) overrides[id] = withPhoto();
+  const { ctx, page } = await newPage(board(overrides));
+  await page.goto(`${BASE}/collage`);
+  await page.waitForTimeout(1500);
+  ok('V9-7a 콜라주 계정 버튼', await page.getByRole('button', { name: '계정', exact: true }).isVisible().catch(() => false));
+  await page.goto(`${BASE}/finish`);
+  await page.waitForTimeout(1500);
+  ok('V9-7b /finish 계정 버튼', await page.getByRole('button', { name: '계정', exact: true }).isVisible().catch(() => false));
+  await ctx.close();
+}
+
+// ── 8) 네이밍 분리 스팟 체크: ProcessBar '일기 쓰기' + 구 라벨 부재 ──
+{
+  const { ctx, page } = await newPage(board({ 1: withPhoto() }));
+  await page.goto(`${BASE}/dashboard`);
+  await page.waitForTimeout(1200);
+  ok('V9-8a ProcessBar 일기 쓰기', await page.getByText('일기 쓰기').first().isVisible().catch(() => false));
+  ok('V9-8b 구 라벨(하루 그리기) 부재', (await page.getByText('하루 그리기').count()) === 0);
   await ctx.close();
 }
 

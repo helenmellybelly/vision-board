@@ -190,7 +190,7 @@ export default function ScenePage() {
             ←
           </button>
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color }} />
-          <span className="font-semibold text-body">{sectionName} · 미래의 하루</span>
+          <span className="font-semibold text-body">{sectionName} · 미래 일기</span>
         </div>
         <button onClick={() => router.push('/dashboard')} className="text-caption text-[#6E6962] py-1">
           대시보드로

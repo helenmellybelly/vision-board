@@ -58,7 +58,7 @@ export function getNextIncompleteRoute(board: BoardData): string {
 
 // 위 라우트에 어울리는 CTA 라벨
 export function getNextIncompleteCtaLabel(route: string): string {
-  if (route.startsWith('/scene/')) return '미래의 하루 그리기 시작 →';
+  if (route.startsWith('/scene/')) return '미래 일기 쓰기 시작 →';
   if (route.startsWith('/scenes/')) return '이어서 사진 담으러 가기 →';
   if (route === '/finish') return '비전보드 완성하러 가기 →';
   return '대시보드로 가기 →';

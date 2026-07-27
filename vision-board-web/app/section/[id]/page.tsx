@@ -262,9 +262,9 @@ export default function SectionChatPage() {
   const currentQ = phase === 'questions' && qIdx < 4 ? section.phaseOneQuestions[qIdx] : null;
   const helpQs = currentQ?.helpQuestions ?? [];
 
-  // 브리지 버블 카피 — 행동(장면 쓰기)과 기대값(미래의 하루 일기)을 함께 예고
+  // 브리지 버블 카피 — 행동(장면 쓰기)과 기대값(미래 일기)을 함께 예고 (v7.9 네이밍 분리)
   const bridgeKeyword = answers.keyword ?? '';
-  const bridgeText = `여기까지가 질문이야. 이제 '${bridgeKeyword}'${josaOnly(bridgeKeyword, '이/가')} 이뤄진 ${getTargetYear(board)}년의 하루를 같이 그려볼 거야.\n네가 장면을 적어주면 내가 '미래의 하루 일기'로 다듬어줄게. 구체적일수록 진짜같아져 — 시간, 장소, 감각까지 담아봐.`;
+  const bridgeText = `여기까지가 질문이야. 이제 '${bridgeKeyword}'${josaOnly(bridgeKeyword, '이/가')} 이뤄진 ${getTargetYear(board)}년의 하루를 같이 그려볼 거야.\n네가 장면을 적어주면 내가 '미래 일기'로 다듬어줄게. 구체적일수록 진짜같아져 — 시간, 장소, 감각까지 담아봐.`;
 
   const msgs: MsgItem[] = [
     { type: 'lumi', text: section.introText },
@@ -527,7 +527,7 @@ export default function SectionChatPage() {
               {showDownstreamWarning && (
                 <div className="rounded-xl bg-[#FEF9C3] px-4 py-3 mb-4">
                   <p className="text-caption text-[#92400E] mb-2">
-                    답변이 바뀌었으니, 이전에 그린 미래의 하루와 이미지도 다시 만들어보는 게 좋을 것 같아.
+                    답변이 바뀌었으니, 이전에 쓴 미래 일기와 이미지도 다시 만들어보는 게 좋을 것 같아.
                   </p>
                   <div className="flex gap-3">
                     <button
@@ -554,7 +554,7 @@ export default function SectionChatPage() {
                     onClick={handleComplete}
                     className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80"
                   >
-                    미래의 하루 그려보기 →
+                    미래 일기 써보기 →
                   </button>
                 </div>
               ) : (
@@ -564,7 +564,7 @@ export default function SectionChatPage() {
                     disabled={aiChecking}
                     className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80 disabled:opacity-60"
                   >
-                    {aiChecking ? '잠깐, 확인해볼게…' : '이 답들로 미래의 하루 그려보기 →'}
+                    {aiChecking ? '잠깐, 확인해볼게…' : '이 답들로 미래 일기 써보기 →'}
                   </button>
                   <button
                     onClick={() => router.push('/dashboard')}

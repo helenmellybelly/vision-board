@@ -53,7 +53,9 @@ async function newPage(seed) {
 
 const doneBoard = (overrides, extra = {}) => ({
   sections: seedSections(overrides), onboardingDone: true, dashboardIntroSeen: true,
-  userName: '헬렌', startedAt: Date.now(), targetDate: '2029-07-07', ...extra,
+  userName: '헬렌', startedAt: Date.now(), targetDate: '2029-07-07',
+  // R2-2 로그인 게이트·배너 억제 — 게스트+사진 시드의 대시보드 클릭이 오버레이에 막히지 않게 (v7.9 소급)
+  loginNudgeSeen: true, loginBannerDismissedAt: Date.now(), ...extra,
 });
 
 const withPhoto = (extra = {}) =>

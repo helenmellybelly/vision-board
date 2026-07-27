@@ -71,7 +71,7 @@ const doneBoard = (overrides) => ({
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
   ok('R2-1a 4단계: 꿈 꺼내기', await page.getByText('꿈 꺼내기').first().isVisible().catch(() => false));
-  ok('R2-1b 4단계: 하루 그리기', await page.getByText('하루 그리기').first().isVisible().catch(() => false));
+  ok('R2-1b 4단계: 일기 쓰기', await page.getByText('일기 쓰기').first().isVisible().catch(() => false));
   ok('R2-1c 4단계: 사진 담기', await page.getByText('사진 담기').first().isVisible().catch(() => false));
   ok('R2-1d 구 3단계(미래 스토리) 부재', (await page.getByText('미래 스토리').count()) === 0);
   await ctx.close();
@@ -210,7 +210,7 @@ const doneBoard = (overrides) => ({
   }));
   await page.goto(`${BASE}/review`);
   await page.waitForTimeout(1500);
-  await page.getByText('미래의 하루 그리기 시작').click();
+  await page.getByText('미래 일기 쓰기 시작').click();
   await page.waitForTimeout(1500);
   ok('R2-8 /review CTA → /scene/1', new URL(page.url()).pathname === '/scene/1', page.url());
   await ctx.close();

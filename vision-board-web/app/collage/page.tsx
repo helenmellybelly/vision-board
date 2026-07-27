@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { track } from '@/lib/analytics';
+import AccountButton from '@/components/AccountButton';
 import {
   clearCollageDeviceLayouts,
   loadBoard,
@@ -243,6 +244,10 @@ export default function CollagePage() {
             ←
           </button>
           <h1 className="text-title font-bold">내 비전보드</h1>
+          {/* 계정 진입점 (v7.9 P-1) — 대시보드 밖에서도 로그인·로그아웃 접근 */}
+          <div className="ml-auto">
+            <AccountButton />
+          </div>
         </div>
         <div className="flex gap-1.5 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="보기 방식">
           {([

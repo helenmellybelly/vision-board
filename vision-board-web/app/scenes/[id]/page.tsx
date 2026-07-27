@@ -384,7 +384,7 @@ export default function ScenesPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push(hasAnswers ? `/scene/${sectionId}` : `/section/${sectionId}`)}
-            aria-label={hasAnswers ? '미래의 하루 단계로 돌아가기' : '질문 단계로 돌아가기'}
+            aria-label={hasAnswers ? '미래 일기 단계로 돌아가기' : '질문 단계로 돌아가기'}
             className="text-[#6E6962] text-caption mr-1 active:opacity-60"
           >
             ←
@@ -437,7 +437,7 @@ export default function ScenesPage() {
           <StoryModal
             story={story}
             color={section.color}
-            label="스토리 다시 보기"
+            label="미래 일기 다시 읽기"
             triggerClassName="mb-3"
           />
         )}

@@ -169,17 +169,17 @@ async function newPage(seed, ctxOpts = {}) {
   );
   await page.goto(`${BASE}/section/1`);
   await page.waitForTimeout(1500);
-  await page.getByText('이 답들로 미래의 하루 그려보기').click();
-  // AI 의미 검증(fail-open, 최대 10s) 후 브리지 노출
+  await page.getByText('이 답들로 미래 일기 써보기').click();
+  // AI 의미 검증(fail-open, 최대 10s) 후 브리지 노출 — v7.9 네이밍: '미래 일기'로 다듬어줄게
   const bridgeSeen = await page
-    .getByText('미래의 하루 일기')
+    .getByText("'미래 일기'로 다듬어줄게")
     .waitFor({ timeout: 15000 })
     .then(() => true)
     .catch(() => false);
   ok('V6-5a 브리지 버블 노출', bridgeSeen);
   ok('V6-5b 아직 /section에 머무름', new URL(page.url()).pathname === '/section/1', page.url());
   ok('V6-5c 브리지 가이드 문구', await page.getByText('시간, 장소, 감각까지 담아봐').isVisible().catch(() => false));
-  await page.getByText('미래의 하루 그려보기 →', { exact: true }).click();
+  await page.getByText('미래 일기 써보기 →', { exact: true }).click();
   await page.waitForTimeout(1200);
   ok('V6-5d 브리지 CTA → /scene/1', new URL(page.url()).pathname === '/scene/1', page.url());
   await ctx.close();

@@ -153,7 +153,7 @@ async function newPage(seed) {
   await page.waitForTimeout(1000);
   ok('V4-5d 리뷰: 유예 슬롯 표시', (await page.getByText('나중에 답하기로 했어').count()) >= 1);
   ok('V4-5e 리뷰: 지금 쓰기 회수 동선', (await page.getByText('지금 쓰기').count()) >= 1);
-  ok('V4-5f 진행 버튼 노출', await page.getByText('이 답들로 미래의 하루 그려보기').isVisible().catch(() => false));
+  ok('V4-5f 진행 버튼 노출', await page.getByText('이 답들로 미래 일기 써보기').isVisible().catch(() => false));
   await ctx.close();
 }
 {

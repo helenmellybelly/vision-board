@@ -8,6 +8,7 @@ import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
 import { countCompleted } from '@/lib/milestone';
 import MiniBoardPreview from '@/components/MiniBoardPreview';
+import AccountButton from '@/components/AccountButton';
 
 type FinishPhase = 'pattern' | 'sentence' | 'story-loading' | 'story' | 'complete';
 
@@ -99,7 +100,11 @@ export default function FinishPage() {
   }).filter((x) => x.kw);
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md mx-auto w-full px-4 md:px-6 pt-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] animate-fadeIn">
+    <main className="relative min-h-screen flex flex-col max-w-md mx-auto w-full px-4 md:px-6 pt-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] animate-fadeIn">
+      {/* 계정 진입점 (v7.9 P-1) — 헤더 없는 몰입 플로우라 우상단 고정 */}
+      <div className="absolute top-3 right-3">
+        <AccountButton />
+      </div>
 
       {/* 패턴 비추기 */}
       {phase === 'pattern' && (

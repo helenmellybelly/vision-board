@@ -95,7 +95,7 @@ async function newPage(seed, { suppressCoach = true } = {}) {
   );
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('V8-3a /review CTA 노출', await page.getByText('미래의 하루를 그리러 가자').isVisible().catch(() => false));
+  ok('V8-3a /review CTA 노출', await page.getByText('미래 일기를 쓰러 가자').isVisible().catch(() => false));
   ok('V8-3b 첫 보드 CTA 부재(중첩 방지)', (await page.getByText('첫 보드가 열렸어').count()) === 0);
   await ctx.close();
 }

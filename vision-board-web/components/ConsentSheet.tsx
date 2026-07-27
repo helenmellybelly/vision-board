@@ -51,7 +51,9 @@ export default function ConsentSheet({
             className="mt-1"
           />
           <span className="text-body">
-            [선택] 마인드/자기발견/자기성장/코칭 관련 정보를 받아보는 것에 동의합니다.
+            {/* v7.9: 받는 것·빈도·해제를 구체화 — 추상적 '정보 수신 동의'보다 수락률 개선 목적 */}
+            [선택] 보드를 이어갈 마인드·자기성장 힌트와 새 기능 소식 받기 — 월 1~2회, 언제든 해제할
+            수 있어.
           </span>
         </label>
         <button

@@ -184,7 +184,7 @@ export default function ReviewPage() {
       {/* 미래의 하루 그리기 온보딩 블록 */}
       <div className="mx-6 mb-6 rounded-2xl bg-[#F9F8F6] p-5 border border-[#E5E3DF]">
         <p className="text-caption font-semibold text-[#6E6962] tracking-widest mb-3">NEXT STEP</p>
-        <h3 className="text-heading font-bold mb-2 leading-snug">이제 미래의 하루를 그릴 거야</h3>
+        <h3 className="text-heading font-bold mb-2 leading-snug">이제 미래 일기를 쓸 거야</h3>
         <p className="text-body text-[#6B7280] leading-relaxed">
           {board
             ? `지금까지 쓴 단어들이 이루어진 ${getTargetYear(board)}년의 하루를 구체적으로 그려보는 단계야.`

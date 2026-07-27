@@ -76,7 +76,7 @@ const readBoard = (page) =>
 
 const gateSheet = (page) => page.getByText('이 보드를 저장하고 이어가려면');
 const gateCta = (page) => page.getByRole('button', { name: 'Google로 로그인해두기' });
-const banner = (page) => page.getByText('보드가 아직 이 기기에만 있어');
+const banner = (page) => page.getByText('브라우저를 정리하면 보드가 사라질 수 있어'); // v7.9 손실 구체화 카피
 
 // ── B-1) 게스트+사진+필드 부재 → 게이트 visible ──
 {
