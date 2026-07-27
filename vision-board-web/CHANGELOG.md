@@ -2,18 +2,22 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v7.0 전체 UX 리플래닝 6라운드(사용자 피드백 기반) — **푸시·프로덕션 배포 완료** (커밋 05814d4→5bd8a68, dpl_HoYt662onUsYbBrLFTQJrQa7Ls76 target=production, 신규 8경로 200 + /welcome 404 정상)
+- **상태:** v7.9 운영 가시성·가입 플로우 개선 3커밋(55cc308·1514284·fb0b2c5) — **프로덕션 배포·푸시 완료**, 로컬 20스위트 전체 PASS + prod 스모크 17/17
 - **주요 기능:**
-  - 온보딩 3스텝 URL(/onboarding/1~3, 이탈 추적 가능): 토리+이름 통합 → 도토리 3메시지 탭채팅 → 막연함vs선명함+정의. 랜딩(/) 삭제→상태 기반 리다이렉트, 6영역 안내는 대시보드 첫 진입 시트. 클릭 13→5회
-  - 하루 그리기 통합(/scene): 질문 1개+순간 보태기 칩+같은 화면 스토리 생성·수정. ProcessBar 4단계(꿈 꺼내기/하루 그리기/사진 담기/완성)
-  - 일기 스토리: targetDate(기본 +3년, 탭 수정, lib/targetDate.ts) 헤더 + 일기체 프롬프트(/api/story/section) — 콜라주 중앙 연도와 단일 소스
-  - 사진 담기(/scenes): 내 사진 업로드 1순위 + 큐레이션 샘플 갤러리(카테고리 8종×10장, lib/curatedImages.ts) + '더 찾아보기' 접힘(AI 힌트 lazy·Unsplash 검색·URL)
-  - 완성 보드(/collage): '어디에 둘까'(폰/PC/보드) 선택 퍼스트, /board는 통합 스텁. 대시보드 미니보드(goal-gradient "이제 N칸 남았어")·완료 시트 "방금 이 칸이 채워졌어"·피날레 리빌
-  - schemaVersion 게이트 마이그레이션 v1~v4(lib/storage.ts migrateBoard): 온보딩 스텝 리맵/situationText 병합/boardYear→targetDate/slots→extractedSlots 백필 — 기존 데이터 무손실
-- **알려진 이슈:** hydration #418 경고는 전 페이지 공통 useState(loadBoard()) 패턴의 기존 이슈(표시는 정상). /moment·/board 스텁은 배포 1사이클 후 철거 예정
+  - 계정: Google 로그인(NextAuth v5, 동의 시트=가입) + 로그아웃 홈 이동 + 계정 버튼 고대비·로그인 상태 점 + 진입점 대시보드·콜라주·/finish 3곳
+  - 운영: `/admin` 오너 전용 현황판(ADMIN_EMAIL 가드+404 은닉 — 가입자·마케팅 동의·최근 활동), 브랜드 404(app/not-found.tsx)
+  - 분석: `lib/analytics.ts` 이중 전송 래퍼(Vercel+gtag) — GA4는 측정 ID 발급 대기(NEXT_PUBLIC_GA_ID 등록 시 자동 활성)
+  - 네이밍 위계: 섹션="미래 일기"(ProcessBar 2단계 '일기 쓰기') / 보드="미래의 하루 이야기" 분리 + 대시보드 "📖 미래 일기 N편" DiarySheet 모아 읽기
+  - 기획: docs/가입플로우-운영-리플래닝-v79.md (무료/유료 현황·가입 시점 리뷰·백로그 P1~P6·GA4 퍼널 — §7 결정 체크리스트)
+- **알려진 이슈:** hydration #418 기존 전역 패턴(표시 정상). helen 실계정이 가입 미완이면 /admin 404(동의 완료 후 접속 필요)
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-07-27 (v7.9 — 로그아웃·CTA 버그 + /admin·GA4 + 가입 플로우 개선 4건 + 브랜드 404)
+- 버그 3건 수정: 로그아웃 무이동(signOut 후 이동 코드 누락)·계정 버튼 저가시성(18px 회색→칩+로그인 점)·대시보드 다크 CTA 중복(재작성 넛지 !allTextDone 가드, "동시 1개" 계약을 verify-v79 17케이스로 명문화)
+- 운영 가시성: /admin 오너 현황판(Neon 집계) + GA4 연동 코드(lib/analytics.ts 래퍼, ID는 오너 보류) + 리플래닝 제안서 v79 → 오너 승인 4건 반영(계정 진입점 콜라주·finish, 유실/동의 카피, "미래 일기" 네이밍 분리+DiarySheet — 높이 예산 위해 📷 행과 한 줄 공유)
+- 실사용 신고 수정: Next 기본 404 다크 스타일 위 동의 시트 텍스트 백화 → app/not-found.tsx 브랜드 404 신설. 구 스위트 4개(v75r1·v71r3·v73r1·v7r5)에 R2-2 게이트 억제 시드 소급(기준선 재현으로 기존 이슈 확인)
 
 ### 2026-07-07 (v7.0 — 전체 UX 리플래닝 6라운드 + 프로덕션 배포)
 - 사용자 피드백(온보딩 깊이·URL 추적 불가·질문 중복·딱딱한 스토리·Unsplash 실효성·메뉴 파편화·몰입 부족) → 6라운드 플랜 승인 후 순차 구현: r1 랜딩 제거+온보딩 3스텝 URL / r2 scene+moment 통합+4단계 / r3 일기 스토리+targetDate / r4 업로드+큐레이션 이미지 / r5 board→collage 통합·기기 선택 퍼스트·미니보드 / r6 dead code 정리(reviewTemplate·구 API 2종·slots 이중 저장 등)

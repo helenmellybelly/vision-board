@@ -31,6 +31,10 @@
 스크롤 컨테이너 ref를 외부 div와 내부 마커에 동시 할당했을 때 외부 div가 무시됐다.
 스크롤 컨테이너는 별도 ref로 분리하고 `scrollTop = scrollHeight`로 직접 제어할 것.
 
+### 전역 오버레이(시트)는 Next 기본 404 위에서 텍스트가 백화된다 #coding #next-js
+Next 기본 404는 prefers-color-scheme 다크 스타일이라 body 텍스트가 흰색이 되고, layout 상주 시트(동의 등)가 그 위에 뜨면 색 미명시 텍스트가 흰 시트 배경에 묻힌다(v7.9 /admin 404 위 동의 시트 실사용 신고).
+전역 오버레이를 쓰는 앱은 브랜드 `app/not-found.tsx`를 초기에 만들고, 시트 컨테이너에도 명시적 텍스트 색을 둘 것.
+
 ### scrollIntoView(smooth)보다 requestAnimationFrame + scrollTop=scrollHeight #coding #react
 `scrollIntoView({ behavior: 'smooth' })`는 레이아웃 완료 전에 실행되면 즉시성이 없고 크로스브라우저 동작이 다르다.
 `requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; })`가 더 신뢰도 높고 즉시 바닥 이동이 보장된다.
@@ -136,6 +140,10 @@ localStorage 시드 + `useState(loadBoard())` 패턴은 모든 페이지에서 h
 ### 단조 증가 값(schemaVersion 등)은 verify에서 `===`가 아니라 `>=`로 단언 #coding #testing
 라운드별 검증 스크립트가 `schemaVersion === N`으로 고정 단언하면 다음 라운드가 버전을 올릴 때마다 리그레션이 위양성 FAIL한다(v7.0에서 r1·r2·r3 스크립트 3회 반복 수정).
 마이그레이션 실행 여부는 결과 데이터 단언이 보장하므로, 버전 자체는 처음부터 `>= N`으로 쓸 것.
+
+### 클릭을 막는 전역 게이트 도입은 "전체 스위트 시드 소급 + 전수 실행"까지가 완료 정의 #coding #testing
+R2-2 로그인 게이트 도입 때 최근 스위트 2개에만 억제 시드를 넣고 전수 회귀를 돌리지 않아, 구 스위트 4개(v75r1·v71r3·v73r1·v7r5)가 조용히 깨진 채 다음 세션에서야 발견됐다(v7.9에서 기준선 재현으로 기존 이슈 판별 후 소급).
+오버레이·게이트처럼 "모든 화면에 뜰 수 있는" 기능을 넣을 땐 grep으로 영향 시드를 전수 찾아 소급하고, 그 세션에서 전체 스위트를 1회 완주할 것.
 
 ### Playwright getByText는 strict mode — 같은 문구가 2곳이면 isVisible()이 false로 오판 #coding #playwright
 시트와 배경 카드에 같은 부제('몸·마음·에너지')가 동시에 있으면 `getByText(...).isVisible()`이 다중 매칭 에러를 던지고 `.catch(() => false)`에 삼켜져 조용한 FAIL이 된다(v7.0-r1 인트로 시트 검증).
