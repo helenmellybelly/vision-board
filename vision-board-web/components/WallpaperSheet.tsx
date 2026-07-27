@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { track } from '@vercel/analytics';
 import useFocusTrap from './useFocusTrap';
 import { CollageLayout, CollageTemplate } from '@/lib/types';
@@ -18,9 +19,12 @@ interface Props {
 
 export default function WallpaperSheet({ year, preset, board, onClose }: Props) {
   const trapRef = useFocusTrap<HTMLDivElement>(true, onClose);
+  const { status } = useSession();
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // C 보조 유도 (R2-2) — 저장이 실제로 한 번 성공한 뒤에만 로그인 1줄을 보여준다
+  const [savedOnce, setSavedOnce] = useState(false);
 
   const landscape = preset.w > preset.h;
 
@@ -53,7 +57,8 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
     setError('');
     try {
       const canvas = await renderCurrent();
-      await saveCanvas(canvas, `vision-board-${year}-${board.template}-${preset.id}.png`);
+      const result = await saveCanvas(canvas, `vision-board-${year}-${board.template}-${preset.id}.png`);
+      if (result !== 'cancelled') setSavedOnce(true);
       track('wallpaper_save', { preset: preset.id, template: board.template });
     } catch {
       setError('저장에 실패했어. 다시 시도해줘.');
@@ -119,6 +124,22 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
         >
           {saving ? '저장 중...' : '이미지로 저장'}
         </button>
+        {/* C 보조 유도 (R2-2) — 감정 정점(저장 성공 직후)에서 1줄, 로그인 유저 숨김.
+            signIn만 호출하면 동의·병합·동기화는 전역 AccountFlow가 처리, /collage 복귀 */}
+        {savedOnce && status !== 'authenticated' && (
+          <p className="mt-3 text-caption text-[#6E6962] text-center">
+            이 보드, 계속 간직할래? —{' '}
+            <button
+              onClick={() => {
+                track('login_nudge_click', { source: 'wallpaper' });
+                void signIn('google', { callbackUrl: '/collage' });
+              }}
+              className="font-semibold underline text-[#1C1B19] active:opacity-70"
+            >
+              Google로 저장해두기
+            </button>
+          </p>
+        )}
         <button onClick={onClose} className="mt-2 w-full py-2 text-body text-[#6E6962]">
           닫기
         </button>

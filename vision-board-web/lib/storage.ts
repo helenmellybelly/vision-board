@@ -226,6 +226,23 @@ export function saveDashboardIntroSeen(): void {
   saveBoard(board);
 }
 
+// ── R2-2: 게스트 로그인 유도 ──
+
+// B 소프트 게이트 1회 노출 완료 — 배너 쿨다운도 같이 시작해 게이트 직후 배너가 바로 이어 뜨지 않게 한다
+export function saveLoginNudgeSeen(): void {
+  const board = loadBoard();
+  board.loginNudgeSeen = true;
+  board.loginBannerDismissedAt = Date.now();
+  saveBoard(board);
+}
+
+// 재유도 배너 닫기 — 7일 후 재노출
+export function dismissLoginBanner(): void {
+  const board = loadBoard();
+  board.loginBannerDismissedAt = Date.now();
+  saveBoard(board);
+}
+
 export function markBoardFinished(): void {
   const board = loadBoard();
   board.finishedAt = Date.now();

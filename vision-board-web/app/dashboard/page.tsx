@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import { track } from '@vercel/analytics';
-import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice } from '@/lib/storage';
+import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice, saveLoginNudgeSeen, dismissLoginBanner } from '@/lib/storage';
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, SectionId } from '@/lib/types';
@@ -13,17 +14,22 @@ import { josa } from '@/lib/josa';
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
 import DashboardIntroSheet from '@/components/DashboardIntroSheet';
+import LoginNudgeSheet from '@/components/LoginNudgeSheet';
 import AccountButton from '@/components/AccountButton';
 import WalkPathMap from '@/components/WalkPathMap';
 import useFocusTrap from '@/components/useFocusTrap';
 
 const RETURN_GAP_MS = 48 * 60 * 60 * 1000; // 복귀 인사 갭 (v7.1-r4)
+const LOGIN_BANNER_GAP_MS = 7 * 24 * 3600 * 1000; // 로그인 재유도 배너 재노출 간격 (R2-2)
 
 // 대시보드 = 미니보드 허브 (v7.1-r3) — 섹션 카드 6장 나열을 제거하고
 // 미니보드 셀 탭이 곧 섹션 내비. 다음 할 일은 추천 카드 1장으로 (Hick's law).
 export default function DashboardPage() {
   const router = useRouter();
+  const { status } = useSession();
   const [board, setBoard] = useState<BoardData | null>(null);
+  // R2-2 배너 노출 track 1회 가드 — 리렌더마다 중복 발화 방지
+  const bannerTracked = useRef(false);
   const [showIntro, setShowIntro] = useState(false);
   // 미시작 섹션 셀 탭 → 질문/사진 양경로 시트 (v7.1-r4)
   const [pathSheetId, setPathSheetId] = useState<SectionId | null>(null);
@@ -99,6 +105,19 @@ export default function DashboardPage() {
   const userName = board.userName;
   // 보드 CTA·퀵 버튼은 담긴 사진이 1장이라도 있을 때만 — 빈 보드로 가는 선택지를 치워 주 동선에 집중 (v6.21)
   const hasAnyImage = SECTIONS.some((section) => sectionHasPhoto(board.sections[section.id]));
+  // R2-2 게스트 로그인 유도 — status 'loading' 중 비노출로 로그인 유저 플래시 방지, 인트로 시트 우선
+  const showLoginGate =
+    status === 'unauthenticated' && !showIntro && !board.loginNudgeSeen && hasAnyImage;
+  const showLoginBanner =
+    status === 'unauthenticated' &&
+    !!board.loginNudgeSeen &&
+    hasAnyImage &&
+    (!board.loginBannerDismissedAt ||
+      Date.now() - board.loginBannerDismissedAt >= LOGIN_BANNER_GAP_MS);
+  if (showLoginBanner && !bannerTracked.current) {
+    bannerTracked.current = true;
+    track('login_nudge_shown', { source: 'banner' });
+  }
   const photoSectionCount = SECTIONS.filter((section) => sectionHasPhoto(board.sections[section.id])).length;
   // 산책길 진행 카피 (v7.5) — '지났어'의 분자는 완료(completed) 스테이션 수.
   // 사진만 담긴 진행은 📷 마커 + 중간 카피가 담당(체감 진행 0으로 읽히지 않게)
@@ -110,6 +129,7 @@ export default function DashboardPage() {
     ? '산책을 시작했어 — 토리가 다음 표지판에서 기다려 🐿️'
     : completedCount < 6
     ? // v7.7 넛지: 진행 중반의 조급함을 낮추는 가치 카피 — 짧게 유지(대시보드 ≤1.2뷰포트 예산, v71r3 R3-1b)
+      // 예산 예외(R2-2): 로그인 재유도 배너는 3중 조건부 1줄(~40px)이라 상시 예산에 계상하지 않는다
       `${completedCount}/6 스테이션을 지났어 — 서두르지 않아도 돼 🐿️`
     : '길 끝에 도착! 이제 배경화면으로 만들어보자 🐿️';
 
@@ -140,6 +160,33 @@ export default function DashboardPage() {
       <ProcessBar board={board} />
 
       <div className="px-6 pt-4">
+        {/* 로그인 재유도 배너 (R2-2) — 게이트를 닫은 게스트에게 1줄, 닫으면 7일 후 재노출 */}
+        {showLoginBanner && (
+          <div className="mb-3 rounded-xl border border-[#E5E3DF] bg-[#FAFAF8] px-3 py-2 flex items-center gap-2 animate-fadeIn">
+            <span className="flex-1 text-caption text-[#1C1B19] truncate">
+              🔒 보드가 아직 이 기기에만 있어
+            </span>
+            <button
+              onClick={() => {
+                track('login_nudge_click', { source: 'banner' });
+                void signIn('google', { callbackUrl: '/dashboard' });
+              }}
+              className="text-caption font-semibold underline whitespace-nowrap active:opacity-70"
+            >
+              Google로 저장해두기 →
+            </button>
+            <button
+              onClick={() => {
+                dismissLoginBanner();
+                setBoard(loadBoard());
+              }}
+              aria-label="로그인 안내 닫기"
+              className="text-[#C9C5BE] text-caption px-1 active:opacity-60"
+            >
+              ×
+            </button>
+          </div>
+        )}
         {/* 헤더 */}
         <div className="mb-6 animate-fadeIn">
           <div className="flex items-center justify-between mb-1">
@@ -414,6 +461,16 @@ export default function DashboardPage() {
       )}
 
       {showIntro && <DashboardIntroSheet userName={userName} onClose={handleCloseIntro} />}
+
+      {/* B 소프트 게이트 (R2-2) — 첫 사진 이후 첫 대시보드 방문 시 1회, 인트로 시트 우선 */}
+      {showLoginGate && (
+        <LoginNudgeSheet
+          onClose={() => {
+            saveLoginNudgeSeen();
+            setBoard(loadBoard());
+          }}
+        />
+      )}
     </main>
   );
 }

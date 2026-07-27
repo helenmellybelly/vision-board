@@ -155,4 +155,9 @@ export interface BoardData {
   collageDevicePresets?: { phone?: string; desktop?: string };
   /** 양경로(pathSheet) 직전 선택 기억 (v7.4) — 같은 선택 3연속이면 시트를 생략하고 직행한다 */
   pathChoice?: { kind: 'question' | 'photo'; streak: number };
+  /** 로그인 소프트 게이트(B) 1회 노출 완료 (R2-2) — 첫 사진 이후 첫 대시보드 방문 시 시트.
+   *  로그인하면 렌더 조건(unauthenticated)이 자동으로 접으므로 필드 정리는 불필요 */
+  loginNudgeSeen?: boolean;
+  /** 로그인 재유도 배너 마지막 닫은 시각(ms) (R2-2) — 7일 지나면 재노출 */
+  loginBannerDismissedAt?: number;
 }

@@ -25,7 +25,9 @@ const textComplete = (extra = {}) =>
   ({ status: 'text_complete', extractedSlots: { ...FULL_EXTRACTED }, ...extra });
 const doneBoard = (overrides, extra = {}) => ({
   sections: seedSections(overrides), onboardingDone: true, dashboardIntroSeen: true,
-  userName: '헬렌', startedAt: Date.now(), targetDate: '2029-07-07', schemaVersion: 4, ...extra,
+  userName: '헬렌', startedAt: Date.now(), targetDate: '2029-07-07', schemaVersion: 4,
+  // R2-2 로그인 게이트·배너 억제 — 게스트+사진 보드의 대시보드 클릭이 오버레이에 막히지 않게
+  loginNudgeSeen: true, loginBannerDismissedAt: Date.now(), ...extra,
 });
 
 const browser = await chromium.launch();
