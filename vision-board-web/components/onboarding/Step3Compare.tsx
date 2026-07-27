@@ -102,8 +102,10 @@ export default function Step3Compare({ onComplete }: { onComplete: () => void })
               <p className="text-body font-bold text-[#1C1B19] leading-snug mt-1">그게 비전보드의 힘이야.</p>
             </div>
           ) : (
-            <p className="text-caption text-[#6E6962] animate-pulse select-none">
-              슬라이더를 끝까지 밀어서 선명하게 만들어봐 →
+            <p className="text-body font-semibold text-[#6366F1] leading-snug animate-pulse select-none">
+              슬라이더를 끝까지 밀어서
+              <br />
+              선명하게 만들어봐 →
             </p>
           )}
         </div>
@@ -119,10 +121,14 @@ export default function Step3Compare({ onComplete }: { onComplete: () => void })
           </p>
         </div>
 
+        {/* 상태 연동 위계 — 슬라이더 완료 전엔 유도 카피가 주인공(CTA는 연한 대기, 클릭은 가능),
+            완료 후 CTA가 검정으로 차오르며 주인공 승격. disabled가 아니어서 스킵 자유는 유지 */}
         <button
           onClick={onComplete}
-          className="w-full py-4 rounded-2xl text-heading font-semibold text-white transition-opacity active:opacity-80 flex-shrink-0 mt-4 [@media(min-height:700px)]:mt-5"
-          style={{ backgroundColor: '#1C1B19' }}
+          className={`w-full py-4 rounded-2xl text-heading font-semibold transition-colors duration-300 active:opacity-80 flex-shrink-0 mt-4 [@media(min-height:700px)]:mt-5 ${
+            revealed ? 'text-white animate-ctaPop' : 'text-[#6E6962]'
+          }`}
+          style={{ backgroundColor: revealed ? '#1C1B19' : '#E5E3DF' }}
         >
           비전보드 시작하기 →
         </button>

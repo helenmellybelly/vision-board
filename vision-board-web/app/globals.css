@@ -162,6 +162,17 @@ textarea {
   animation: nudgeBounce 1.4s ease-in-out infinite;
 }
 
+/* 온보딩 스텝3 CTA 승격 팝 — 슬라이더 완료로 주인공이 카피→CTA로 넘어가는 순간 1회 강조 */
+@keyframes ctaPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+.animate-ctaPop {
+  animation: ctaPop 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fadeIn,
   .animate-slideUp,
@@ -169,7 +180,8 @@ textarea {
   .animate-acornDrop,
   .animate-sproutPop,
   .animate-glowRing,
-  .animate-nudgeBounce {
+  .animate-nudgeBounce,
+  .animate-ctaPop {
     animation: none;
   }
 }
