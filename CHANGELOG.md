@@ -2,8 +2,8 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** v7.8 R1 "첫 보드" 마일스톤 — **프로덕션 배포 완료** (커밋 9388d76, https://vision-board-web.vercel.app 프로덕션 스모크 13/13 PASS). 임계값 3섹션 오너 확정 — `lib/milestone.ts` 단일 소스(FIRST_BOARD_THRESHOLD·isStoryStale). 게이트 완화(대시보드 조기 개방 CTA·콜라주 완성 CTA ===6→>=3, /review 게이트 유지), storyWrittenAtCount 스탬프(스키마 불변, 구 데이터 넛지 비노출 가드), "이야기 다시 써줄까" 재작성 넛지 2곳, 완료 시트 3번째 완성 순간 "첫 보드가 열렸어" CTA, /finish 부분 상태 카피("먼저 자란 N가지"·"첫 비전보드"·"완전한 보드"), api/story "6개 섹션" 하드코딩 제거. 회귀 17스위트 412케이스 전체 PASS(verify-v78r1 26케이스 신설)
-- **리플래닝 기준 문서:** `vision-board-web/docs/리플래닝-v74.md` §2 허들 종점 해체 완료(v7.8). 이번 라운드 상세: `vision-board-web/docs/첫보드-마일스톤-v78.md`(오너 확정 2건·설계·검증 기준). 다음: R2=계정·영속성(Google 로그인), "v7.8 후보" 2건(온보딩 기대 카피·완료 시트 강화)은 다음 라운드 편성 대기
+- **상태:** R2-1 Google 로그인 — **프로덕션 라이브** (커밋 ~4e661aa, 2026-07-27). NextAuth v5(Google)+Neon Postgres(스키마 생성됨)+Vercel Blob 리소스 프로비저닝 완료, 실가입 1건 Neon 확인(동의·보드 업서트 동작). 온보딩 종료 Google/게스트 선택 화면·동의/병합 시트·대시보드 계정 시트(로그아웃·계정 삭제·마케팅 토글)·/privacy 전부 라이브. 온보딩3 상태 연동 위계(유도 카피 인디고 승격 + CTA 대기→검정 ctaPop) 동시 배포. 프로덕션 실렌더 스모크 9/9 PASS
+- **리플래닝 기준 문서:** `vision-board-web/docs/회원가입-Google-도입-기획서.md`(v7.5 확정: B 첫사진 게이트=주 유도) + `vision-board-web/docs/superpowers/plans/2026-07-24-r2-google-login.md`(R2-1, Task 0~14 완료). 다음: **R2-2 게스트 로그인 유도 3종** — 플랜 승인 완료(`~/.claude/plans/https-vision-board-web-vercel-app-onboar-rustling-pudding.md`), 새 세션에서 구현. 이후 대기: 실 OAuth 기기 간 이어하기 사용자 확인, "v7.8 후보" 2건
 - **주요 기능:**
   - 🐿️ 토리 캐릭터 (꿈의 정원사) — Acts 0-5 구조, 온보딩 전체 뷰포트 고정, 3뷰포트(375×667/390×844/1280×720) 무스크롤. v7.6: 이름 용도 힌트·"첫 스테이션은 5분" 기대값·도토리 채팅 딤 제거
   - 한국어 조사: `lib/josa.ts` 단일 소스(아/야·이/가·은/는·을/를·으로/로 ㄹ특례·이라는/라는, 비한글 fallback 무받침형) — 온보딩 이름 보간 + 씬 브리지/쿠션 키워드 조사
@@ -19,6 +19,11 @@
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-07-27 (R2-1 프로덕션 배포 완결 + 온보딩3 위계 + R2-2 플래닝)
+- "로그인이 프로덕션에 안 보인다" 신고 원인 확정 = **미배포**(R2-1 13커밋이 로컬에만) + Task 0 리소스 미프로비저닝 → Google OAuth 클라이언트(helen.easytask)·Neon(스키마 `db-init-r2.mjs`)·Blob 생성, `.env.local` 5종 + Vercel prod env 3종 등록(파일 리다이렉트, Ascii 인코딩으로 BOM 회피) → `npx vercel --prod` 배포·푸시. 실가입 1건 Neon SELECT로 확인(marketing_consent=true, 보드 업서트 동작)
+- 온보딩3 상태 연동 위계(ff8ce8c): 유도 카피 "슬라이더를 끝까지 밀어서/선명하게 만들어봐" text-body semibold 인디고 2줄 승격, CTA "비전보드 시작하기" 대기(#E5E3DF, 클릭 가능)→완료 시 검정+ctaPop. 회귀 68케이스+스타일 스팟 12+프로덕션 실렌더 9/9 PASS. ⚠️ /onboarding·/dashboard SSR HTML은 빈 body — raw HTML 스모크 무효(Playwright 실렌더로)
+- R2-2 플래닝 확정(사용자 승인): 소프트 게이트는 **첫 사진 이후 첫 대시보드 방문 시** 노출(모든 사진 유입 경로 커버), BoardData additive 필드 2개(loginNudgeSeen·loginBannerDismissedAt), 배너 7일 간격, C 배경화면 1줄 — 플랜: `~/.claude/plans/https-vision-board-web-vercel-app-onboar-rustling-pudding.md`, 구현은 새 세션
 
 ### 2026-07-24 (v7.8 R1 — "첫 보드" 마일스톤: 3섹션 조기 개방·재작성 넛지·6/6 상향 목표화, 프로덕션 배포 완료)
 - 오너 확정 2건: 임계값 **3섹션**(인트로 "먼저 마음 가는 세 곳부터"와 정합), 범위 **코어만**("v7.8 후보" 2건은 다음 라운드) → `docs/첫보드-마일스톤-v78.md` 신설

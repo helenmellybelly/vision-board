@@ -135,6 +135,9 @@ verify-v614의 "팔레트 대비 4.5:1" 정적 검사는 v6.16 비비드 팔레�
 ### 시각 효과 검증은 computed style이 아니라 스크린샷 픽셀 값으로 한다 #coding #testing #qa
 `getComputedStyle`로 `mix-blend-mode: multiply` 적용을 확인해도 실제 렌더 결과는 다를 수 있다(stacking context, 소스가 순백이 아닌 경우 등). 스크린샷에서 효과 영역 안팎의 픽셀 값을 직접 비교(예: 영역 최대 밝기 ≤ 배경 밝기)해야 "효과가 보이는가"의 증거가 된다. PowerShell `System.Drawing.Bitmap.GetPixel`로 간단히 가능.
 
+### 세션 status로 게이트되는 페이지는 본문 waitFor 후에 단언해야 한다 — count()는 기다리지 않는다 #coding #testing #playwright
+useSession status가 해소될 때까지 `return null`인 페이지(/onboarding/choice)에서 `getByText().count()`로 버튼을 세면 렌더 전 0이 나온다 — 같은 스모크에서 앞줄 단언(FAIL)과 뒷줄 단언(PASS)이 갈린 원인이 코드가 아니라 단언 시점 레이스였다. `count()`·`isVisible()`은 auto-wait가 없으므로, 페이지 고유 텍스트를 `waitFor()`로 먼저 기다린 뒤 세어야 한다. 프로덕션은 실 `/api/auth/session` 왕복 때문에 로컬보다 이 레이스가 훨씬 잘 드러난다.
+
 ### Playwright addInitScript localStorage 시드는 모든 네비게이션마다 재실행된다 #coding #testing #playwright
 `addInitScript`로 localStorage를 시드하면 `reload()`·`goto()` 때마다 다시 실행되어 앱이 저장한 값을 시드로 덮어쓴다. "수정 후 새로고침 유지" 같은 영속성 검증이 앱 버그처럼 보이는 거짓 실패를 만든다. `if (!localStorage.getItem(key))` 가드를 넣어 최초 1회만 시드할 것. 같은 텍스트가 반응형 중복 렌더(모바일/웹 블록)로 2곳에 있으면 `getByText().isVisible()`이 strict mode 위반으로 false가 되므로 `.all()` 순회로 검사한다.
 
@@ -217,6 +220,9 @@ Act 2 비전보드 스토리텔링 말풍선 7개처럼 감정적 흐름이 중�
 
 ### 커밋 메시지 임시 파일은 셸 인라인 생성 대신 Write 도구로 만든다 #coding #git #powershell
 메시지 here-string 안에 `/board` 같은 경로형 문자열이 있으면, 파일 생성+commit+삭제를 한 PowerShell 복합 명령의 권한 가드가 그 문자열을 시스템 경로 조작으로 오인해 명령 전체를 차단한다. 메시지 파일은 Write 도구로 따로 만들고 `git commit -F <파일>`만 단독 실행하면 우회 없이 통과한다.
+
+### PS5.1 `Set-Content -Encoding utf8`은 BOM을 붙인다 — 커밋 메시지·시크릿 파일은 Write 도구나 Ascii로 #coding #git #powershell ✅승급(2026-07-27 → ~/.claude/CLAUDE.md 'Git')
+커밋 메시지 임시 파일을 `Set-Content -Encoding utf8`로 만들었더니 BOM()이 커밋 메시지 선두에 그대로 들어갔다(4e661aa — 푸시 후 발견, 교정 비용 > 방치라 수용). 반대로 `vercel env add`용 시크릿 파일은 BOM이 값 자체를 오염시키므로 치명적. 한글 포함 파일은 **Write 도구**로, ASCII 값(시크릿·ID)은 `-Encoding Ascii`로 만들고, 파일 길이가 "값+개행"과 일치하는지 확인하면 BOM 유무가 즉시 판별된다.
 
 ### PowerShell에서 한글·특수문자 커밋 메시지는 here-string도 깨진다 — `git commit -F 파일` 사용 #coding #git #powershell
 `git commit -m @'...'@` 안에 따옴표가 포함된 한글 멀티라인 메시지를 넣으면 인자가 따옴표 기준으로 쪼개져 pathspec 에러가 난다. 메시지를 UTF-8 파일로 쓰고 `git commit -F <파일>`로 커밋하는 것이 Windows에서 유일하게 안정적인 방법.
