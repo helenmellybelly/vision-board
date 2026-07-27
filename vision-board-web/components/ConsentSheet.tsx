@@ -26,7 +26,8 @@ export default function ConsentSheet({
       aria-modal="true"
       aria-label="가입 동의"
     >
-      <div ref={trapRef} className="bg-white w-full max-w-md rounded-t-3xl p-6 animate-slideUp">
+      {/* text-[#1C1B19] 명시 — 다크 스타일 페이지(구 기본 404 등) 위에서도 무색 텍스트가 흰색 상속되지 않게 */}
+      <div ref={trapRef} className="bg-white text-[#1C1B19] w-full max-w-md rounded-t-3xl p-6 animate-slideUp">
         <h2 className="text-title font-bold mb-1">거의 다 됐어!</h2>
         <p className="text-body text-[#6B7280] mb-4">{email}(으)로 시작할게. 아래만 확인해줘.</p>
         <label className="flex items-start gap-2 mb-3">
