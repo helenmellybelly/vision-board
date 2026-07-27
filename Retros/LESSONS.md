@@ -34,6 +34,9 @@
 ### Edit 매칭이 육안 동일 문자열에서 실패하면 od -c로 바이트를 확인하라 — NBSP가 범인일 수 있다 #coding #tooling ✅승급(2026-07-23 → ~/.claude/CLAUDE.md '파일 편집')
 Step1Name.tsx의 `: ' '}` 폴백이 실제로는 NBSP(U+00A0, C2 A0)여서 Edit old_string이 3회 연속 실패했다. 보이는 문자열이 같은데 매칭이 안 되면 `sed -n 'N,Mp' file | od -c`로 바이트를 확인하고, 특수 바이트는 perl 바이트 치환(`perl -i -pe "s/\xc2\xa0/.../"`)으로 우회하는 게 가장 빠르다.
 
+### Playwright addInitScript 시드는 reload에도 다시 실행된다 — 영속 검증엔 존재 가드 필수 #coding #playwright
+addInitScript는 모든 네비게이션(reload 포함)마다 실행되므로, 무조건 `localStorage.setItem`으로 시드하면 reload 후 앱이 스탬프한 상태를 시드가 덮어써 "닫음 영속" 검증이 위양성 FAIL이 난다(R2-2 프로덕션 스모크 P-1c 사례 — 로컬 스위트는 가드가 있어 통과, 가드 없는 스모크만 실패해 앱 버그로 오인할 뻔). 시드 주입은 항상 `if (!localStorage.getItem(key))` 가드로 감쌀 것.
+
 ### 이미지 육안 선별의 id는 스크린샷 전사가 아니라 파일에서 프로그램적으로 가져온다 #coding #tooling
 컨택트 시트 스크린샷에서 photo id를 눈으로 옮기면 sans-serif에서 I/l·5/S 오독이 난다(EgaPIySkcnM→EgaPly5kcnM, API 404로 발각). 또 후보 수집 스크립트를 쿼리만 바꿔 재실행하면 이전 산출물 JSON이 덮여 선택 메타데이터가 유실된다. 후보 산출물은 실행별 고유 파일명으로 남기고, 최종 선택은 번호(#N)로 지정해 스크립트가 JSON에서 id·메타를 직접 읽게 하라.
 

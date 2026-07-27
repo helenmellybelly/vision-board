@@ -2,8 +2,8 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** R2-1 Google 로그인 — **프로덕션 라이브** (커밋 ~4e661aa, 2026-07-27). NextAuth v5(Google)+Neon Postgres(스키마 생성됨)+Vercel Blob 리소스 프로비저닝 완료, 실가입 1건 Neon 확인(동의·보드 업서트 동작). 온보딩 종료 Google/게스트 선택 화면·동의/병합 시트·대시보드 계정 시트(로그아웃·계정 삭제·마케팅 토글)·/privacy 전부 라이브. 온보딩3 상태 연동 위계(유도 카피 인디고 승격 + CTA 대기→검정 ctaPop) 동시 배포. 프로덕션 실렌더 스모크 9/9 PASS
-- **리플래닝 기준 문서:** `vision-board-web/docs/회원가입-Google-도입-기획서.md`(v7.5 확정: B 첫사진 게이트=주 유도) + `vision-board-web/docs/superpowers/plans/2026-07-24-r2-google-login.md`(R2-1, Task 0~14 완료). 다음: **R2-2 게스트 로그인 유도 3종** — 플랜 승인 완료(`~/.claude/plans/https-vision-board-web-vercel-app-onboar-rustling-pudding.md`), 새 세션에서 구현. 이후 대기: 실 OAuth 기기 간 이어하기 사용자 확인, "v7.8 후보" 2건
+- **상태:** R2-2 게스트 로그인 유도 3종 — **프로덕션 라이브** (커밋 9e1a278, 2026-07-27). B 소프트 게이트(LoginNudgeSheet — 첫 사진 이후 첫 대시보드 방문 시 1회, "Google로 로그인해두기")·대시보드 재유도 배너(7일 간격)·C 배경화면 저장 후 1줄 전부 라이브. R2-1 코어(NextAuth v5+Neon+Blob, 실가입 확인)와 합쳐 Google 로그인 기둥의 코어+유도 레이어 완성. verify-r2b 18/18 + 기존 4종 무회귀(총 118케이스) + 프로덕션 실렌더 스모크 5/5 PASS
+- **리플래닝 기준 문서:** `vision-board-web/docs/회원가입-Google-도입-기획서.md`(v7.5 확정: B=주 유도, §2 B 행에 노출 시점 각주 반영됨) + `vision-board-web/docs/superpowers/plans/2026-07-24-r2-google-login.md`(R2-1) + `~/.claude/plans/https-vision-board-web-vercel-app-onboar-rustling-pudding.md`(R2-2, 완료). 다음 대기: 실 OAuth 기기 간 이어하기 사용자 확인, Vercel Web Analytics 활성화, "v7.8 후보" 2건
 - **주요 기능:**
   - 🐿️ 토리 캐릭터 (꿈의 정원사) — Acts 0-5 구조, 온보딩 전체 뷰포트 고정, 3뷰포트(375×667/390×844/1280×720) 무스크롤. v7.6: 이름 용도 힌트·"첫 스테이션은 5분" 기대값·도토리 채팅 딤 제거
   - 한국어 조사: `lib/josa.ts` 단일 소스(아/야·이/가·은/는·을/를·으로/로 ㄹ특례·이라는/라는, 비한글 fallback 무받침형) — 온보딩 이름 보간 + 씬 브리지/쿠션 키워드 조사
@@ -19,6 +19,11 @@
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-07-27 (R2-2 게스트 로그인 유도 3종 — 소프트 게이트·배너·배경화면 보조, 프로덕션 배포 완료)
+- 승인 플랜(rustling-pudding) Task 1~6 그대로 구현(9e1a278): `components/LoginNudgeSheet.tsx` 신규(첫 사진 이후 첫 대시보드 방문 시 1회, 클릭·닫기 모두 loginNudgeSeen 스탬프 — OAuth 취소 복귀 재노출 방지, 인트로 시트 우선), 대시보드 1줄 배너(🔒 + 7일 쿨다운 — 게이트 닫는 순간 시작, ≤1.2뷰포트 예산 예외 각주), WallpaperSheet 저장 성공('cancelled' 제외) 후 "이 보드, 계속 간직할래?" 1줄. BoardData additive 2필드(스키마 v4 유지)+storage 2함수. 주 버튼 "Google로 로그인해두기"로 r2a 'Google로 로그인' exact strict 충돌 원천 차단(BN-1c로 계약 명문화)
+- 검증·배포: verify-r2b 신설 18케이스 + 기존 4종 무회귀(r2a 19·v71r4 24·v78r1 26·v7r1 31 — v71r4/v78r1 doneBoard 시드에 게이트 억제 선주입, r2a 무수정 통과) → `npx vercel --prod` → 프로덕션 Playwright 실렌더 스모크 5/5. 유일한 플랜 편차: /collage 기본 view=desktop이라 검증만 `?view=phone` 진입(앱 무수정)
+- 프로덕션 스모크 1차 FAIL 1건은 앱 아닌 테스트 버그 — addInitScript 시드에 `if (!localStorage.getItem)` 가드 누락으로 reload가 스탬프를 덮어씀(교훈 기록)
 
 ### 2026-07-27 (R2-1 프로덕션 배포 완결 + 온보딩3 위계 + R2-2 플래닝)
 - "로그인이 프로덕션에 안 보인다" 신고 원인 확정 = **미배포**(R2-1 13커밋이 로컬에만) + Task 0 리소스 미프로비저닝 → Google OAuth 클라이언트(helen.easytask)·Neon(스키마 `db-init-r2.mjs`)·Blob 생성, `.env.local` 5종 + Vercel prod env 3종 등록(파일 리다이렉트, Ascii 인코딩으로 BOM 회피) → `npx vercel --prod` 배포·푸시. 실가입 1건 Neon SELECT로 확인(marketing_consent=true, 보드 업서트 동작)
