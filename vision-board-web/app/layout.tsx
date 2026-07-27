@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Analytics } from '@vercel/analytics/next';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import Providers from './providers';
 import './globals.css';
 
@@ -37,6 +38,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#FAF9F7] text-[#1C1B19]">
         <Providers>{children}</Providers>
         <Analytics />
+        {/* GA4 — 측정 ID 발급 전에는 env 부재로 비활성, 발급 후 NEXT_PUBLIC_GA_ID 등록+재배포로 켜진다 (v7.9) */}
+        {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
       </body>
     </html>
   );

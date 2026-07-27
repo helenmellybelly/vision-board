@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
-import { track } from '@vercel/analytics';
+import { track } from '@/lib/analytics';
 import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice, saveLoginNudgeSeen, dismissLoginBanner } from '@/lib/storage';
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
@@ -245,8 +245,9 @@ export default function DashboardPage() {
               🌳 첫 보드가 열렸어 — 미래의 하루 들으러 가기 →
             </button>
           )}
-          {/* 재작성 넛지 (v7.8) — 스토리 작성 후 보드가 더 자랐으면 */}
-          {recommended && isStoryStale(board) && (
+          {/* 재작성 넛지 (v7.8) — 스토리 작성 후 보드가 더 자랐으면.
+              !allTextDone: 전 섹션 글 완료 상태에선 아래 /review CTA가 흐름을 이끌므로 중첩하지 않는다 (v7.9 중복 노출 수정) */}
+          {recommended && !allTextDone && isStoryStale(board) && (
             <button
               onClick={() => router.push('/finish')}
               className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { signIn } from 'next-auth/react';
-import { track } from '@vercel/analytics';
+import { track } from '@/lib/analytics';
 import useFocusTrap from './useFocusTrap';
 import { saveLoginNudgeSeen } from '@/lib/storage';
 

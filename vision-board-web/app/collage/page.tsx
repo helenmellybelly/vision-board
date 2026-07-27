@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { track } from '@vercel/analytics';
+import { track } from '@/lib/analytics';
 import {
   clearCollageDeviceLayouts,
   loadBoard,

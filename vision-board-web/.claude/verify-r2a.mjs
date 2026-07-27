@@ -195,7 +195,8 @@ async function newPage({ seed, session = null, me = null, serverBoard, captures 
     captures,
   });
   await page.goto(`${BASE}/dashboard`);
-  await page.getByRole('button', { name: '계정', exact: true }).click();
+  // v7.9: 로그인 상태 aria-label '내 계정 — 로그인됨' (게스트는 '계정' 유지)
+  await page.getByRole('button', { name: '내 계정 — 로그인됨', exact: true }).click();
   ok('R2-9a 계정 시트: 이메일', await visible(page.getByText('helen@test.dev')));
   ok('R2-9b 계정 시트: 로그아웃', await visible(page.getByText('로그아웃')));
   ok('R2-9c 계정 시트: 계정 삭제', await visible(page.getByText('계정 삭제')));

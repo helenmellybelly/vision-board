@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { track } from '@vercel/analytics';
+import { track } from '@/lib/analytics';
 import { loadBoard, saveBoard } from '@/lib/storage';
 import { decideMerge } from '@/lib/merge';
 import { syncBoardNow } from '@/lib/sync';

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { track } from '@vercel/analytics';
+import { track } from '@/lib/analytics';
 import useFocusTrap from './useFocusTrap';
 import { CollageLayout, CollageTemplate } from '@/lib/types';
 import { CollageItem } from '@/lib/collageTemplates';

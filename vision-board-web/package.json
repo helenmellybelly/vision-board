@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@neondatabase/serverless": "^1.1.0",
+    "@next/third-parties": "^16.2.12",
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.6.1",
     "groq-sdk": "^1.2.1",

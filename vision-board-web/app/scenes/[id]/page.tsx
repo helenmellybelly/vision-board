@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { track } from '@vercel/analytics';
+import { track } from '@/lib/analytics';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getSection, SECTIONS } from '@/lib/questions';

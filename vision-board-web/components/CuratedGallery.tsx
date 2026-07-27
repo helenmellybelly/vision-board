@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { track } from '@vercel/analytics';
+import { track } from '@/lib/analytics';
 import { SectionId } from '@/lib/types';
 import { CURATED_CATEGORIES, defaultCategoryFor, CuratedPhoto } from '@/lib/curatedImages';
 import { pickRemotePhoto, unpickRemotePhoto, PICK_NOTICES } from '@/lib/imagePick';

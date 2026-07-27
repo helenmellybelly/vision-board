@@ -57,10 +57,17 @@ export default function AccountButton() {
           setOpen(true);
           setConfirmDelete(false);
         }}
-        aria-label="계정"
-        className="p-1.5 rounded-full text-[#6B7280] hover:bg-black/5"
+        aria-label={loggedIn ? '내 계정 — 로그인됨' : '계정'}
+        className="relative p-2 rounded-full border border-[#E5E1DA] bg-white text-[#1C1B19] hover:bg-black/5"
       >
-        <UserRound size={18} />
+        <UserRound size={20} />
+        {/* 로그인 상태 점 — 아이콘만으로 게스트/로그인 구분이 안 보인다는 피드백(v7.9) */}
+        {loggedIn && (
+          <span
+            aria-hidden
+            className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#10B981] border-2 border-white"
+          />
+        )}
       </button>
 
       {open && (
@@ -104,7 +111,12 @@ export default function AccountButton() {
                   />
                 </label>
                 <button
-                  onClick={() => void signOut({ redirect: false }).then(() => setOpen(false))}
+                  onClick={() =>
+                    // 계정 삭제 경로와 동일 패턴 — 풀 리로드로 세션 잔상 없이 게스트 상태 재부트
+                    void signOut({ redirect: false }).then(() => {
+                      window.location.href = '/';
+                    })
+                  }
                   className="w-full py-3.5 rounded-2xl border border-[#E5E1DA] font-bold mb-2"
                 >
                   로그아웃
