@@ -19,6 +19,7 @@ import {
   saveUploadedImages,
 } from '@/lib/storage';
 import { compressImage } from '@/lib/imageUtils';
+import { loadOne } from '@/lib/wallpaper';
 import { getPickedPhotoIds } from '@/lib/imagePick';
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
@@ -62,6 +63,7 @@ export default function ScenesPage() {
   const lightboxTrapRef = useFocusTrap<HTMLDivElement>(!!lightboxSrc, () => setLightboxSrc(null));
   const [urlInput, setUrlInput] = useState('');
   const [urlOpen, setUrlOpen] = useState(false); // ① 직접 올리기 아래 URL 입력 토글 (v7.3)
+  const [urlChecking, setUrlChecking] = useState(false); // URL 로드 프로브 진행 중 (v8.1)
   const [slotNotice, setSlotNotice] = useState('');
 
   const uploadRefs = [
@@ -244,11 +246,27 @@ export default function ScenesPage() {
     uploadRefs[emptyIdx].current?.click();
   }
 
-  function handleAddUrl() {
+  async function handleAddUrl() {
     const url = urlInput.trim();
-    if (!url) return;
+    if (!url || urlChecking) return;
     const emptyIdx = [0, 1, 2].find((i) => !getSlotUrl(i));
     if (emptyIdx === undefined) return;
+    // 핀터레스트 등 '핀 페이지' 주소 — 이미지가 아니라서 보드에 흰 칸으로 남는다 (v8.1)
+    if (/\/pin\//.test(url)) {
+      setSlotNotice("그건 핀 페이지 주소야. 사진을 꾹 눌러서(PC는 우클릭) '이미지 주소 복사'로 가져와줘.");
+      return;
+    }
+    // 실제 로드 프로브 — 렌더·내보내기와 같은 경로(loadOne: 프록시 폴백 포함)로 검증
+    setUrlChecking(true);
+    setSlotNotice('');
+    try {
+      await loadOne(url);
+    } catch {
+      setSlotNotice('이 주소에선 사진을 못 불러왔어. 이미지 자체 주소(…jpg 같은)를 붙여넣어줘.');
+      setUrlChecking(false);
+      return;
+    }
+    setUrlChecking(false);
     const ok = saveUploadedImage(sectionId, emptyIdx, url);
     if (!ok) {
       setSlotNotice('저장 공간이 부족해 담지 못했어. 사진을 지우고 다시 시도해줘.');
@@ -479,11 +497,11 @@ export default function ScenesPage() {
               />
               <button
                 onClick={handleAddUrl}
-                disabled={!urlInput.trim()}
+                disabled={!urlInput.trim() || urlChecking}
                 className="px-3 py-2.5 rounded-xl text-caption font-medium text-white disabled:opacity-40 transition-opacity"
                 style={{ backgroundColor: section.color }}
               >
-                불러오기
+                {urlChecking ? '사진 확인 중…' : '불러오기'}
               </button>
             </div>
           )}

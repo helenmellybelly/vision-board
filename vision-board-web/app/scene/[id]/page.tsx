@@ -44,6 +44,8 @@ export default function ScenePage() {
   // 재생성("하루 다시 쓰기"+"더 담고 싶은 장면") 합산 카운터 — 2회 이후엔 직접 수정만 권한다 (v7.4)
   const [regenCount, setRegenCount] = useState(0);
   const isRewriteRef = useRef(false);
+  // ?rewrite=1 — 답변 변경 후 "새 답으로 다시 쓸래" 진입: 일기만 자동 재생성, 사진 불변 (v8.1)
+  const [rewritePending, setRewritePending] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +67,13 @@ export default function ScenePage() {
         setSceneText(sec.sceneText);
         setSubmitted(true);
         setStory(sec.miniStory);
+        // useSearchParams는 Suspense 바운더리를 요구하므로 클라이언트 마운트에서 직접 파싱
+        const query = new URLSearchParams(window.location.search);
+        if (query.get('rewrite') === '1') {
+          // 새로고침 재트리거 방지 — 재생성은 진입 1회만
+          history.replaceState(null, '', window.location.pathname);
+          setRewritePending(true);
+        }
       } else {
         // 하루만 쓰고 이탈(또는 v2 병합 마이그레이션) — 입력을 프리필해 이어서 쓰게
         setSceneInput(sec.sceneText);
@@ -72,6 +81,14 @@ export default function ScenePage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionId]);
+
+  // rewrite 트리거는 slots·targetDate 상태 커밋 후에 — 마운트 이펙트에서 바로 부르면 빈 슬롯으로 생성된다
+  useEffect(() => {
+    if (!rewritePending || !board) return;
+    setRewritePending(false);
+    runStory(sceneText);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rewritePending, board]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {

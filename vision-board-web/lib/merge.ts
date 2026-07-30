@@ -14,6 +14,9 @@ export function isBoardMeaningful(b: BoardData | null | undefined): boolean {
       (s.chatMessages?.length ?? 0) > 0 ||
       !!s.sceneText ||
       !!s.miniStory ||
+      // 질문 답변·유예만 있는 보드도 내용 있음 — 로그인 시 서버 보드로 조용히 덮이지 않게 (v8.1)
+      Object.keys(s.extractedSlots ?? {}).length > 0 ||
+      (s.deferredSlots?.length ?? 0) > 0 ||
       (s.uploadedImages ?? []).some(Boolean) ||
       (s.generatedImages ?? []).some(Boolean) ||
       (s.images ?? []).some(Boolean)

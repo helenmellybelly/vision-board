@@ -32,6 +32,8 @@ export default function SectionChatPage() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [qIdx, setQIdx] = useState(0);
   const [answers, setAnswers] = useState<Partial<ExtractedSlots>>({});
+  // 재진입 무변경 판정 기준 — 마운트 시점의 답변 스냅샷. 값을 되돌리면 자동으로 clean (v8.1)
+  const answersSnapRef = useRef<Partial<ExtractedSlots>>({});
   const [phase, setPhase] = useState<Phase>('questions');
   const [showHelp, setShowHelp] = useState(false);
   // "나중에 답할게요" 유예 슬롯 (v7.4) — keyword는 장면·finish 재료라 유예 불가
@@ -66,6 +68,7 @@ export default function SectionChatPage() {
     setBoard(b);
     const sec = b.sections[sectionId];
     const existing = sec.extractedSlots ?? {};
+    answersSnapRef.current = { ...existing };
     const deferred = new Set(sec.deferredSlots ?? []);
     setDeferredKeys(deferred);
     if (Object.keys(existing).length > 0 || deferred.size > 0) {
@@ -144,6 +147,12 @@ export default function SectionChatPage() {
 
   function handleSaveEdit(key: keyof ExtractedSlots) {
     if (!editValue.trim()) return;
+    // 무변경 저장 — 저장·배너 없이 편집만 닫는다. 진행이 곧 되돌림이 되지 않게 (v8.1)
+    if (editValue.trim() === (answers[key] ?? '')) {
+      setEditError(null);
+      setEditingKey(null);
+      return;
+    }
     const result = validateAnswer(key, editValue.trim());
     if (!result.valid) {
       setEditError(result.message ?? null);
@@ -162,14 +171,19 @@ export default function SectionChatPage() {
     showSaved();
     setBoard(loadBoard());
     setEditingKey(null);
-    const sec = board?.sections[sectionId];
-    if (sec?.sceneText || (sec?.generatedImages && sec.generatedImages.length > 0)) {
+    // 하류 산출물(일기·이미지)이 있을 때만 선택지 배너 — 저장 직후의 최신 보드에서 판정
+    const sec = loadBoard().sections[sectionId];
+    if (sec.sceneText || (sec.generatedImages && sec.generatedImages.length > 0)) {
       setShowDownstreamWarning(true);
     }
   }
 
   function handleComplete() {
-    markSectionTextComplete(sectionId);
+    // 이미 text_complete/completed면 상태를 건드리지 않는다 — storage 가드와 이중 방어 (v8.1)
+    const status = loadBoard().sections[sectionId].status;
+    if (status !== 'text_complete' && status !== 'completed') {
+      markSectionTextComplete(sectionId);
+    }
     router.push(`/scene/${sectionId}`);
   }
 
@@ -189,9 +203,23 @@ export default function SectionChatPage() {
     }
   }
 
+  // 재진입 무변경 판정 (v8.1) — 스냅샷 대비 실제로 바뀐 키만 dirty
+  const dirtyKeys = Q_KEYS.filter(
+    (k) => (answers[k] ?? '') !== (answersSnapRef.current[k] ?? '')
+  );
+  const sectionStatus = board?.sections[sectionId]?.status;
+  // 무변경 재진입 — 이미 통과한 답변을 다시 심사하지 않는다. 검증 0회·기존 일기 그대로
+  const cleanRevisit =
+    dirtyKeys.length === 0 &&
+    (sectionStatus === 'text_complete' || sectionStatus === 'completed');
+
   // 하이브리드 게이트: ① 규칙 검증(무료) → ② AI 의미 검증(실패 시 fail-open)
   // v7.4 완료 판정 완화: keyword 필수 + 나머지는 "답변 또는 유예"
   async function handleProceed() {
+    if (cleanRevisit) {
+      router.push(`/scene/${sectionId}`);
+      return;
+    }
     const failures: Partial<Record<AnswerKey, ValidationResult>> = {};
     Q_KEYS.forEach((k) => {
       const val = answers[k] ?? '';
@@ -226,7 +254,13 @@ export default function SectionChatPage() {
         body: JSON.stringify({
           sectionTitle: section?.title.split(' — ')[0] ?? '',
           // 유예된 빈 슬롯은 AI 검증 대상에서 제외 — 있는 답변만 보낸다 (v7.4)
-          items: Q_KEYS.filter((k) => answers[k]).map((k) => ({
+          // 완료 섹션 재진입 수정은 바뀐 답변만 재심사 — 통과한 답변이 비결정 판정에 다시 걸리지 않게 (v8.1)
+          items: (sectionStatus === 'text_complete' || sectionStatus === 'completed'
+            ? dirtyKeys
+            : Q_KEYS
+          )
+            .filter((k) => answers[k])
+            .map((k) => ({
             key: k,
             question: section?.phaseOneQuestions.find((q) => q.key === k)?.questionText ?? '',
             answer: answers[k] ?? '',
@@ -527,21 +561,22 @@ export default function SectionChatPage() {
 
               {showDownstreamWarning && (
                 <div className="rounded-xl bg-[#FEF9C3] px-4 py-3 mb-4">
+                  {/* 변경 후 선택지 (v8.1) — 다시 쓰기는 일기만, 사진은 항상 유지 */}
                   <p className="text-caption text-[#92400E] mb-2">
-                    답변이 바뀌었으니, 이전에 쓴 미래 일기와 이미지도 다시 만들어보는 게 좋을 것 같아.
+                    답이 바뀌었네. 일기를 새 답에 맞춰 다시 써줄까, 그대로 둘까? 사진은 그대로 있어.
                   </p>
                   <div className="flex gap-3">
                     <button
-                      onClick={() => router.push(`/scene/${sectionId}`)}
+                      onClick={() => router.push(`/scene/${sectionId}?rewrite=1`)}
                       className="text-caption font-semibold text-[#92400E]"
                     >
-                      지금 다시 만들기
+                      새 답으로 다시 쓸래 →
                     </button>
                     <button
                       onClick={() => setShowDownstreamWarning(false)}
                       className="text-caption text-[#6E6962]"
                     >
-                      나중에
+                      그대로 둘래
                     </button>
                   </div>
                 </div>
@@ -565,7 +600,11 @@ export default function SectionChatPage() {
                     disabled={aiChecking}
                     className="w-full py-3.5 rounded-xl text-body font-semibold bg-[#1C1B19] text-white active:opacity-80 disabled:opacity-60"
                   >
-                    {aiChecking ? '잠깐, 확인해볼게…' : '이 답들로 미래 일기 써보기 →'}
+                    {aiChecking
+                      ? '잠깐, 확인해볼게…'
+                      : cleanRevisit
+                      ? '미래 일기 보러 가기 →'
+                      : '이 답들로 미래 일기 써보기 →'}
                   </button>
                   <button
                     onClick={() => router.push('/dashboard')}

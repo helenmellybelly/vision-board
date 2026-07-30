@@ -34,7 +34,9 @@ export const WALLPAPER_PRESETS: WallpaperPreset[] = [
 const INK = '#1C1B19';
 const INK_SOFT = '#6E6962';
 
-function loadOne(src: string): Promise<HTMLImageElement> {
+// 이미지 로드 검증의 정본 — /scenes URL 게이트·콜라주 교체 패널이 재사용 (v8.1).
+// ⚠️ 검증기로 compressImage(lib/imageUtils)를 쓰면 안 된다: onerror가 원본을 그대로 resolve해 항상 통과한다.
+export function loadOne(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     // 성공적으로 로드된 cross-origin 이미지는 캔버스를 오염시키지 않도록 CORS 모드로

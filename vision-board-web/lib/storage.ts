@@ -195,6 +195,8 @@ export function saveSectionScene(sectionId: SectionId, text: string): void {
 
 export function markSectionTextComplete(sectionId: SectionId): void {
   const board = loadBoard();
+  // completed는 답변 편집·재진입으로 강등되지 않는다 — 사진까지 담은 완성 상태가 유일한 상위 상태 (v8.1)
+  if (board.sections[sectionId].status === 'completed') return;
   board.sections[sectionId].status = 'text_complete';
   saveBoard(board);
 }

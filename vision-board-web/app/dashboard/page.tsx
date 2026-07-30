@@ -124,6 +124,8 @@ export default function DashboardPage() {
   // 사진만 담긴 진행은 📷 마커 + 중간 카피가 담당(체감 진행 0으로 읽히지 않게)
   const completedCount = statuses.filter((s) => s === 'completed').length;
   const hasAnyProgress = photoSectionCount > 0 || statuses.some((s) => s !== 'not_started');
+  // 완주 = 6칸 완성 + 미래의 하루 이야기까지 (v8.1) — 이후의 주 행동은 '만들기'가 아니라 '감상'
+  const isFinished = completedCount === 6 && !!board.futureDayStory;
   const walkCaption = !hasAnyProgress
     ? '토리랑 첫 스테이션부터 걸어보자 🌰'
     : completedCount === 0
@@ -132,6 +134,8 @@ export default function DashboardPage() {
     ? // v7.7 넛지: 진행 중반의 조급함을 낮추는 가치 카피 — 짧게 유지(대시보드 ≤1.2뷰포트 예산, v71r3 R3-1b)
       // 예산 예외(R2-2): 로그인 재유도 배너는 3중 조건부 1줄(~40px)이라 상시 예산에 계상하지 않는다
       `${completedCount}/6 스테이션을 지났어 — 서두르지 않아도 돼 🐿️`
+    : isFinished
+    ? '길 끝까지 다 걸었어 — 이제 네 보드를 즐기면 돼 🐿️'
     : '길 끝에 도착! 이제 배경화면으로 만들어보자 🐿️';
 
   // 추천 카드 — 다음 할 일 1개만 (v7.1-r3 → v7.2 문장형: 섹션명 단독 노출이 어색하다는 피드백)
@@ -225,6 +229,23 @@ export default function DashboardPage() {
             <p className="text-caption text-[#6E6962] mb-0.5">{recommendCaption}</p>
             <p className="font-semibold text-body">{recommendAction}</p>
           </button>
+        ) : isFinished ? (
+          // 완주 후 상태 (v8.1) — Peak-End: 주 행동은 완성한 보드 감상, 일기 다시 읽기는 보조 링크
+          <div className="mb-3">
+            <button
+              onClick={() => router.push('/collage')}
+              className="w-full py-4 rounded-2xl text-heading font-semibold text-white active:opacity-80 transition-opacity"
+              style={{ backgroundColor: '#1C1B19' }}
+            >
+              완성한 내 비전보드 보기 →
+            </button>
+            <button
+              onClick={() => router.push('/finish')}
+              className="w-full mt-1.5 py-1.5 text-caption text-[#6E6962] underline text-center active:opacity-70"
+            >
+              미래의 하루 일기 다시 읽기 →
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => router.push('/finish')}
@@ -267,7 +288,8 @@ export default function DashboardPage() {
               다 됐다, 이제 미래 일기를 쓰러 가자 →
             </button>
           )}
-          {hasAnyImage && (
+          {/* 완주 후엔 주 CTA가 이미 /collage — 같은 목적지 중복 버튼은 치운다 (v8.1) */}
+          {hasAnyImage && !isFinished && (
             <button
               onClick={() => router.push('/collage')}
               className="w-full py-3 rounded-2xl border border-[#E5E3DF] bg-white text-[#1C1B19] active:opacity-70 transition-opacity"
