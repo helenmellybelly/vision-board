@@ -2,8 +2,8 @@
 
 ## 현재 상태
 <!-- /wrap이 매 세션 이 섹션을 업데이트합니다 -->
-- **상태:** R2-2 게스트 로그인 유도 3종 — **프로덕션 라이브** (커밋 9e1a278, 2026-07-27). B 소프트 게이트(LoginNudgeSheet — 첫 사진 이후 첫 대시보드 방문 시 1회, "Google로 로그인해두기")·대시보드 재유도 배너(7일 간격)·C 배경화면 저장 후 1줄 전부 라이브. R2-1 코어(NextAuth v5+Neon+Blob, 실가입 확인)와 합쳐 Google 로그인 기둥의 코어+유도 레이어 완성. verify-r2b 18/18 + 기존 4종 무회귀(총 118케이스) + 프로덕션 실렌더 스모크 5/5 PASS
-- **리플래닝 기준 문서:** `vision-board-web/docs/회원가입-Google-도입-기획서.md`(v7.5 확정: B=주 유도, §2 B 행에 노출 시점 각주 반영됨) + `vision-board-web/docs/superpowers/plans/2026-07-24-r2-google-login.md`(R2-1) + `~/.claude/plans/https-vision-board-web-vercel-app-onboar-rustling-pudding.md`(R2-2, 완료). 다음 대기: 실 OAuth 기기 간 이어하기 사용자 확인, Vercel Web Analytics 활성화, "v7.8 후보" 2건
+- **상태:** v8.0 완주 피드백 14건 개선 — **프로덕션 라이브** (커밋 bc81f16, 2026-07-30). 오너 첫 6섹션 완주 피드백(캡처 13장) 전면 반영: ① /scene 가이드 5겹→2겹(칩·접이식·힌트 제거, 답변 도와줘 1버튼), ② questions.ts 카피 정합 감사(질문-예시 1:1·이중 질문 해소·placeholder 통일), ③ 최종 '미래의 하루 이야기' 고품질 경로 교체(섹션 일기 6편 재료 + Gemini + 존댓말 게이트), ④ /finish CTA 2→1, ⑤ 콜라주 숲 무겹침 시드·identity reconcile·회전 UI·기본 템플릿 모자이크. 21스위트 468 + 기하 150 + 인터랙션 8 + LLM 로컬/프로덕션 12 PASS, 프로덕션 라우트 스모크 15/15
+- **리플래닝 기준 문서:** `~/.claude/plans/6-valiant-ladybug.md`(v8.0, 완료 — 피드백→원인 매핑 표 포함). 다음 대기: 실 OAuth 기기 간 이어하기 사용자 확인, Vercel Web Analytics 활성화, 매거진형 새 템플릿(선택, ~0.5d), 사진 개별 삭제/숨김(후속)
 - **주요 기능:**
   - 🐿️ 토리 캐릭터 (꿈의 정원사) — Acts 0-5 구조, 온보딩 전체 뷰포트 고정, 3뷰포트(375×667/390×844/1280×720) 무스크롤. v7.6: 이름 용도 힌트·"첫 스테이션은 5분" 기대값·도토리 채팅 딤 제거
   - 한국어 조사: `lib/josa.ts` 단일 소스(아/야·이/가·은/는·을/를·으로/로 ㄹ특례·이라는/라는, 비한글 fallback 무받침형) — 온보딩 이름 보간 + 씬 브리지/쿠션 키워드 조사
@@ -19,6 +19,12 @@
 
 ## 세션 로그
 <!-- ⚠️ APPEND ONLY — 아래 항목을 절대 삭제/수정하지 마세요. 새 항목은 이 줄 바로 아래에 추가합니다. -->
+
+### 2026-07-30 (v8.0 — 완주 피드백 14건: 가이드 단순화·카피 정합·최종 일기 품질·콜라주 자동배치/회전, 프로덕션 배포 완료)
+- 오너 첫 6섹션 완주 피드백 14건(캡처 13장) → 탐색 3병렬로 원인 전수 확정(칩·예시 전부 고정 템플릿 / 최종 일기만 Llama-8B 저품질 경로 + 섹션 일기 미사용 / 숲 슬롯 의도적 겹침 + z=섹션순 + 인덱스 reconcile 버그) + 오너 결정 3건(최종 일기=고품질 재생성, 가이드=예시 1겹+도움 1버튼, 기본 레이아웃=모자이크)
+- R1: /scene 안내 5겹→2겹(dead data였던 sceneStep.helpQuestions 18개 연결), questions.ts 정합 감사(S2 keyword 질문 직접화·S5 예시 '사이' 서술·S4 keyword 3종 재작성·S6 Q1 이중질문 교체·Q3 감각 중복 해소·S3 feeling 단일화·placeholder 통일), SlotValue 공용 불릿 렌더러 3곳, /api/story 전면 재작성(freeChat 경유·섹션 일기 재료·통합판 시스템 프롬프트·존댓말 정규식 게이트 1회 재생성 `lib/honorific.ts`), /finish renderStory + CTA 통합(구 2버튼이 같은 /collage 탭 차이)
+- R2: 숲 예약셀 지터 그리드(`polaroidReserveRect` 연도 카드 회피, 무겹침, landscape 축소 폐기), `CollageLayout.edited` 플래그 + identity reconcile(`placeNewItems` 최소 겹침 스캔 — 새 사진이 기존 밑에 깔리던 버그 제거), 회전 핸들 ↻(0° 스냅·±30°·회전 bbox 클램프)+사진 탭 '맨 뒤로/바로 세우기', 스티커 회전 원점 DOM=canvas 정렬, DEFAULT_TEMPLATE=mosaic 단일 소스, 모자이크·미니멀 수직 센터링
+- 검증·배포: 카피 계약 4스위트 갱신(v7r2·v73r1·v74r1·v76r1) 후 21스위트 468 PASS, 신규 `scripts/verify-collage-layout.js` 150 PASS(겹침≤20%·카드 무가림·센터링·reconcile 불변성), 회전 인터랙션 8 PASS, LLM 실호출 `.claude/smoke-v80-story.mjs` 로컬 6/6·프로덕션 6/6 → `npx vercel --prod` + 프로덕션 스모크 15/15. lint 49건은 기준선 동일(신규 0)
 
 ### 2026-07-27 (R2-2 게스트 로그인 유도 3종 — 소프트 게이트·배너·배경화면 보조, 프로덕션 배포 완료)
 - 승인 플랜(rustling-pudding) Task 1~6 그대로 구현(9e1a278): `components/LoginNudgeSheet.tsx` 신규(첫 사진 이후 첫 대시보드 방문 시 1회, 클릭·닫기 모두 loginNudgeSeen 스탬프 — OAuth 취소 복귀 재노출 방지, 인트로 시트 우선), 대시보드 1줄 배너(🔒 + 7일 쿨다운 — 게이트 닫는 순간 시작, ≤1.2뷰포트 예산 예외 각주), WallpaperSheet 저장 성공('cancelled' 제외) 후 "이 보드, 계속 간직할래?" 1줄. BoardData additive 2필드(스키마 v4 유지)+storage 2함수. 주 버튼 "Google로 로그인해두기"로 r2a 'Google로 로그인' exact strict 충돌 원천 차단(BN-1c로 계약 명문화)
