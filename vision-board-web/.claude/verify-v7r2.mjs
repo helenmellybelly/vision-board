@@ -84,14 +84,12 @@ const doneBoard = (overrides) => ({
   await page.waitForTimeout(1500);
   ok('R2-2a 통합 질문 렌더', await page.getByText('그날의 하루, 어디서 뭘 하고 있어?').isVisible().catch(() => false));
   ok('R2-2b 구 순간 질문 부재', (await page.getByText('어떤 장면들이 눈에 들어와').count()) === 0);
-  ok('R2-2c 순간 보태기 칩 안내 (v7.3 카피)', await page.getByText('막막하면 탭해서 넣고').isVisible().catch(() => false));
-  const chip = page.getByText('통창 있는 내 서재');
-  ok('R2-2d 섹션 칩 렌더', await chip.isVisible().catch(() => false));
-  await chip.click();
+  // v8.0 가이드 단순화 — 칩 행 제거, 도움은 '답변 도와줘' 버튼 하나로
+  ok('R2-2c 칩 안내 부재 (v8.0)', (await page.getByText('막막하면 탭해서 넣고').count()) === 0);
+  ok('R2-2d 섹션 칩 부재 (v8.0)', (await page.getByText('통창 있는 내 서재').count()) === 0);
+  await page.getByText('답변 도와줘').click();
   await page.waitForTimeout(300);
-  const textarea = page.locator('textarea');
-  const val = await textarea.first().inputValue().catch(() => '');
-  ok('R2-2e 칩 탭 → textarea append', val.includes('통창 있는 내 서재'), `value="${val.slice(0, 30)}"`);
+  ok('R2-2e 답변 도와줘 → 각도 패널 (v8.0)', await page.getByText('이런 각도로 생각해봐').isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r2-scene-write.png`, fullPage: true });
   await ctx.close();
 }

@@ -9,6 +9,7 @@ import { BoardData } from '@/lib/types';
 import { countCompleted } from '@/lib/milestone';
 import MiniBoardPreview from '@/components/MiniBoardPreview';
 import AccountButton from '@/components/AccountButton';
+import { renderStory } from '@/components/StoryModal';
 
 type FinishPhase = 'pattern' | 'sentence' | 'story-loading' | 'story' | 'complete';
 
@@ -49,12 +50,15 @@ export default function FinishPage() {
         want: slots.want,
         feeling: slots.feeling,
         sceneText: sec.sceneText,
+        // v8.0 — 섹션 일기가 최종 이야기의 최우선 재료 (없는 섹션은 서버가 장면 메모로 폴백)
+        miniStory: sec.miniStory,
       };
     });
 
     // 느린/멈춘 연결에서 무한 로딩을 막는 타임아웃 (v7.4 감사 M2)
+    // v8.0 — 존댓말 게이트로 서버가 최대 2회 생성할 수 있어 30s로 상향
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const timer = setTimeout(() => controller.abort(), 30000);
     try {
       const res = await fetch('/api/story', {
         method: 'POST',
@@ -62,6 +66,7 @@ export default function FinishPage() {
         body: JSON.stringify({
           userName: currentBoard.userName,
           oneSentence: sentence,
+          targetDate: currentBoard.targetDate,
           sections: sectionData,
         }),
         signal: controller.signal,
@@ -208,7 +213,8 @@ export default function FinishPage() {
                 이야기를 쓰다가 문제가 생겼어. 잠시 후 다시 시도해줄래?
               </p>
             ) : (
-              <p className="text-body leading-relaxed whitespace-pre-wrap">{story}</p>
+              // v8.0 — 볼드 마커(**)가 생 텍스트로 노출되지 않게 renderStory 경유
+              <p className="text-body leading-relaxed">{renderStory(story)}</p>
             )}
           </div>
 
@@ -302,7 +308,8 @@ export default function FinishPage() {
           )}
 
           <p className="text-[#6B7280] leading-relaxed text-body">
-            비전보드 + 미래의 하루 이야기.<br />원하는 삶을 이미지로도 보고 글로도 읽는 거야.
+            {/* v8.0 — '글로도 읽는 거야' 약속과 실제 동선 정합: 이야기는 보드 화면에서 읽는다 */}
+            방금 쓴 미래의 하루 이야기도 보드에서 언제든 다시 읽을 수 있어.
             {/* 6/6 상향 목표화 (v7.8) — 첫 보드는 끝이 아니라 자라는 시작점 */}
             {isFirstBoard && (
               <>
@@ -311,19 +318,14 @@ export default function FinishPage() {
             )}
           </p>
 
+          {/* v8.0 — 구 CTA 2개('보러 가기'/'폰 배경화면')는 같은 /collage의 탭 차이였다. 하나로 통합 */}
           <div className="w-full space-y-2.5">
             <button
-              onClick={() => router.push('/collage')}
+              onClick={() => router.push('/collage?view=phone')}
               className="w-full py-4 rounded-2xl text-heading font-semibold text-white"
               style={{ backgroundColor: '#1C1B19' }}
             >
               내 비전보드 보러 가기 →
-            </button>
-            <button
-              onClick={() => router.push('/collage?device=phone')}
-              className="w-full border border-[#E5E3DF] text-[#6B7280] py-3.5 rounded-2xl text-body font-semibold"
-            >
-              폰 배경화면으로 만들기
             </button>
             <button
               onClick={() => router.push('/dashboard')}

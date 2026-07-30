@@ -34,14 +34,31 @@ interface Props {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const TAP_THRESHOLD = 8; // px — 이 이하 움직임은 탭으로 간주 (스크롤/드래그와 구분)
+const ROT_MAX = 30; // 회전 클램프(±도) — 경계 수학이 감당 가능한 범위
+const ROT_SNAP = 3; // 이 이하는 0°로 스냅
+
+// 회전 bbox 여백 (v8.0) — 회전한 사진의 모서리가 보드(overflow-hidden) 밖으로 잘리지 않게
+// 이동·회전 클램프를 회전 bbox 기준으로 한다. 정규화 좌표는 축별 분모가 달라 aspect 보정 필요
+function rotatedPad(it: CollageLayoutItem, hNorm: number, aspect: number): { padX: number; padY: number } {
+  const rad = ((it.rot ?? 0) * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  const bw = it.w * cos + (hNorm * sin) / aspect;
+  const bh = it.w * sin * aspect + hNorm * cos;
+  return { padX: Math.max(0, (bw - it.w) / 2), padY: Math.max(0, (bh - hNorm) / 2) };
+}
 
 interface DragState {
   key: string;
-  mode: 'move' | 'resize';
+  mode: 'move' | 'resize' | 'rotate';
   startX: number;
   startY: number;
   maxDist: number;
   item: CollageLayoutItem;
+  /** rotate 모드 — 항목 중심(px)과 시작 각도 */
+  centerX?: number;
+  centerY?: number;
+  startAngle?: number;
 }
 
 // 문구 스티커 1개 — 글자 크기는 cqi(보드 폭 %)로, canvas 렌더(lib/wallpaper.ts)와 같은 비율식
@@ -102,6 +119,8 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
   const dragRef = useRef<DragState | null>(null);
   const tapRef = useRef<{ x: number; y: number } | null>(null);
   const [editing, setEditing] = useState(false);
+  // 탭한 사진의 구제 액션(맨 뒤로·바로 세우기) — 묻힌 사진을 꺼내는 유일한 동선 (v8.0)
+  const [photoAction, setPhotoAction] = useState<string | null>(null);
   const [sheet, setSheet] = useState<{ open: boolean; editId?: string }>({ open: false });
   const [live, setLive] = useState<CollageLayout>(() => resolveLayout(template, items, layout, aspect));
   const liveRef = useRef(live);
@@ -117,6 +136,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
   // 템플릿 전환 시에만 편집 종료 — 저장(onLayoutChange)으로 layout 객체가 갱신될 때 풀리면 안 된다
   useEffect(() => {
     setEditing(false);
+    setPhotoAction(null);
   }, [template]);
 
   // 외부 layout·사진 구성 변경 동기화 (드래그 중이 아닐 때)
@@ -134,6 +154,11 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     onLayoutChange(next);
   }
 
+  // 사용자 상호작용(드래그·리사이즈·회전·스티커·z 조작)에 의한 저장 — edited 표시 (v8.0 reconcile 계약)
+  function saveEdited(next: CollageLayout) {
+    save({ ...next, edited: true });
+  }
+
   function bringToFront(key: string): CollageLayout {
     const next: CollageLayout = {
       ...live,
@@ -143,13 +168,25 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     return next;
   }
 
-  function onItemPointerDown(e: React.PointerEvent, key: string, mode: 'move' | 'resize') {
+  function onItemPointerDown(e: React.PointerEvent, key: string, mode: 'move' | 'resize' | 'rotate') {
     if (!editing) return;
     e.preventDefault();
     e.stopPropagation();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    const next = bringToFront(key);
-    dragRef.current = { key, mode, startX: e.clientX, startY: e.clientY, maxDist: 0, item: next.items[key] };
+    // 회전은 z를 건드리지 않는다 — '맨 뒤로' 보낸 항목이 회전만으로 다시 앞으로 오지 않게
+    const next = mode === 'rotate' ? liveRef.current : bringToFront(key);
+    const drag: DragState = { key, mode, startX: e.clientX, startY: e.clientY, maxDist: 0, item: next.items[key] };
+    if (mode === 'rotate') {
+      const rect = boardRef.current?.getBoundingClientRect();
+      if (rect) {
+        const it = drag.item;
+        const hNorm = it.h ?? it.w * aspect;
+        drag.centerX = rect.left + (it.x + it.w / 2) * rect.width;
+        drag.centerY = rect.top + (it.y + hNorm / 2) * rect.height;
+        drag.startAngle = Math.atan2(e.clientY - drag.centerY, e.clientX - drag.centerX);
+      }
+    }
+    dragRef.current = drag;
   }
 
   function onPointerMove(e: React.PointerEvent) {
@@ -166,10 +203,33 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     const hNorm = it.h ?? it.w * aspect;
     let next: CollageLayoutItem;
     if (drag.mode === 'move') {
+      // 회전 bbox 기준 클램프 — 회전한 모서리가 보드 밖으로 잘리지 않게 (v8.0)
+      const { padX, padY } = rotatedPad(it, hNorm, aspect);
+      const loX = Math.min(padX, (1 - it.w) / 2);
+      const loY = Math.min(padY, (1 - hNorm) / 2);
       next = {
         ...it,
-        x: clamp(it.x + dx, 0, 1 - it.w),
-        y: clamp(it.y + dy, 0, 1 - hNorm),
+        x: clamp(it.x + dx, loX, 1 - it.w - loX),
+        y: clamp(it.y + dy, loY, 1 - hNorm - loY),
+      };
+    } else if (drag.mode === 'rotate') {
+      const { centerX, centerY, startAngle } = drag;
+      if (centerX === undefined || centerY === undefined || startAngle === undefined) return;
+      const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+      let rot = (it.rot ?? 0) + ((angle - startAngle) * 180) / Math.PI;
+      while (rot > 180) rot -= 360;
+      while (rot < -180) rot += 360;
+      rot = clamp(rot, -ROT_MAX, ROT_MAX);
+      if (Math.abs(rot) < ROT_SNAP) rot = 0; // 0° 스냅 — 반듯하게 세우기 쉽게
+      const rotated = { ...it, rot: rot || undefined };
+      // 회전으로 bbox가 커져 경계를 넘으면 안쪽으로 밀어넣는다
+      const { padX, padY } = rotatedPad(rotated, hNorm, aspect);
+      const loX = Math.min(padX, (1 - it.w) / 2);
+      const loY = Math.min(padY, (1 - hNorm) / 2);
+      next = {
+        ...rotated,
+        x: clamp(it.x, loX, Math.max(loX, 1 - it.w - loX)),
+        y: clamp(it.y, loY, Math.max(loY, 1 - hNorm - loY)),
       };
     } else {
       const minW = isSticker ? STICKER_MIN_W : MIN_W;
@@ -186,10 +246,15 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
-    onLayoutChange(liveRef.current);
-    // 스티커를 움직이지 않고 탭하면 수정 시트 열기
-    if (drag.maxDist < TAP_THRESHOLD && drag.key.startsWith('sticker:') && drag.mode === 'move') {
-      setSheet({ open: true, editId: drag.key.slice('sticker:'.length) });
+    saveEdited(liveRef.current);
+    if (drag.maxDist < TAP_THRESHOLD && drag.mode === 'move') {
+      if (drag.key.startsWith('sticker:')) {
+        // 스티커를 움직이지 않고 탭하면 수정 시트 열기
+        setSheet({ open: true, editId: drag.key.slice('sticker:'.length) });
+      } else {
+        // 사진 탭 → 구제 액션 (맨 뒤로·바로 세우기) — 묻힌 사진을 꺼내는 동선 (v8.0)
+        setPhotoAction((cur) => (cur === drag.key ? null : drag.key));
+      }
     }
   }
 
@@ -208,17 +273,32 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
   }
 
   function resetLayout() {
+    // 시드는 edited:false — 이후 사진이 추가되면 자동 배치가 신선하게 다시 깔린다 (v8.0)
+    setPhotoAction(null);
     save(seedLayout(template, items, aspect));
+  }
+
+  function sendToBack(key: string) {
+    const prev = liveRef.current;
+    const minZ = Math.min(...Object.values(prev.items).map((it) => it.z));
+    saveEdited({ ...prev, items: { ...prev.items, [key]: { ...prev.items[key], z: minZ - 1 } } });
+    setPhotoAction(null);
+  }
+
+  function straighten(key: string) {
+    const prev = liveRef.current;
+    saveEdited({ ...prev, items: { ...prev.items, [key]: { ...prev.items[key], rot: undefined } } });
+    setPhotoAction(null);
   }
 
   function handleStickerConfirm(data: { text: string; style: CollageSticker['style']; color?: string }) {
     const prev = liveRef.current;
     if (sheet.editId) {
       const sticker: CollageSticker = { ...prev.stickers![sheet.editId], ...data };
-      save({ ...prev, stickers: { ...prev.stickers, [sheet.editId]: sticker } });
+      saveEdited({ ...prev, stickers: { ...prev.stickers, [sheet.editId]: sticker } });
     } else {
       const id = `s${Date.now()}`;
-      save({
+      saveEdited({
         items: { ...prev.items, [stickerKey(id)]: newStickerLayoutItem(maxZ, aspect) },
         stickers: { ...prev.stickers, [id]: { id, ...data } },
       });
@@ -232,7 +312,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     delete stickers[id];
     const nextItems = { ...prev.items };
     delete nextItems[stickerKey(id)];
-    save({ items: nextItems, stickers });
+    saveEdited({ items: nextItems, stickers });
     setSheet({ open: false });
   }
 
@@ -305,6 +385,8 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
                   height: it.h !== undefined ? `${it.h * 100}%` : undefined,
                   zIndex: it.z,
                   transform: it.rot ? `rotate(${it.rot}deg)` : undefined,
+                  // 스티커는 canvas 렌더(drawSticker: top-center 피벗)와 회전 원점을 맞춘다 (v8.0 락스텝)
+                  transformOrigin: isSticker ? 'top center' : 'center',
                   touchAction: editing ? 'none' : 'auto',
                 }}
                 onPointerDown={(e) => onItemPointerDown(e, key, 'move')}
@@ -329,6 +411,15 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
                     aria-label="크기 조절"
                   >
                     <span className="text-micro text-[#6E6962] leading-none">⤡</span>
+                  </div>
+                )}
+                {editing && (
+                  <div
+                    onPointerDown={(e) => onItemPointerDown(e, key, 'rotate')}
+                    className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-white shadow-md border border-[#E5E3DF] flex items-center justify-center cursor-grab z-10"
+                    aria-label="회전"
+                  >
+                    <span className="text-micro text-[#6E6962] leading-none">↻</span>
                   </div>
                 )}
                 {editing && isSticker && (
@@ -400,10 +491,43 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
               </button>
             </div>
             <button
-              onClick={() => setEditing(false)}
+              onClick={() => { setEditing(false); setPhotoAction(null); }}
               className="px-4 py-1.5 rounded-full bg-white text-[#1C1B19] text-caption font-bold shadow active:opacity-70"
             >
               완료
+            </button>
+          </div>
+        )}
+
+        {/* 사진 구제 액션 (v8.0) — 탭한 사진을 뒤로 보내거나 반듯하게 세운다 */}
+        {editing && photoAction && live.items[photoAction] && (
+          <div
+            className="absolute top-12 inset-x-2 flex items-center gap-1.5 z-50"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => sendToBack(photoAction)}
+              className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
+              aria-label="맨 뒤로"
+            >
+              맨 뒤로
+            </button>
+            {!!live.items[photoAction].rot && (
+              <button
+                onClick={() => straighten(photoAction)}
+                className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
+                aria-label="바로 세우기"
+              >
+                바로 세우기
+              </button>
+            )}
+            <button
+              onClick={() => setPhotoAction(null)}
+              className="px-3 py-1.5 rounded-full bg-black/40 text-white text-caption active:opacity-70"
+              aria-label="사진 액션 닫기"
+            >
+              ×
             </button>
           </div>
         )}
@@ -411,7 +535,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
 
       <p className="text-micro text-[#6E6962] text-center mt-2">
         {editing
-          ? '사진과 문구를 끌어 옮기고, 오른쪽 아래 손잡이로 크기를 바꿔봐. 겹쳐도 좋아.'
+          ? '끌어서 옮기고, ⤡로 크기·↻로 각도를 바꿔봐. 사진을 탭하면 맨 뒤로 보낼 수도 있어.'
           : '보드를 탭하면 배치를 직접 수정할 수 있어'}
       </p>
 

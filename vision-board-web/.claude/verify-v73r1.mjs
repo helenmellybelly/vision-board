@@ -167,12 +167,11 @@ async function newPage(seed) {
   const { ctx, page } = await newPage(doneBoard({ 1: textComplete() }));
   await page.goto(`${BASE}/scene/1`);
   await page.waitForTimeout(1500);
-  ok('V3-5a 가이드 카드', await page.getByText('이렇게 쓰면 일기가 진짜같아져').isVisible().catch(() => false));
-  // v7.4: 가이드 카드가 기본 접힘(details) — 펼친 뒤 본문 확인
-  await page.getByText('이렇게 쓰면 일기가 진짜같아져').click();
-  await page.waitForTimeout(300);
-  ok('V3-5b 가이드: 순간 2~3개(펼침)', await page.getByText('순간 2~3개면 충분해').isVisible().catch(() => false));
-  ok('V3-5c 칩 힌트(고쳐 써봐)', await page.getByText('막막하면 탭해서 넣고').isVisible().catch(() => false));
+  // v8.0 가이드 단순화 — 접이식 가이드 카드·칩 행 제거, 형식 안내는 placeholder 1줄로
+  ok('V3-5a 구 가이드 카드 부재 (v8.0)', (await page.getByText('이렇게 쓰면 일기가 진짜같아져').count()) === 0);
+  const scenePh = await page.locator('textarea').first().getAttribute('placeholder').catch(() => '');
+  ok('V3-5b placeholder 형식 가이드(순간 2~3개)', (scenePh ?? '').includes('순간 2~3개면 충분해'), scenePh ?? '');
+  ok('V3-5c 칩 힌트 부재 (v8.0)', (await page.getByText('막막하면 탭해서 넣고').count()) === 0);
   // v7.6 쿠션 카피 교체("…년의 하루야") — 예고문은 섹션 채팅 브리지로 이동
   ok('V3-5d 쿠션 연도 파생 (2029년)', await page.getByText('2029년의 하루야').isVisible().catch(() => false));
   ok('V3-5e 구 하드코딩(3년 뒤) 부재', (await page.getByText('3년 뒤의 하루').count()) === 0);

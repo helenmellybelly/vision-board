@@ -16,7 +16,7 @@ import {
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, CollageLayout, CollageTemplate } from '@/lib/types';
-import { ASPECT, CollageItem, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
+import { ASPECT, CollageItem, DEFAULT_TEMPLATE, TEMPLATE_ORDER, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
 import { WALLPAPER_PRESETS, WallpaperPreset } from '@/lib/wallpaper';
 import { FIRST_BOARD_THRESHOLD, isStoryStale } from '@/lib/milestone';
 import StoryModal from '@/components/StoryModal';
@@ -29,12 +29,17 @@ import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 // v7.5 — 보드 탭 제거(폰/PC 2탭): 결과물은 결국 배경화면이라 중간 산출물 뷰를 치움
 type CollageView = 'phone' | 'desktop';
 
-const TEMPLATES: { id: CollageTemplate; label: string }[] = [
-  // id 'polaroid'는 localStorage 키 계약이라 유지 — v7.6에서 UI 라벨만 '숲'으로
-  { id: 'polaroid', label: '숲' },
-  { id: 'mosaic', label: '모자이크' },
-  { id: 'minimal', label: '미니멀' },
-];
+// id 'polaroid'는 localStorage 키 계약이라 유지 — v7.6에서 UI 라벨만 '숲'으로.
+// v8.0 — 순서·기본값은 lib/collageTemplates.ts의 TEMPLATE_ORDER/DEFAULT_TEMPLATE 단일 소스
+const TEMPLATE_LABELS: Record<CollageTemplate, string> = {
+  polaroid: '숲',
+  mosaic: '모자이크',
+  minimal: '미니멀',
+};
+const TEMPLATES: { id: CollageTemplate; label: string }[] = TEMPLATE_ORDER.map((id) => ({
+  id,
+  label: TEMPLATE_LABELS[id],
+}));
 
 // 첫 진입 코치마크 1회 노출 여부 — BoardData 스키마와 분리해 별도 키로 관리
 const COACH_KEY = 'vb-collage-coach-v1';
@@ -126,7 +131,7 @@ export default function CollagePage() {
 
   if (!board) return null;
 
-  const template: CollageTemplate = board.collageTemplate ?? 'polaroid';
+  const template: CollageTemplate = board.collageTemplate ?? DEFAULT_TEMPLATE;
 
   const completedCount = Object.values(board.sections).filter(
     (s) => s.status === 'completed'

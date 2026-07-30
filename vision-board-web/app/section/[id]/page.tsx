@@ -11,6 +11,7 @@ import { SectionId, ExtractedSlots, BoardData } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 import InlineInput from '@/components/InlineInput';
+import SlotValue from '@/components/SlotValue';
 import { Fragment } from 'react';
 
 type Phase = 'questions' | 'review';
@@ -493,7 +494,7 @@ export default function SectionChatPage() {
                           <>
                             <div className="mt-1.5 flex items-start justify-between gap-2">
                               {val ? (
-                                <p className="text-body leading-relaxed text-[#1C1B19]">{val}</p>
+                                <SlotValue value={val} className="text-body leading-relaxed text-[#1C1B19]" />
                               ) : (
                                 <p className="text-body leading-relaxed text-[#9CA3AF]">
                                   나중에 답하기로 했어 🌰
@@ -608,7 +609,7 @@ export default function SectionChatPage() {
             onSubmit={handleAnswer}
             placeholder={currentQ.placeholder}
             examples={currentQ.examples}
-            hint={currentQ.key === 'want' ? '여러 개여도 좋아. 줄 바꿔서 써봐.' : undefined}
+            hint={currentQ.key === 'want' ? '한 줄에 하나씩 — 나중에 모아 볼 때 읽기 좋아.' : undefined}
             rows={currentQ.key === 'want' ? 3 : 2}
             onHelp={helpQs.length > 0 ? () => setShowHelp(true) : undefined}
             error={answerError}

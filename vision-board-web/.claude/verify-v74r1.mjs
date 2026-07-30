@@ -215,16 +215,16 @@ async function newPage(seed) {
   await ctx.close();
 }
 
-// ── 8) /scene 가이드 카드 접힘 ──
+// ── 8) /scene 가이드 단순화 (v8.0 — 구 접이식 카드 제거, 예시 패널+도움 버튼만) ──
 {
   const { ctx, page } = await newPage(doneBoard({ 1: textComplete() }));
   await page.goto(`${BASE}/scene/1`);
   await page.waitForTimeout(1500);
-  ok('V4-8a 가이드 요약줄 노출', await page.getByText('이렇게 쓰면 일기가 진짜같아져').isVisible().catch(() => false));
-  ok('V4-8b 본문 기본 접힘', !(await page.getByText('순간 2~3개면 충분해').isVisible().catch(() => false)));
-  await page.getByText('이렇게 쓰면 일기가 진짜같아져').click();
+  ok('V4-8a 구 가이드 카드 부재 (v8.0)', (await page.getByText('이렇게 쓰면 일기가 진짜같아져').count()) === 0);
+  ok('V4-8b 예시 패널 노출', await page.getByText('이런 식으로 써봐').isVisible().catch(() => false));
+  await page.getByText('답변 도와줘').click();
   await page.waitForTimeout(400);
-  ok('V4-8c 펼치면 본문 노출', await page.getByText('순간 2~3개면 충분해').isVisible().catch(() => false));
+  ok('V4-8c 답변 도와줘 → 각도 패널', await page.getByText('이런 각도로 생각해봐').isVisible().catch(() => false));
   await ctx.close();
 }
 

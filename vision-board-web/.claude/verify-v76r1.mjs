@@ -66,8 +66,19 @@ async function newPage(seed, ctxOpts = {}) {
 }
 
 // ── 2) 숲 테마 — 콜라주 보드 그라디언트·연도 카드·프레임리스 ──
+// v8.0 — 기본 템플릿이 모자이크로 바뀌어 숲 검증은 템플릿을 명시하고 진입한다
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
+  await page.addInitScript(() => {
+    const raw = localStorage.getItem('vision-board-data');
+    if (raw) {
+      const b = JSON.parse(raw);
+      if (!b.collageTemplate) {
+        b.collageTemplate = 'polaroid';
+        localStorage.setItem('vision-board-data', JSON.stringify(b));
+      }
+    }
+  });
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
   const board = page.locator('[data-testid="collage-board"]');
@@ -157,7 +168,7 @@ async function newPage(seed, ctxOpts = {}) {
   await page.waitForTimeout(1500);
   ok('V6-4g want 복수 유도 문구', await page.getByText('떠오르는 만큼 여러 개 적어줘').isVisible().catch(() => false));
   const ph = await page.locator('textarea').first().getAttribute('placeholder');
-  ok('V6-4h want 플레이스홀더(줄 바꿔서)', (ph ?? '').includes('여러 개 적어도 좋아'), ph ?? '');
+  ok('V6-4h want 플레이스홀더(한 줄에 하나씩, v8.0)', (ph ?? '').includes('한 줄에 하나씩'), ph ?? '');
   ok('V6-4i want 멀티라인 세트 노출', await page.getByText('내 이름을 건 클래스 열어보기').isVisible().catch(() => false));
   await ctx.close();
 }
@@ -191,9 +202,8 @@ async function newPage(seed, ctxOpts = {}) {
   await page.waitForTimeout(1500);
   ok('V6-5e 새 쿠션(…년의 하루야)', await page.getByText('2029년의 하루야').isVisible().catch(() => false));
   ok('V6-5f 구 쿠션(질문은 끝났어) 부재', (await page.getByText('질문은 끝났어').count()) === 0);
-  await page.getByText('이렇게 쓰면 일기가 진짜같아져').click();
-  await page.waitForTimeout(300);
-  ok('V6-5g 가이드 3행(형식 자유)', await page.getByText('장면 단어만 나열해도 좋아').isVisible().catch(() => false));
+  // v8.0 — 접이식 가이드 카드 제거, 형식 안내는 placeholder 1줄
+  ok('V6-5g 구 가이드 카드 부재 (v8.0)', (await page.getByText('이렇게 쓰면 일기가 진짜같아져').count()) === 0);
   await ctx.close();
 }
 

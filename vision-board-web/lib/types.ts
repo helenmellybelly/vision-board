@@ -51,7 +51,6 @@ export interface Section {
   introText: string;
   whyText: string;
   phaseOneQuestions: SectionQuestion[];
-  situationChips?: string[];
   imageQuery?: string; // Unsplash 추천 검색어 — 영어가 검색 품질이 좋다 (v6.17)
 }
 
@@ -118,6 +117,10 @@ export interface CollageLayout {
   stickers?: Record<string, CollageSticker>;
   /** 이 배치가 만들어진 캔버스 비율(w/h) — 비율이 바뀌면 리시드 판단에 쓴다 (v6.19). 레거시 데이터엔 없음 → 마이그레이션이 채움 */
   aspect?: number;
+  /** v8.0 — 사용자가 직접 손댄 배치인지. false('기본 배치로' 직후)면 사진 추가 시 신선한 시드로 재배치,
+   *  true(드래그·리사이즈·회전·스티커 조작)면 기존 위치 보존 + 새 키만 빈 공간 배치.
+   *  없음(레거시) = 상호작용으로만 저장됐으므로 true 취급 */
+  edited?: boolean;
 }
 
 export interface BoardData {

@@ -11,11 +11,12 @@ import { josaOnly } from '@/lib/josa';
 import ProcessBar from '@/components/ProcessBar';
 import ChatBubble from '@/components/ChatBubble';
 import InlineInput from '@/components/InlineInput';
+import SlotValue from '@/components/SlotValue';
 import { renderStory, BOLD_EDIT_HINT } from '@/components/StoryModal';
 
 // 미래의 하루 + 스토리 통합 페이지 (v7.0-r2) — 구 /moment 흡수.
-// 질문은 "그날의 하루" 하나, situationChips는 '순간 보태기' 선택 칩으로,
-// '보고 싶은 순간들' 별도 질문은 삭제(AI가 하루 서술에서 자동 추출).
+// v8.0 가이드 단순화 — 기본 노출은 질문+예시 패널+입력창뿐. 칩·접이식 안내·힌트 행 제거,
+// 막힐 때의 도움은 '답변 도와줘' 버튼 하나로 (sceneStep.helpQuestions 연결).
 export default function ScenePage() {
   const router = useRouter();
   const params = useParams();
@@ -27,6 +28,7 @@ export default function ScenePage() {
   const [sceneInput, setSceneInput] = useState('');
   const [sceneText, setSceneText] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const [story, setStory] = useState('');
   const [storyLoading, setStoryLoading] = useState(false);
@@ -122,6 +124,7 @@ export default function ScenePage() {
   function handleSubmit(text: string) {
     setSceneText(text);
     setSubmitted(true);
+    setShowHelp(false);
     saveSectionScene(sectionId, text);
     // 다시 쓰기 경유 재제출은 재생성으로 합산 — 첫 생성·실패 재시도는 세지 않는다
     if (isRewriteRef.current) {
@@ -173,7 +176,6 @@ export default function ScenePage() {
   );
   if (!section) return null;
 
-  const chips = section.situationChips ?? [];
   const sectionName = section.title.split(' — ')[0];
 
   return (
@@ -218,12 +220,11 @@ export default function ScenePage() {
                     >
                       {SLOT_KEY_LABELS[key]}
                     </span>
-                    <span
-                      className="text-body leading-relaxed"
+                    <SlotValue
+                      value={slots[key] ?? ''}
+                      className="text-body leading-relaxed flex-1"
                       style={{ fontWeight: key === 'keyword' ? 600 : 400 }}
-                    >
-                      {slots[key]}
-                    </span>
+                    />
                   </div>
                 ))}
               </div>
@@ -239,47 +240,34 @@ export default function ScenePage() {
 
         {!submitted && (
           <>
-            {/* 작성 가이드 카드 (v7.3 → v7.4 접힘) — 안내 5겹 완화: 기본은 한 줄 토글, 필요할 때만 펼친다 */}
-            <details className="mt-3 rounded-2xl bg-[#F5F5F3] px-4 py-3 group">
-              <summary className="text-caption font-semibold text-[#1C1B19] cursor-pointer list-none flex items-center justify-between">
-                <span>✍️ 이렇게 쓰면 일기가 진짜같아져</span>
-                <span className="text-micro text-[#9CA3AF] transition-transform duration-200 group-open:rotate-180" aria-hidden="true">▾</span>
-              </summary>
-              <p className="text-caption text-[#6B7280] leading-relaxed mt-1">
-                · 순간 2~3개면 충분해
-                <br />· 순간마다 「어디서 · 뭘 하고 · 뭐가 보이는지」까지
-                <br />· 문장으로 써도, 장면 단어만 나열해도 좋아
-              </p>
-            </details>
-
-            {/* 순간 보태기 칩 — 탭하면 입력에 한 줄씩 추가 (선택사항) */}
-            {chips.length > 0 && (
-              <div className="mt-3">
-                <p className="text-micro text-[#6E6962] font-semibold mb-1.5">
-                  막막하면 탭해서 넣고, 네 상황에 맞게 고쳐 써봐
+            {/* 답변 도와줘 패널 — 막힐 때만 여는 각도 질문 (v8.0, /section과 같은 패턴) */}
+            {showHelp && (
+              <div className="mt-3 rounded-2xl bg-[#F5F5F3] px-4 py-3">
+                <p className="text-caption font-semibold text-[#1C1B19] mb-2">
+                  이런 각도로 생각해봐
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {chips.map((chip) => (
-                    <button
-                      key={chip}
-                      onClick={() =>
-                        setSceneInput((prev) => (prev ? `${prev}\n${chip}` : chip))
-                      }
-                      className="text-caption px-3 py-1.5 rounded-full border border-[#E5E3DF] bg-white text-[#6B7280] active:opacity-70"
-                    >
-                      {chip}
-                    </button>
+                <div className="space-y-1.5">
+                  {sceneStep.helpQuestions.map((hq) => (
+                    <p key={hq} className="text-caption text-[#6B7280] leading-relaxed">
+                      ○ {hq}
+                    </p>
                   ))}
                 </div>
+                <button
+                  onClick={() => setShowHelp(false)}
+                  className="text-caption text-[#6E6962] underline underline-offset-2 mt-2 active:opacity-60"
+                >
+                  닫기
+                </button>
               </div>
             )}
 
-            {/* 입력창 — 예시는 InlineInput 내장 패널, 칩 추가를 위해 controlled 모드 */}
+            {/* 입력창 — 기본 노출은 예시 패널+입력창뿐, 프리필·다시쓰기를 위해 controlled 모드 */}
             <InlineInput
               onSubmit={handleSubmit}
-              placeholder={sceneStep.placeholder || '구체적일수록 좋아. 장소, 행동, 감각까지.'}
+              placeholder={sceneStep.placeholder || '순간 2~3개면 충분해 — 어디서, 뭘 하는지까지.'}
               examples={sceneStep.examples}
-              hint="순간 2~3개, 각각 장소·행동까지 쓰면 딱 좋아."
+              onHelp={() => setShowHelp((v) => !v)}
               value={sceneInput}
               onChangeText={setSceneInput}
             />

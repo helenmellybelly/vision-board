@@ -9,6 +9,7 @@ import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
 import { SLOT_KEY_LABELS, SLOT_KEY_ORDER } from '@/lib/slotLabels';
 import ProcessBar from '@/components/ProcessBar';
+import SlotValue from '@/components/SlotValue';
 
 function AISummaryCard({ board }: { board: BoardData }) {
   const [summary, setSummary] = useState<string | null>(null);
@@ -169,9 +170,13 @@ export default function ReviewPage() {
                   return (
                     <div key={key} className="px-4 py-2.5 flex gap-3">
                       <p className="text-micro text-[#6E6962] w-20 shrink-0 pt-0.5 font-medium">{SLOT_KEY_LABELS[key]}</p>
-                      <p className={`text-body leading-relaxed flex-1 ${text ? 'text-[#1C1B19]' : 'text-[#C4C2BE]'}`}>
-                        {text || (deferred ? '나중에 답하기로 했어 🌰' : '—')}
-                      </p>
+                      {text ? (
+                        <SlotValue value={text} className="text-body leading-relaxed flex-1 text-[#1C1B19]" />
+                      ) : (
+                        <p className="text-body leading-relaxed flex-1 text-[#C4C2BE]">
+                          {deferred ? '나중에 답하기로 했어 🌰' : '—'}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
