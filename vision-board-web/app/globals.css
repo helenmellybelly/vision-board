@@ -173,6 +173,16 @@ textarea {
   animation: ctaPop 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* 콜라주 리플로우 정착 (v8.2) — 리사이즈 커밋 직후 300ms 동안 나머지 사진이 새 자리로 미끄러진다.
+   left/top/width/height 트랜지션은 이 순간에만 붙는다(보드 내 최대 18개 절대배치 요소, 성능 무해) */
+.collage-item-settle {
+  transition:
+    left 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fadeIn,
   .animate-slideUp,
@@ -183,6 +193,9 @@ textarea {
   .animate-nudgeBounce,
   .animate-ctaPop {
     animation: none;
+  }
+  .collage-item-settle {
+    transition: none;
   }
 }
 

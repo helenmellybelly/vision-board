@@ -48,6 +48,13 @@ export default function DevicePresetPicker({ groups, selectedId, onSelect }: Pro
             >
               <AspectSwatch w={p.w} h={p.h} />
               {p.shortLabel ?? p.label}
+              {/* 해상도는 선택된 칩에만 — 별도 캡션 행을 없애 보드에 세로 공간을 양보 (v8.2).
+                  aria-hidden — radio 접근성 이름('iPhone' 등 exact 매칭 계약)을 오염시키지 않는다 */}
+              {selected && (
+                <span aria-hidden="true" className="text-micro font-normal text-white/70">
+                  {p.w}×{p.h}
+                </span>
+              )}
             </button>
           );
         })}

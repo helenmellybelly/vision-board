@@ -30,8 +30,9 @@ import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 // 화면 구조 (v7.2) — choose 뷰 제거, 한 화면에서 뷰 토글 + 인라인 사이즈 선택
 // v7.3 — 사이즈는 패널 대신 상단 칩 상시 노출, ?view= URL 동기화
 // v7.5 — 보드 탭 제거(폰/PC 2탭): 결과물은 결국 배경화면이라 중간 산출물 뷰를 치움
-// v8.1 — 넓은 화면(lg+)은 PC·폰 나란히 실렌더(?view= 무시), 좁은 화면은 2탭 + 기본 phone.
-//        편집 모드: 출처 섹션 배지 + 사진 교체/삭제 + 깨진 사진 ⚠️
+// v8.1 — 편집 모드: 출처 섹션 배지 + 사진 교체/삭제 + 깨진 사진 ⚠️
+// v8.2 — 나란히(lg+ 동시 렌더) 철회: 보드 폭이 절반이 되어 사진이 너무 작아짐.
+//        전 뷰포트 2탭 + 보드 전폭, 저장 버튼은 sticky 하단 바, 폰 뷰 lg+는 우측 컨트롤 레일
 type CollageView = 'phone' | 'desktop';
 
 // id 'polaroid'는 localStorage 키 계약이라 유지 — v7.6에서 UI 라벨만 '숲'으로.
@@ -83,14 +84,10 @@ function TemplateSwatch({ id }: { id: CollageTemplate }) {
 export default function CollagePage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
-  // 좁은 화면의 활성 탭 — lg+에선 나란히 렌더라 이 값은 무시된다 (v8.1)
   const [view, setView] = useState<CollageView>('phone');
-  const [wide, setWide] = useState(false);
   const [sheetView, setSheetView] = useState<CollageView | null>(null);
   const [confirmReseed, setConfirmReseed] = useState<{ view: CollageView; preset: WallpaperPreset } | null>(null);
   const [showCoach, setShowCoach] = useState(false);
-  // 나란히 두 보드의 편집 배타성 — 한쪽이 편집을 잡으면 다른 쪽은 감상 모드 (v8.1)
-  const [activeEditView, setActiveEditView] = useState<CollageView | null>(null);
   // 사진 교체 인라인 패널 대상 — key는 `${sectionId}-${slotIdx}` (v8.1)
   const [replaceTarget, setReplaceTarget] = useState<{ view: CollageView; key: string } | null>(null);
   const [replaceUrl, setReplaceUrl] = useState('');
@@ -128,15 +125,6 @@ export default function CollagePage() {
     setView(initial);
     history.replaceState(null, '', `${window.location.pathname}?view=${initial}`);
   }, [router]);
-
-  // lg 브레이크포인트 추적 — 나란히/2탭 전환 (v8.1)
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const apply = () => setWide(mq.matches);
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
 
   // 첫 진입 — 프리셋 미선택이면 양쪽 뷰 모두 표준값 자동 시드 (v7.3 → v8.1 양쪽 확장)
   // 시드 id는 반드시 실존 프리셋만 ('phone', 'pc-fhd')
@@ -216,7 +204,7 @@ export default function CollagePage() {
     setBoard(loadBoard());
   }
 
-  // 좁은 화면 탭 전환 — reseed 확인·경고는 접고, URL을 ?view=로 동기화 (분석 구분용)
+  // 탭 전환 — reseed 확인·경고는 접고, URL을 ?view=로 동기화 (분석 구분용)
   function switchView(v: CollageView) {
     setView(v);
     setConfirmReseed(null);
@@ -358,23 +346,26 @@ export default function CollagePage() {
     </div>
   );
 
-  // 뷰 하나의 전체 패널 — 프리셋 칩·리시드 확인·보드·캡션·경고·저장·교체 패널 (v8.1 나란히 공용)
+  // 뷰 하나의 전체 패널 (v8.2) — 좁은 화면은 세로 스택, 폰 뷰 lg+는 좌 스테이지·우 컨트롤 레일.
+  // 세로형 보드는 lg에서 좌우가 비기 마련이라, 남는 폭을 컨트롤 레일로 쓰고 보드는 은은한 스테이지 위에 올린다.
   function renderViewPanel(v: CollageView) {
     const { preset, aspect, savedLayout } = forView(v);
+    const rail = v === 'phone';
     const replaceSection =
       replaceTarget?.view === v ? getSection(parsePhotoKey(replaceTarget.key)?.sectionId ?? (1 as SectionId)) : null;
     return (
-      <div>
+      <div
+        className={`[--board-reserve:13rem] lg:[--board-reserve:10rem] ${
+          rail ? 'lg:grid lg:grid-cols-[1fr_20rem] lg:gap-8 lg:items-start' : ''
+        }`}
+      >
+        {/* 상단 컨트롤 — 사이즈 칩 + 리시드 확인 */}
+        <div className={rail ? 'lg:col-start-2 lg:row-start-1' : undefined}>
         <DevicePresetPicker
           groups={v === 'phone' ? ['휴대폰', '태블릿'] : ['PC']}
           selectedId={preset?.id}
           onSelect={(p) => handleSelectPreset(v, p)}
         />
-        {preset && (
-          <p className="text-caption text-[#6E6962] mt-1.5 mb-3">
-            {preset.label} · {preset.w}×{preset.h}
-          </p>
-        )}
         {confirmReseed && confirmReseed.view === v && (
           <div className="mb-4 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
             <p className="text-caption text-[#92400E] mb-2">
@@ -390,8 +381,10 @@ export default function CollagePage() {
             </div>
           </div>
         )}
+        </div>
+        {/* 스테이지 — 보드가 주인공. 폰 뷰 lg+는 은은한 프레임 위 중앙 배치 (v8.2) */}
         {preset && (
-          <>
+          <div className={rail ? 'mt-1 lg:mt-0 lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:bg-[#F5F5F3] lg:rounded-3xl lg:p-4' : 'mt-1'}>
             <CollageBoard
               key={`${v}-${preset.id}-${template}`}
               view={v}
@@ -402,8 +395,6 @@ export default function CollagePage() {
               onLayoutChange={(l) => handleLayoutChange(v, l, aspect)}
               year={boardYear}
               onYearChange={handleYearChange}
-              active={activeEditView === null || activeEditView === v}
-              onEditingChange={(editing) => setActiveEditView(editing ? v : null)}
               onRequestReplace={(key) => openReplace(v, key)}
               onRequestRemove={handleRemovePhoto}
               onBrokenChange={setBrokenKeys}
@@ -413,6 +404,11 @@ export default function CollagePage() {
                 ? '선택한 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
                 : '선택한 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
             </p>
+          </div>
+        )}
+        {/* 하단 컨트롤 — 사진 교체 패널·깨진 사진 경고 (레일에선 우측 아래 칸) */}
+        {preset && (
+          <div className={rail ? 'lg:col-start-2 lg:row-start-2' : undefined}>
             {replaceTarget && replaceTarget.view === v && (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 animate-fadeIn">
                 <p className="text-caption font-semibold text-[#1C1B19] mb-0.5">
@@ -478,13 +474,7 @@ export default function CollagePage() {
                 </button>
               </div>
             )}
-            <button
-              onClick={() => handleOpenSheet(v)}
-              className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
-            >
-              {v === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
-            </button>
-          </>
+          </div>
         )}
       </div>
     );
@@ -510,8 +500,8 @@ export default function CollagePage() {
             <AccountButton />
           </div>
         </div>
-        {/* 뷰 토글 — 좁은 화면 전용. lg+는 두 뷰가 나란히 실렌더라 탭이 무의미 (v8.1) */}
-        <div className="flex gap-1.5 bg-[#F5F5F3] rounded-xl p-1 lg:hidden" role="radiogroup" aria-label="보기 방식">
+        {/* 뷰 토글 — 전 뷰포트 공통 2탭. 보드가 전폭을 쓰도록 한 번에 한 뷰만 렌더 (v8.2) */}
+        <div className="flex gap-1.5 bg-[#F5F5F3] rounded-xl p-1 max-w-md" role="radiogroup" aria-label="보기 방식">
           {([
             { id: 'phone' as const, label: '📱 폰' },
             { id: 'desktop' as const, label: '🖥️ PC' },
@@ -548,17 +538,9 @@ export default function CollagePage() {
           </div>
         ) : (
           <>
-            {/* 템플릿은 뷰 공통 단일 값 — 나란히에서도 셀렉터는 하나 (v8.1) */}
+            {/* 템플릿은 뷰 공통 단일 값 — 셀렉터는 하나 */}
             {templateSelector}
-            {wide ? (
-              // 넓은 화면 — 좌 PC(주 시야)·우 폰 나란히, 둘 다 실렌더 (v8.1)
-              <div className="grid grid-cols-2 gap-8 items-start">
-                {renderViewPanel('desktop')}
-                {renderViewPanel('phone')}
-              </div>
-            ) : (
-              renderViewPanel(view)
-            )}
+            {renderViewPanel(view)}
           </>
         )}
 
@@ -603,6 +585,19 @@ export default function CollagePage() {
           </div>
         ) : null}
       </div>
+
+      {/* 저장 — sticky 하단 바 (v8.2): 보드가 화면보다 길어도 저장 버튼은 항상 손닿는 곳에.
+          z-40 — 시트(z-50)·코치마크(z-[60]) 아래 */}
+      {collageImages.length > 0 && forView(view).preset && (
+        <div className="sticky bottom-0 z-40 px-4 md:px-6 pt-6 pb-4 bg-gradient-to-t from-[#FAF9F7] via-[#FAF9F7]/85 to-transparent pointer-events-none">
+          <button
+            onClick={() => handleOpenSheet(view)}
+            className="pointer-events-auto block w-full max-w-md mx-auto py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity shadow-[0_8px_24px_rgba(28,27,25,0.22)]"
+          >
+            {view === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
+          </button>
+        </div>
+      )}
 
       {/* 첫 진입 코치마크 — 1회 안내 (v6.17 발견성 피드백, v7.2: 딥링크 직행 시에도 노출) */}
       {showCoach && collageImages.length > 0 && (

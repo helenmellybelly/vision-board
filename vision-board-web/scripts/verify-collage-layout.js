@@ -10,7 +10,7 @@ const path = require('path');
 
 // TS 모듈을 그대로 부르기 위해 next 번들 대신 tsx 사용 시도 → 없으면 안내
 const inline = `
-import { seedLayout, resolveLayout, polaroidReserveRect, ASPECT, stickerKey } from '../lib/collageTemplates';
+import { seedLayout, resolveLayout, polaroidReserveRect, ASPECT, stickerKey, inferGridSpans, reflowLayout } from '../lib/collageTemplates';
 
 const results = [];
 const ok = (name, cond, extra = '') => results.push(\`\${cond ? 'PASS' : 'FAIL'} \${name}\${extra ? ' — ' + extra : ''}\`);
@@ -56,7 +56,7 @@ for (const [aName, aspect] of Object.entries(ASPECTS)) {
         ok(\`\${aName}/숲/n=\${n} 시드 스티커 무가림\`, sHit <= 0.25, \`hit=\${(sHit * 100).toFixed(1)}%\`);
       } else if (n >= 3) {
         // 3) 수직 센터링 — 타이틀 밴드 아래 가용 영역에서 상하 여백 대칭
-        const titleBottom = aspect < 0.75 ? 0.22 : aspect > 1 ? 0.2 : t === 'mosaic' ? 0.15 : 0.17;
+        const titleBottom = aspect < 0.75 ? 0.22 : aspect > 1 ? 0.16 : t === 'mosaic' ? 0.15 : 0.17;
         const availB = t === 'mosaic' ? 0.97 : 0.95;
         const top = Math.min(...photoRects.map((r) => r.y));
         const bottom = Math.max(...photoRects.map((r) => r.y + r.h));
@@ -114,6 +114,34 @@ for (const [aName, aspect] of Object.entries(ASPECTS)) {
   const card = polaroidReserveRect(aspect);
   ok('고아 스티커 복원', !!st);
   ok('고아 스티커 연도카드 회피', st ? ratio({ x: st.x, y: st.y, w: st.w, h: st.w * 0.3 }, card) <= 0.05 : false);
+}
+
+// 7) 리플로우 (v8.2) — 시드는 그리드 정합, 스팬 확대 후 무겹침·경계·z 보존
+for (const t of ['mosaic', 'minimal']) {
+  for (const [aName, aspect] of Object.entries(ASPECTS)) {
+    const items = mkItems(8);
+    const layout = seedLayout(t, items, aspect);
+    const info = inferGridSpans(layout.items, aspect);
+    ok(\`reflow(\${aName}/\${t}) 시드 그리드 정합\`, !!info);
+    if (!info) continue;
+    const ordered = Object.entries(layout.items)
+      .filter(([k]) => !k.startsWith('sticker:'))
+      .sort(([, a], [, b]) => a.y - b.y || a.x - b.x)
+      .map(([k, it], i) => ({ key: k, span: i === 1 ? [2, 2] : info.spans[k], z: it.z }));
+    const placed = reflowLayout(t, ordered, aspect);
+    ok(\`reflow(\${aName}/\${t}) 결과 존재\`, !!placed);
+    if (!placed) continue;
+    const rects = Object.values(placed).map((it) => ({ x: it.x, y: it.y, w: it.w, h: it.h }));
+    let worst = 0;
+    for (let i = 0; i < rects.length; i++)
+      for (let j = i + 1; j < rects.length; j++) worst = Math.max(worst, ratio(rects[i], rects[j]));
+    ok(\`reflow(\${aName}/\${t}) 무겹침\`, worst <= 0.001, \`worst=\${(worst * 100).toFixed(1)}%\`);
+    const inB = rects.every((r) => r.x >= -0.001 && r.y >= -0.001 && r.x + r.w <= 1.001 && r.y + r.h <= 1.001);
+    ok(\`reflow(\${aName}/\${t}) 경계 내부\`, inB);
+    const grew = placed[ordered[1].key].w > Math.min(...Object.values(placed).map((it) => it.w)) * 1.5;
+    ok(\`reflow(\${aName}/\${t}) 타깃 사진 확대\`, grew);
+    ok(\`reflow(\${aName}/\${t}) z 보존\`, ordered.every((e) => placed[e.key].z === e.z));
+  }
 }
 
 console.log('\\n===== v8.0 콜라주 배치 기하 검증 =====');

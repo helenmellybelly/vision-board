@@ -1,5 +1,5 @@
-// v8.1 Slice 2 검증 — 콜라주 나란히(lg+)·좁은 화면 기본 phone·finish 딥링크·
-// 편집 배타성·출처 배지·인라인 교체/삭제·깨진 사진 ⚠️·저장 버튼별 시트
+// v8.1 Slice 2 검증 — v8.2에서 재작성: 나란히(lg) 철회 → 전 뷰포트 2탭·보드 1개·저장 버튼 1개.
+// 유지: finish 딥링크·출처 배지·인라인 교체/삭제·깨진 사진 ⚠️·저장 버튼별 시트
 import { chromium } from 'playwright';
 
 const BASE = process.env.BASE ?? 'http://localhost:3000';
@@ -58,21 +58,25 @@ async function newPage(seed, viewport = NARROW) {
 
 const readSection = (page, id) =>
   page.evaluate((sid) => JSON.parse(localStorage.getItem('vision-board-data')).sections[sid], id);
-// 보드 좌상단 탭 — 중앙 연도 카드를 피해서 편집 모드 진입/사진 선택 (v76r1 패턴)
+// 보드 좌상단 탭 — 타이틀 밴드(사진 없음)를 노려 배경 탭 = 편집 진입 (v8.2에서도 계약 유지)
 const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data-view="${view}"]`);
 
-// ── V-1) lg: 보드 2개 나란히(좌 PC·우 폰)·공통 템플릿·토글 미노출·저장 버튼 2개 ──
+// ── V-1) lg: 2탭 노출·기본 desktop·보드 1개·현재 뷰 저장 버튼 1개 (v8.2) ──
 {
   const { ctx, page } = await newPage(board({ 1: withPhoto() }), WIDE);
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1800);
-  ok('V-1a 보드 2개(PC+폰)', (await boardOf(page, 'desktop').count()) === 1 && (await boardOf(page, 'phone').count()) === 1);
-  const pcBox = await boardOf(page, 'desktop').boundingBox();
-  const phBox = await boardOf(page, 'phone').boundingBox();
-  ok('V-1b 좌 PC·우 폰', !!pcBox && !!phBox && pcBox.x < phBox.x, `pc=${pcBox?.x} ph=${phBox?.x}`);
-  ok('V-1c 템플릿 셀렉터 1개(공통)', (await page.getByRole('radiogroup', { name: '콜라주 템플릿' }).count()) === 1);
-  ok('V-1d 뷰 토글 미노출', !(await page.getByRole('radiogroup', { name: '보기 방식' }).isVisible().catch(() => false)));
-  ok('V-1e 저장 버튼 2개', await page.getByText('PC 배경화면 저장').isVisible().catch(() => false) && await page.getByText('폰 배경화면 저장').isVisible().catch(() => false));
+  ok('V-1a lg 뷰 라디오 2개 노출', (await page.getByRole('radiogroup', { name: '보기 방식' }).getByRole('radio').count()) === 2);
+  ok('V-1b lg 기본 desktop 탭', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  ok('V-1c 보드 1개(desktop)', (await page.locator('[data-testid="collage-board"]').count()) === 1 && (await boardOf(page, 'desktop').count()) === 1);
+  ok('V-1d 템플릿 셀렉터 1개(공통)', (await page.getByRole('radiogroup', { name: '콜라주 템플릿' }).count()) === 1);
+  const pcSave = await page.getByText('PC 배경화면 저장').isVisible().catch(() => false);
+  const phSave = await page.getByText('폰 배경화면 저장').isVisible().catch(() => false);
+  ok('V-1e 저장 버튼 1개(현재 뷰)', pcSave && !phSave, `pc=${pcSave} ph=${phSave}`);
+  // 탭 전환 → 보드·저장 버튼이 함께 전환
+  await page.getByRole('radio', { name: '📱 폰' }).click();
+  await page.waitForTimeout(800);
+  ok('V-1f 폰 탭 전환 시 보드·저장 전환', (await boardOf(page, 'phone').count()) === 1 && (await page.locator('[data-testid="collage-board"]').count()) === 1 && (await page.getByText('폰 배경화면 저장').isVisible().catch(() => false)));
   await ctx.close();
 }
 
@@ -88,7 +92,7 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await ctx.close();
 }
 
-// ── V-3) /finish CTA → /collage (view 강제 없음 — lg에서 나란히 그대로) ──
+// ── V-3) /finish CTA → /collage (lg 기본 desktop 단일 보드) ──
 {
   const overrides = {};
   for (let id = 1; id <= 6; id++) overrides[id] = withPhoto();
@@ -105,13 +109,13 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   ok('V-3a finish CTA 존재', await cta.isVisible().catch(() => false));
   await cta.click();
   await page.waitForURL('**/collage**', { timeout: 8000 }).catch(() => {});
-  ok('V-3b /collage 이동(view 강제 없음)', page.url().includes('/collage') && !page.url().includes('view=phone'), page.url());
+  ok('V-3b /collage 이동(phone 강제 없음)', page.url().includes('/collage') && !page.url().includes('view=phone'), page.url());
   await page.waitForTimeout(1200);
-  ok('V-3c lg 나란히 유지', (await boardOf(page, 'desktop').count()) === 1 && (await boardOf(page, 'phone').count()) === 1);
+  ok('V-3c lg 단일 보드(desktop)', (await boardOf(page, 'desktop').count()) === 1 && (await page.locator('[data-testid="collage-board"]').count()) === 1);
   await ctx.close();
 }
 
-// ── V-4) 편집 배타성 (lg) — 한쪽 편집 진입 시 다른 쪽 편집 종료 ──
+// ── V-4) 탭 전환 시 편집 종료 — 편집 중 다른 탭으로 가도 잔존 편집 UI 없음 (v8.2) ──
 {
   const { ctx, page } = await newPage(board({ 1: withPhoto() }), WIDE);
   await page.goto(`${BASE}/collage`);
@@ -119,11 +123,10 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await boardOf(page, 'desktop').click({ position: { x: 12, y: 12 } });
   await page.waitForTimeout(600);
   ok('V-4a PC 보드 편집 진입', (await page.getByRole('button', { name: '완료', exact: true }).count()) === 1);
-  await boardOf(page, 'phone').click({ position: { x: 12, y: 12 } });
-  await page.waitForTimeout(600);
-  const doneButtons = await page.getByRole('button', { name: '완료', exact: true }).count();
-  const phoneEditing = await boardOf(page, 'phone').getByRole('button', { name: '완료', exact: true }).count();
-  ok('V-4b 폰 편집 진입 시 PC 편집 종료(완료 1개)', doneButtons === 1 && phoneEditing === 1, `total=${doneButtons} phone=${phoneEditing}`);
+  await page.getByRole('radio', { name: '📱 폰' }).click();
+  await page.waitForTimeout(800);
+  // 뷰 전환은 CollageBoard 리마운트(key에 view 포함) — 편집 상태가 넘어오지 않는다
+  ok('V-4b 탭 전환 후 편집 종료', (await page.getByRole('button', { name: '완료', exact: true }).count()) === 0);
   await ctx.close();
 }
 
@@ -222,7 +225,7 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await ctx.close();
 }
 
-// ── V-9) 저장 버튼별 시트 프리셋 (lg) — PC 버튼→PC 시트, 폰 버튼→폰 시트 ──
+// ── V-9) 저장 버튼별 시트 프리셋 — 각 탭의 버튼이 해당 프리셋 시트 (v8.2 탭 순회) ──
 {
   const { ctx, page } = await newPage(board({ 1: withPhoto() }), WIDE);
   await page.goto(`${BASE}/collage`);
@@ -233,6 +236,8 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   ok('V-9a PC 버튼 → PC 시트', await dialog.getByText('PC FHD (16:9)').isVisible().catch(() => false));
   await dialog.getByRole('button', { name: '닫기', exact: true }).click();
   await page.waitForTimeout(400);
+  await page.getByRole('radio', { name: '📱 폰' }).click();
+  await page.waitForTimeout(800);
   await page.getByText('폰 배경화면 저장').click();
   await page.waitForTimeout(1500);
   dialog = page.getByRole('dialog');
@@ -241,7 +246,7 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
 }
 
 await browser.close();
-console.log('\n===== v8.1 Slice 2 검증 =====');
+console.log('\n===== v8.1r2 검증 (v8.2 갱신) =====');
 for (const r of results) console.log(r);
 if (errors.length) console.log('pageerrors:', errors.join(' | '));
 const fail = results.filter((r) => r.startsWith('FAIL')).length;

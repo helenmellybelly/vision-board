@@ -11,8 +11,9 @@ import {
   STICKER_FONT_RATIO,
   STICKER_MIN_W,
   hasTopReserve,
-  isLandscape,
+  inferGridSpans,
   newStickerLayoutItem,
+  reflowLayout,
   resolveLayout,
   seedLayout,
   stickerKey,
@@ -22,6 +23,7 @@ import { SECTIONS } from '@/lib/questions';
 import { SectionId } from '@/lib/types';
 import EditableYear from './EditableYear';
 import StickerSheet from './StickerSheet';
+import Lightbox from '@/components/Lightbox';
 
 interface Props {
   template: CollageTemplate;
@@ -150,6 +152,12 @@ export default function CollageBoard({
   const [brokenKeys, setBrokenKeys] = useState<Set<string>>(new Set());
   const [live, setLive] = useState<CollageLayout>(() => resolveLayout(template, items, layout, aspect));
   const liveRef = useRef(live);
+  // 감상 모드 사진 탭 확대 (v8.2)
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  // 리플로우 정착 모션 (v8.2) — 커밋 직후 300ms 동안 나머지 사진이 새 자리로 미끄러진다
+  const [settling, setSettling] = useState(false);
+  const settleTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (settleTimer.current) window.clearTimeout(settleTimer.current); }, []);
 
   // 편집 상태 전환은 이 함수로만 — 부모(나란히 배타 편집)에 항상 통지 (v8.1)
   function switchEditing(next: boolean) {
@@ -303,10 +311,44 @@ export default function CollageBoard({
     commitLive((prev) => ({ ...prev, items: { ...prev.items, [drag.key]: next } }));
   }
 
+  // 리사이즈 종료 시 전체 리플로우 (v8.2) — 그리드 정합 배치에서만. 커진 스팬에 맞춰 나머지가
+  // 자리를 내주고, 드래그한 사진도 깔끔한 스팬 크기로 스냅된다. 자유 배치(정합 실패)면 현행 유지.
+  function tryReflow(drag: DragState): CollageLayout | null {
+    const cur = liveRef.current;
+    // 정합 판정은 리사이즈 전 상태 기준 — 드래그된 항목은 원래 rect로 되돌려 역산
+    const preItems = { ...cur.items, [drag.key]: drag.item };
+    const info = inferGridSpans(preItems, aspect);
+    if (!info) return null;
+    const gx = 0.015;
+    const finalW = cur.items[drag.key].w;
+    const target = clamp(Math.round((finalW + gx) / (info.cellW + gx)), 1, 3);
+    const ordered = Object.entries(preItems)
+      .filter(([k]) => !k.startsWith('sticker:'))
+      .sort(([, a], [, b]) => a.y - b.y || a.x - b.x)
+      .map(([k, it]) => ({
+        key: k,
+        span: k === drag.key ? ([target, target] as [number, number]) : info.spans[k],
+        z: it.z,
+      }));
+    const placed = reflowLayout(template, ordered, aspect);
+    if (!placed) return null;
+    return { ...cur, items: { ...cur.items, ...placed } };
+  }
+
   function onPointerUp() {
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
+    if (drag.mode === 'resize' && !drag.key.startsWith('sticker:') && template !== 'polaroid' && drag.maxDist >= TAP_THRESHOLD) {
+      const reflowed = tryReflow(drag);
+      if (reflowed) {
+        setSettling(true);
+        if (settleTimer.current) window.clearTimeout(settleTimer.current);
+        settleTimer.current = window.setTimeout(() => setSettling(false), 300);
+        saveEdited(reflowed);
+        return;
+      }
+    }
     saveEdited(liveRef.current);
     if (drag.maxDist < TAP_THRESHOLD && drag.mode === 'move') {
       if (drag.key.startsWith('sticker:')) {
@@ -324,11 +366,46 @@ export default function CollageBoard({
     if (editing) return;
     tapRef.current = { x: e.clientX, y: e.clientY };
   }
+
+  // 탭 지점의 최상단 사진 키 (v8.2 라이트박스 히트테스트) — img가 pointer-events-none이라
+  // DOM 타깃 대신 좌표로 판정한다. 회전 항목은 픽셀 공간에서 역회전 후 rect 검사(rotatedPad와 같은 삼각법)
+  function photoAtPoint(clientX: number, clientY: number): string | null {
+    const rect = boardRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return null;
+    const px = (clientX - rect.left) / rect.width;
+    const py = (clientY - rect.top) / rect.height;
+    const photos = Object.entries(live.items)
+      .filter(([k]) => !k.startsWith('sticker:') && !brokenKeys.has(k))
+      .sort(([, a], [, b]) => b.z - a.z);
+    for (const [key, it] of photos) {
+      const hNorm = it.h ?? it.w * aspect;
+      let lx = px - (it.x + it.w / 2);
+      let ly = py - (it.y + hNorm / 2);
+      if (it.rot) {
+        // 정규화 좌표는 비등방(보드 w≠h) — 픽셀 공간으로 환산해 회전해야 정확하다
+        const rad = (-it.rot * Math.PI) / 180;
+        const pxU = lx * rect.width;
+        const pyU = ly * rect.height;
+        lx = (pxU * Math.cos(rad) - pyU * Math.sin(rad)) / rect.width;
+        ly = (pxU * Math.sin(rad) + pyU * Math.cos(rad)) / rect.height;
+      }
+      if (Math.abs(lx) <= it.w / 2 && Math.abs(ly) <= hNorm / 2) return key;
+    }
+    return null;
+  }
+
   function onBoardPointerUp(e: React.PointerEvent) {
     const tap = tapRef.current;
     tapRef.current = null;
     if (editing || !tap) return;
     if (Math.abs(e.clientX - tap.x) < TAP_THRESHOLD && Math.abs(e.clientY - tap.y) < TAP_THRESHOLD) {
+      // v8.2 — 사진을 탭하면 크게 보기, 배경(여백)을 탭하면 편집 진입(기존 계약 유지)
+      const hit = photoAtPoint(e.clientX, e.clientY);
+      const src = hit ? items.find((i) => i.key === hit)?.src : undefined;
+      if (src) {
+        setLightboxSrc(src);
+        return;
+      }
       switchEditing(true);
     }
   }
@@ -395,11 +472,10 @@ export default function CollageBoard({
             : theme.bg,
           border: theme.dark ? 'none' : '1px solid #E5E3DF',
           containerType: 'size',
-          // 보드 + 버튼이 한 화면에 들어오게 — 세로가 짧은 기기에선 보드 폭이 줄어든다.
-          // 세로형은 비율에 비례해 좁게, 가로형(PC)은 전폭
-          maxWidth: isLandscape(aspect)
-            ? '100%'
-            : `min(100%, calc((100dvh - 19rem) * ${aspect}))`,
+          // 높이 예산 (v8.2) — 저장 버튼이 sticky 바로 내려가 "보드+버튼 한 화면" 제약이 풀렸다.
+          // 예산은 부모가 --board-reserve로 주입(기본 19rem 폴백), 가로형도 같은 식으로 통일
+          // (16:9는 대부분 min()의 100%로 수렴하고, 낮은 창에서만 높이에 맞춰 줄어든다)
+          maxWidth: `min(100%, calc((100dvh - var(--board-reserve, 19rem)) * ${aspect}))`,
           touchAction: editing ? 'none' : 'auto',
         }}
         onPointerDown={onBoardPointerDown}
@@ -439,7 +515,7 @@ export default function CollageBoard({
             return (
               <div
                 key={key}
-                className={`absolute ${editing ? 'cursor-move' : ''}`}
+                className={`absolute ${editing ? 'cursor-move' : !isSticker ? 'cursor-zoom-in' : ''} ${settling ? 'collage-item-settle' : ''}`}
                 style={{
                   left: `${it.x * 100}%`,
                   top: `${it.y * 100}%`,
@@ -549,15 +625,18 @@ export default function CollageBoard({
           </div>
         )}
 
-        {/* 상시 어포던스 칩 — 편집 가능함을 보드 위에서 바로 알린다 (v6.17 발견성 피드백) */}
+        {/* 상시 어포던스 칩 (v6.17) → 실제 버튼 (v8.2) — 사진 탭이 확대로 바뀌어도
+            어느 템플릿에서든 결정적인 편집 진입점이 하나는 남는다 */}
         {!editing && (
-          <div
-            className="absolute top-[2.5cqmin] right-[2.5cqmin] z-50 pointer-events-none rounded-full bg-black/45 text-white font-medium px-[3cqmin] py-[1.5cqmin] backdrop-blur-sm"
+          <button
+            onClick={() => switchEditing(true)}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            className="absolute top-[2.5cqmin] right-[2.5cqmin] z-50 rounded-full bg-black/45 text-white font-medium px-[3cqmin] py-[1.5cqmin] backdrop-blur-sm active:opacity-70"
             style={{ fontSize: '2.8cqmin' }}
-            aria-hidden="true"
           >
             ✎ 탭해서 편집
-          </div>
+          </button>
         )}
 
         {/* 편집 툴바 — 보드 상단 플로팅 */}
@@ -645,7 +724,7 @@ export default function CollageBoard({
       <p className="text-micro text-[#6E6962] text-center mt-2">
         {editing
           ? '끌어서 옮기고, ⤡로 크기·↻로 각도를 바꿔봐. 사진을 탭하면 바꾸거나 지울 수도 있어.'
-          : '보드를 탭하면 배치를 직접 수정할 수 있어'}
+          : '사진을 탭하면 크게 보여. 빈 곳을 탭하면 직접 꾸밀 수 있어.'}
       </p>
 
       {sheet.open && (
@@ -656,6 +735,9 @@ export default function CollageBoard({
           onClose={() => setSheet({ open: false })}
         />
       )}
+
+      {/* 사진 확대 (v8.2) — 보드에선 크롭돼 보이므로 확대는 원본 비율 전체 */}
+      <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} fit="contain" />
     </div>
   );
 }

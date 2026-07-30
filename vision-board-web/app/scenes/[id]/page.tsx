@@ -29,6 +29,7 @@ import UnsplashSearch from '@/components/UnsplashSearch';
 import StoryModal from '@/components/StoryModal';
 import MiniBoardPreview from '@/components/MiniBoardPreview';
 import useFocusTrap from '@/components/useFocusTrap';
+import Lightbox from '@/components/Lightbox';
 
 interface GeneratedImage {
   url: string;
@@ -61,7 +62,6 @@ export default function ScenesPage() {
   // 갤러리 '담았어' 표시의 진실 원천 — 보드의 uploadedImageSources 파생 (v7.1-r2)
   const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const lightboxTrapRef = useFocusTrap<HTMLDivElement>(!!lightboxSrc, () => setLightboxSrc(null));
   const [urlInput, setUrlInput] = useState('');
   const [urlOpen, setUrlOpen] = useState(false); // ① 직접 올리기 아래 URL 입력 토글 (v7.3)
   const [urlChecking, setUrlChecking] = useState(false); // URL 로드 프로브 진행 중 (v8.1)
@@ -746,36 +746,7 @@ export default function ScenesPage() {
         </div>
       )}
 
-      {lightboxSrc && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setLightboxSrc(null)}
-        >
-          <div
-            ref={lightboxTrapRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="이미지 확대 보기"
-            className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={lightboxSrc}
-              alt="확대된 사진"
-              fill
-              className="object-cover"
-              unoptimized
-            />
-            <button
-              onClick={() => setLightboxSrc(null)}
-              aria-label="닫기"
-              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white text-heading flex items-center justify-center"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
+      <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

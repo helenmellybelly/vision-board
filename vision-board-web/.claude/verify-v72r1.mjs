@@ -107,7 +107,9 @@ async function newPage(seed) {
   // 다른 칩 탭 → 즉시 적용 + 같은 화면에 저장 버튼
   await page.getByRole('radio', { name: 'iPhone', exact: true }).click();
   await page.waitForTimeout(800);
-  ok('V2-3c-1 칩 탭 → 즉시 적용 (라벨 캡션)', await page.getByText('iPhone 일반·Pro').isVisible().catch(() => false));
+  // v8.2: 라벨 캡션 행 제거 — 선택 칩 aria-checked + 칩 내 해상도 서브텍스트로 판정
+  const iphoneChecked = await page.getByRole('radio', { name: 'iPhone', exact: true }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false);
+  ok('V2-3c-1 칩 탭 → 즉시 적용', iphoneChecked && (await page.getByText('1179×2556').isVisible().catch(() => false)));
   ok('V2-3c-2 같은 화면에 저장 버튼', await page.getByText('폰 배경화면 저장').isVisible().catch(() => false));
 
   // v7.3: '사이즈 바꾸기' 패널 제거 — 칩이 상시 노출

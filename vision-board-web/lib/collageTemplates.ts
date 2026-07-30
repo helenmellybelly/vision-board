@@ -192,58 +192,70 @@ const MOSAIC_SPANS: [number, number][] = [
 
 function seedMosaic(items: CollageItem[], aspect: number): CollageLayout {
   const n = items.length;
-  // 세로로 긴 캔버스(폰·태블릿)는 컬럼을 줄여 사진을 키우고, 가로형(PC)은 늘려 폭을 채운다
-  const baseCols = n <= 8 ? 4 : n <= 13 ? 5 : 6;
-  const cols = hasTopReserve(aspect) ? (n <= 8 ? 3 : 4) : isLandscape(aspect) ? baseCols + 2 : baseCols;
   const gx = 0.015;
   const gy = gx * aspect;
-  const margin = 0.03;
-  // 상단 타이틀 밴드(라벨+연도) 아래부터 그리드 — 세로로 긴 화면은 시계 영역까지 고려해 더 내린다
-  const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.2 : 0.15;
+  const margin = 0.02;
+  // 상단 타이틀 밴드(라벨+연도) 아래부터 그리드 — 세로로 긴 화면은 시계 영역까지 고려해 더 내린다.
+  // 가로형은 타이틀 실점유(~0.145)에 맞춰 0.16 (v8.2) — 사진 세로 예산 +5%p
+  const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.16 : 0.15;
   const availH = 0.97 - titleBottom;
 
-  // 점유 그리드에 first-fit 패킹
-  const grid: boolean[][] = [];
-  const ensureRow = (r: number) => {
-    while (grid.length <= r) grid.push(new Array(cols).fill(false));
-  };
-  const fits = (r: number, c: number, sc: number, sr: number) => {
-    if (c + sc > cols) return false;
-    for (let rr = r; rr < r + sr; rr++) {
-      ensureRow(rr);
-      for (let cc = c; cc < c + sc; cc++) if (grid[rr][cc]) return false;
-    }
-    return true;
-  };
-  const cells: { c: number; r: number; sc: number; sr: number }[] = [];
-  items.forEach((_, i) => {
-    let [sc, sr] = MOSAIC_SPANS[i % MOSAIC_SPANS.length];
-    // 빈틈 우선 탐색
-    let placed = false;
-    for (let r = 0; !placed; r++) {
-      ensureRow(r);
-      for (let c = 0; c <= cols - 1; c++) {
-        if (fits(r, c, sc, sr)) {
-          for (let rr = r; rr < r + sr; rr++) for (let cc = c; cc < c + sc; cc++) grid[rr][cc] = true;
-          cells.push({ c, r, sc, sr });
-          placed = true;
-          break;
-        }
+  // 점유 그리드에 first-fit 패킹 — cols가 정해졌을 때의 셀 좌표
+  const pack = (cols: number) => {
+    const grid: boolean[][] = [];
+    const ensureRow = (r: number) => {
+      while (grid.length <= r) grid.push(new Array(cols).fill(false));
+    };
+    const fits = (r: number, c: number, sc: number, sr: number) => {
+      if (c + sc > cols) return false;
+      for (let rr = r; rr < r + sr; rr++) {
+        ensureRow(rr);
+        for (let cc = c; cc < c + sc; cc++) if (grid[rr][cc]) return false;
       }
-      if (r > 40) { sc = 1; sr = 1; } // 안전장치
-    }
-  });
-  const usedRows = grid.reduce((m, row, r) => (row.some(Boolean) ? r + 1 : m), 1);
+      return true;
+    };
+    const cells: { c: number; r: number; sc: number; sr: number }[] = [];
+    items.forEach((_, i) => {
+      let [sc, sr] = MOSAIC_SPANS[i % MOSAIC_SPANS.length];
+      // 빈틈 우선 탐색
+      let placed = false;
+      for (let r = 0; !placed; r++) {
+        ensureRow(r);
+        for (let c = 0; c <= cols - 1; c++) {
+          if (fits(r, c, sc, sr)) {
+            for (let rr = r; rr < r + sr; rr++) for (let cc = c; cc < c + sc; cc++) grid[rr][cc] = true;
+            cells.push({ c, r, sc, sr });
+            placed = true;
+            break;
+          }
+        }
+        if (r > 40) { sc = 1; sr = 1; } // 안전장치
+      }
+    });
+    const usedRows = grid.reduce((m, row, r) => (row.some(Boolean) ? r + 1 : m), 1);
+    return { cells, usedRows };
+  };
 
-  // 폭 기준 셀 크기 → 세로가 넘치면 축소 후 가운데 정렬
-  let cellW = (1 - margin * 2 - (cols - 1) * gx) / cols;
-  let cellH = cellW * aspect;
-  const neededH = usedRows * cellH + (usedRows - 1) * gy;
-  if (neededH > availH) {
-    const k = availH / neededH;
-    cellW *= k;
-    cellH *= k;
+  // 컬럼 수 최적 탐색 (v8.2) — 고정 공식 대신 후보마다 실제로 패킹해 보고, 세로 초과 축소(k)까지
+  // 반영한 최종 셀 폭이 가장 큰 cols를 고른다(동률이면 작은 cols). 1~18장·비율 전 범위 자동 적응.
+  // 히어로 [2,2] 스팬이 있어 cols는 2부터 — n=1도 cols=2에서 전폭 히어로가 된다.
+  const maxCols = hasTopReserve(aspect) ? 5 : 9;
+  let best: { cells: { c: number; r: number; sc: number; sr: number }[]; usedRows: number; cellW: number; cellH: number; cols: number } | null = null;
+  for (let cols = 2; cols <= maxCols; cols++) {
+    const { cells, usedRows } = pack(cols);
+    let cellW = (1 - margin * 2 - (cols - 1) * gx) / cols;
+    let cellH = cellW * aspect;
+    const neededH = usedRows * cellH + (usedRows - 1) * gy;
+    if (neededH > availH) {
+      // 갭은 축소하지 않으므로 갭을 제외한 셀 예산으로 k를 구한다 — availH/neededH 방식은
+      // (1-k)×갭만큼 하단이 넘친다 (v8.2 리플로우 검증에서 발견된 잠재 오차)
+      const k = Math.max(0.01, (availH - (usedRows - 1) * gy) / (usedRows * cellH));
+      cellW *= k;
+      cellH *= k;
+    }
+    if (!best || cellW > best.cellW + 1e-9) best = { cells, usedRows, cellW, cellH, cols };
   }
+  const { cells, usedRows, cellW, cellH, cols } = best!;
   const gridW = cols * cellW + (cols - 1) * gx;
   const left = (1 - gridW) / 2;
   // v8.0 — 세로도 가운데 정렬: 사진이 적을 때 상단에 몰리고 하단이 비는 문제 해소
@@ -268,23 +280,31 @@ function seedMosaic(items: CollageItem[], aspect: number): CollageLayout {
 
 function seedMinimal(items: CollageItem[], aspect: number): CollageLayout {
   const n = items.length;
-  const baseCols = n <= 6 ? 3 : n <= 12 ? 4 : 5;
-  const cols = hasTopReserve(aspect) ? (n <= 8 ? 2 : 3) : isLandscape(aspect) ? baseCols + 2 : baseCols;
   const g = 0.02;
-  const margin = 0.05;
-  const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.2 : 0.17;
+  const margin = 0.035;
+  const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.16 : 0.17;
   const availH = 0.95 - titleBottom;
-
-  let w = (1 - margin * 2 - (cols - 1) * g) / cols;
-  const rows = Math.ceil(n / cols);
-  let hNorm = w * aspect;
   const gy = g * aspect;
-  const neededH = rows * hNorm + (rows - 1) * gy;
-  if (neededH > availH) {
-    const k = availH / neededH;
-    w *= k;
-    hNorm *= k;
+
+  // 컬럼 수 최적 탐색 (v8.2) — 세로 초과 축소까지 반영한 최종 셀 폭이 최대인 cols.
+  // 균일 그리드라 cols=1(세로 스택 히어로)도 후보 — 사진이 적을 땐 그게 제일 크다.
+  const maxCols = Math.min(n, hasTopReserve(aspect) ? 5 : 9);
+  let best: { cols: number; w: number; hNorm: number } | null = null;
+  for (let cols = 1; cols <= maxCols; cols++) {
+    let w = (1 - margin * 2 - (cols - 1) * g) / cols;
+    const rows = Math.ceil(n / cols);
+    let hNorm = w * aspect;
+    const neededH = rows * hNorm + (rows - 1) * gy;
+    if (neededH > availH) {
+      // 갭 제외 셀 예산 기준 축소 — seedMosaic와 동일한 이유 (v8.2)
+      const k = Math.max(0.01, (availH - (rows - 1) * gy) / (rows * hNorm));
+      w *= k;
+      hNorm *= k;
+    }
+    if (!best || w > best.w + 1e-9) best = { cols, w, hNorm };
   }
+  const { cols, w, hNorm } = best!;
+  const rows = Math.ceil(n / cols);
   const gridW = cols * w + (cols - 1) * g;
   const left = (1 - gridW) / 2;
   // v8.0 — 세로도 가운데 정렬
@@ -317,6 +337,129 @@ export function seedLayout(
   return seedMinimal(items, aspect);
 }
 
+// ── v8.2 반응형 그리드 편집 — 리사이즈 후 전체 리플로우 ──
+// 숲(polaroid)은 지터·회전·산포가 정체성(그리드 의미론 없음)이라 대상이 아니다.
+
+export interface GridSpans {
+  cellW: number;
+  spans: Record<string, [number, number]>;
+}
+
+/** 현재 배치가 그리드 정합인지 판정하고 키별 스팬을 역산 (v8.2).
+ *  기준 셀 폭 = 사진 최소 폭. 스팬 환산 오차가 셀의 35%를 넘는 항목이 있으면
+ *  자유 배치(사용자가 그리드를 깬 상태)로 보고 null — 리플로우 부적격 */
+export function inferGridSpans(
+  items: Record<string, CollageLayoutItem>,
+  aspect: number
+): GridSpans | null {
+  const photos = Object.entries(items).filter(([k]) => !k.startsWith('sticker:'));
+  if (photos.length < 2) return null;
+  const gx = 0.015; // 스팬 반올림용 근사 — mosaic/minimal 갭 차이(0.005)는 허용오차 안
+  const gy = gx * aspect;
+  const cellW = Math.min(...photos.map(([, it]) => it.w));
+  if (!(cellW > 0)) return null;
+  const cellH = cellW * aspect;
+  const spans: Record<string, [number, number]> = {};
+  for (const [k, it] of photos) {
+    const h = it.h ?? it.w * aspect;
+    const sc = Math.round((it.w + gx) / (cellW + gx));
+    const sr = Math.round((h + gy) / (cellH + gy));
+    if (sc < 1 || sc > 4 || sr < 1 || sr > 4) return null;
+    if (Math.abs(it.w - (sc * cellW + (sc - 1) * gx)) > cellW * 0.35) return null;
+    if (Math.abs(h - (sr * cellH + (sr - 1) * gy)) > cellH * 0.35) return null;
+    spans[k] = [sc, sr];
+  }
+  return { cellW, spans };
+}
+
+/** 주어진 스팬을 읽기 순서 그대로 다시 패킹 (v8.2) — 한 장이 커지면 나머지가 자리를 내준다.
+ *  시드와 같은 cols 최적 탐색(최종 셀 폭 최대)을 쓰므로 결과도 시드와 같은 기하 계약(무겹침·경계·
+ *  수직 센터링)을 따른다. z는 호출자가 준 값 그대로 보존. 스티커는 다루지 않는다 */
+export function reflowLayout(
+  template: CollageTemplate,
+  ordered: { key: string; span: [number, number]; z: number }[],
+  aspect: number = ASPECT
+): Record<string, CollageLayoutItem> | null {
+  if (template === 'polaroid' || ordered.length === 0) return null;
+  const gx = template === 'mosaic' ? 0.015 : 0.02;
+  const gy = gx * aspect;
+  const margin = template === 'mosaic' ? 0.02 : 0.035;
+  const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.16 : template === 'mosaic' ? 0.15 : 0.17;
+  const availB = template === 'mosaic' ? 0.97 : 0.95;
+  const availH = availB - titleBottom;
+
+  const pack = (cols: number) => {
+    const grid: boolean[][] = [];
+    const ensureRow = (r: number) => {
+      while (grid.length <= r) grid.push(new Array(cols).fill(false));
+    };
+    const fits = (r: number, c: number, sc: number, sr: number) => {
+      if (c + sc > cols) return false;
+      for (let rr = r; rr < r + sr; rr++) {
+        ensureRow(rr);
+        for (let cc = c; cc < c + sc; cc++) if (grid[rr][cc]) return false;
+      }
+      return true;
+    };
+    const cells: { c: number; r: number; sc: number; sr: number }[] = [];
+    ordered.forEach((e) => {
+      let sc = Math.min(e.span[0], cols);
+      let sr = Math.min(e.span[1], cols);
+      let placed = false;
+      for (let r = 0; !placed; r++) {
+        ensureRow(r);
+        for (let c = 0; c <= cols - 1; c++) {
+          if (fits(r, c, sc, sr)) {
+            for (let rr = r; rr < r + sr; rr++) for (let cc = c; cc < c + sc; cc++) grid[rr][cc] = true;
+            cells.push({ c, r, sc, sr });
+            placed = true;
+            break;
+          }
+        }
+        if (r > 40) { sc = 1; sr = 1; }
+      }
+    });
+    const usedRows = grid.reduce((m, row, r) => (row.some(Boolean) ? r + 1 : m), 1);
+    return { cells, usedRows };
+  };
+
+  // 시드와 동일한 cols 최적 탐색 — 스팬 구성이 달라졌으니 다시 고른다
+  const maxCols = hasTopReserve(aspect) ? 5 : 9;
+  const minCols = Math.max(2, ...ordered.map((e) => Math.min(e.span[0], 4)));
+  let best: { cells: { c: number; r: number; sc: number; sr: number }[]; usedRows: number; cellW: number; cellH: number; cols: number } | null = null;
+  for (let cols = minCols; cols <= Math.max(minCols, maxCols); cols++) {
+    const { cells, usedRows } = pack(cols);
+    let cellW = (1 - margin * 2 - (cols - 1) * gx) / cols;
+    let cellH = cellW * aspect;
+    const neededH = usedRows * cellH + (usedRows - 1) * gy;
+    if (neededH > availH) {
+      // 갭 제외 셀 예산 기준 축소 — seedMosaic와 동일한 이유 (v8.2)
+      const k = Math.max(0.01, (availH - (usedRows - 1) * gy) / (usedRows * cellH));
+      cellW *= k;
+      cellH *= k;
+    }
+    if (!best || cellW > best.cellW + 1e-9) best = { cells, usedRows, cellW, cellH, cols };
+  }
+  const { cells, usedRows, cellW, cellH, cols } = best!;
+  const gridW = cols * cellW + (cols - 1) * gx;
+  const left = (1 - gridW) / 2;
+  const contentH = usedRows * cellH + (usedRows - 1) * gy;
+  const top = titleBottom + Math.max(0, (availH - contentH) / 2);
+
+  const result: Record<string, CollageLayoutItem> = {};
+  ordered.forEach((e, i) => {
+    const { c, r, sc, sr } = cells[i];
+    result[e.key] = {
+      x: left + c * (cellW + gx),
+      y: top + r * (cellH + gy),
+      w: sc * cellW + (sc - 1) * gx,
+      h: sr * cellH + (sr - 1) * gy,
+      z: e.z,
+    };
+  });
+  return result;
+}
+
 /** 새 항목을 기존 배치의 빈 공간에 놓는다 (v8.0) — 코스 그리드 후보를 훑어 기존 항목·예약
  *  영역과의 겹침이 최소인 자리를 고른다. 결정적(무작위 없음). 고아 스티커 폴백도 이 경로를 쓴다 */
 export function placeNewItems(
@@ -331,7 +474,7 @@ export function placeNewItems(
   const topReserve =
     template === 'polaroid'
       ? hasTopReserve(aspect) ? 0.17 : 0.02
-      : hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.2 : 0.16;
+      : hasTopReserve(aspect) ? 0.22 : 0.16;
   const reserved: Rect[] =
     template === 'polaroid' ? [polaroidReserveRect(aspect)] : [];
 

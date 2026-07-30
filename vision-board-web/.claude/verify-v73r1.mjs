@@ -119,7 +119,9 @@ async function newPage(seed) {
   await page.waitForTimeout(500);
   await page.getByRole('radio', { name: 'QHD', exact: true }).click();
   await page.waitForTimeout(500);
-  ok('V3-3e 칩 탭 → 즉시 적용', await page.getByText('PC QHD (16:9)').isVisible().catch(() => false));
+  // v8.2: 별도 캡션 행 제거 — 선택 칩의 aria-checked + 칩 내 해상도 서브텍스트로 판정
+  const qhdChecked = await page.getByRole('radio', { name: 'QHD', exact: true }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false);
+  ok('V3-3e 칩 탭 → 즉시 적용', qhdChecked && (await page.getByText('2560×1440').isVisible().catch(() => false)));
   // v7.5: 보드 탭 제거 — 폰/PC 2탭만, 보드 뷰 저장 버튼도 함께 제거
   ok('V3-3f 보드 탭 부재', (await page.getByRole('radio', { name: '보드', exact: true }).count()) === 0);
   ok('V3-3g 이미지로 저장 버튼 부재', (await page.getByText('🖼️ 이미지로 저장').count()) === 0);

@@ -1,5 +1,5 @@
-// v8.1 프로덕션 스모크 — 배포 후 1회: 무변경 재진입 clean CTA·완주 대시보드·
-// 콜라주 나란히(lg)/기본 phone(좁은 화면)·핀 주소 게이트. 전부 클라이언트 시드라 LLM 비용 없음.
+// v8.1 프로덕션 스모크 (v8.2 갱신) — 배포 후 1회: 무변경 재진입 clean CTA·완주 대시보드·
+// 콜라주 2탭(전 뷰포트)/기본 phone(좁은 화면)·핀 주소 게이트. 전부 클라이언트 시드라 LLM 비용 없음.
 // 사용: `node .claude/smoke-v81-prod.mjs` (BASE로 다른 배포 지정 가능)
 import { chromium } from 'playwright';
 
@@ -81,7 +81,7 @@ for (const path of ['/', '/dashboard', '/collage', '/section/1', '/scene/1', '/s
   await ctx.close();
 }
 
-// 4) 콜라주 — 좁은 화면 기본 phone / lg 나란히 2보드
+// 4) 콜라주 — 좁은 화면 기본 phone / lg 2탭·단일 보드·전폭 (v8.2)
 {
   const { ctx, page } = await newPage(board({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage`);
@@ -95,8 +95,10 @@ for (const path of ['/', '/dashboard', '/collage', '/section/1', '/scene/1', '/s
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(2000);
   const boards = await page.locator('[data-testid="collage-board"]').count();
-  ok('S4c lg 나란히 2보드', boards === 2, `boards=${boards}`);
-  ok('S4d 저장 버튼 2개', await page.getByText('PC 배경화면 저장').isVisible().catch(() => false) && await page.getByText('폰 배경화면 저장').isVisible().catch(() => false));
+  ok('S4c lg 단일 보드(기본 desktop)', boards === 1 && (await page.locator('[data-testid="collage-board"][data-view="desktop"]').count()) === 1, `boards=${boards}`);
+  ok('S4d lg 탭 2개 + PC 저장 버튼만', (await page.getByRole('radiogroup', { name: '보기 방식' }).getByRole('radio').count()) === 2 && (await page.getByText('PC 배경화면 저장').isVisible().catch(() => false)) && !(await page.getByText('폰 배경화면 저장').isVisible().catch(() => false)));
+  const bw = (await page.locator('[data-testid="collage-board"]').boundingBox())?.width ?? 0;
+  ok('S4e lg PC 보드 전폭(≥1000px)', bw >= 1000, `w=${bw}`);
   await ctx.close();
 }
 
