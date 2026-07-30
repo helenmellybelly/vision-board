@@ -265,6 +265,9 @@ master 푸시 후 5분을 폴링해도 새 에셋이 404였다. Vercel-GitHub �
 
 ## Storage / 데이터 저장
 
+### 상태 전이 setter는 from-상태 가드가 필수 — 무조건 대입은 재진입 플로우에서 상태를 강등시킨다 #coding #storage #ux
+`markSectionTextComplete`가 현재 status를 안 보고 대입해, 완료 섹션의 답변 리뷰 재진입만으로 completed→text_complete 강등 + 대시보드 진행률 회귀가 났다(v8.1에서 가드). 전이 함수는 허용되는 from→to를 명시하고 역행은 no-op으로 — 신규 작성 경로와 재진입 경로가 같은 setter를 공유하는 순간 이 버그가 생긴다.
+
 ### 옵셔널 판정 필드 신설 시 undefined(구 데이터)는 기능 비노출로 폴백한다 #coding #storage #ux
 새 넛지·배지의 판정 기준 필드(예: v7.8 storyWrittenAtCount)를 추가할 때, 필드가 없는 기존 사용자 데이터에서 truthy 판정이 나오게 두면 업데이트만으로 화면에 새 UI가 갑자기 뜬다(소음). `field !== undefined &&`를 판정 조건에 포함해 구 데이터는 항상 비노출로 폴백하면 스키마 마이그레이션 없이(schemaVersion 불변) 신기능을 얹을 수 있다 — 새 이벤트부터 자연스럽게 스탬프가 쌓인다.
 
@@ -275,6 +278,9 @@ OpenAI/DALL-E URL은 24시간 후 만료되어 localStorage에 URL 문자열로 
 `SectionData.images`(레거시 `[null, null, null]`)와 `SectionData.generatedImages`가 공존하는 상황에서 board 페이지가 `images`를 읽어 항상 빈 화면을 보여주는 버그가 있었다. 동일한 목적의 필드가 여러 개일 때, 쓰는 코드(write path)와 읽는 코드(read path)가 같은 필드를 가리키는지 한 번에 추적 확인해야 한다.
 
 ## AI API
+
+### 무변경 재제출에 비결정 LLM 검증을 재실행하지 말 것 — dirty 게이트가 먼저다 #coding #ai-api #ux
+temp 0이라도 폴백 체인(Gemini→Groq)이 있으면 같은 입력의 판정이 달라진다. v8.1 이전 /section은 내용이 안 바뀌어도 매번 LLM 재검증을 돌려, 이미 통과했던 답변이 무효 판정돼 "답변이 멋대로 바뀐다"는 신고가 났다. LLM 검증·재생성은 반드시 변경 감지(스냅샷 비교) 뒤에 둔다.
 
 ### Gemini 고정 버전 모델명은 신규 키에서 404로 부패한다 — latest 별칭을 기본값으로 #coding #ai-api #gemini (✅ 전역 CLAUDE.md 승급 2026-07-23)
 `gemini-2.5-flash(-lite)`가 ListModels에는 나오는데 generateContent에서 "This model is no longer available to new users" 404를 반환했다(v7.4 실측 — 신규 발급 키 기준). 목록 존재 ≠ 호출 가능. 무료 티어 기본값은 `gemini-flash-latest`/`gemini-flash-lite-latest` 별칭으로 두고, 실패 시 무료 폴백(Groq) 체인을 항상 함께 둘 것.
