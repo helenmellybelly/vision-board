@@ -20,6 +20,8 @@ const seed = {
   }),
   onboardingDone: true, dashboardIntroSeen: true, userName: '헬렌',
   startedAt: Date.now(), targetDate: '2029-07-07', schemaVersion: 4,
+  // v8.0에서 기본 템플릿이 mosaic으로 바뀜 — 이 스위트는 숲(polaroid) 캔버스 경로 검증이라 명시 시드 (v8.1 갱신)
+  collageTemplate: 'polaroid',
 };
 
 const browser = await chromium.launch();

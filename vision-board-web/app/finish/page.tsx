@@ -321,7 +321,7 @@ export default function FinishPage() {
           {/* v8.0 — 구 CTA 2개('보러 가기'/'폰 배경화면')는 같은 /collage의 탭 차이였다. 하나로 통합 */}
           <div className="w-full space-y-2.5">
             <button
-              onClick={() => router.push('/collage?view=phone')}
+              onClick={() => router.push('/collage')}
               className="w-full py-4 rounded-2xl text-heading font-semibold text-white"
               style={{ backgroundColor: '#1C1B19' }}
             >

@@ -23,12 +23,14 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // 로드 실패로 캔버스에서 빠진 사진 수 (v8.1) — 조용한 누락 대신 저장 전에 알린다
+  const [skipped, setSkipped] = useState(0);
   // C 보조 유도 (R2-2) — 저장이 실제로 한 번 성공한 뒤에만 로그인 1줄을 보여준다
   const [savedOnce, setSavedOnce] = useState(false);
 
   const landscape = preset.w > preset.h;
 
-  function renderCurrent(): Promise<HTMLCanvasElement> {
+  function renderCurrent(): Promise<{ canvas: HTMLCanvasElement; skipped: number }> {
     return renderBoardLayout(board.template, board.layout, board.items, year, {
       w: preset.w,
       h: preset.h,
@@ -40,8 +42,11 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
     let cancelled = false;
     (async () => {
       try {
-        const canvas = await renderCurrent();
-        if (!cancelled) setPreview(canvas.toDataURL('image/jpeg', 0.82));
+        const rendered = await renderCurrent();
+        if (!cancelled) {
+          setPreview(rendered.canvas.toDataURL('image/jpeg', 0.82));
+          setSkipped(rendered.skipped);
+        }
       } catch {
         if (!cancelled) setError('미리보기를 만들지 못했어. 잠시 후 다시 시도해줘.');
       }
@@ -56,7 +61,7 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
     setSaving(true);
     setError('');
     try {
-      const canvas = await renderCurrent();
+      const { canvas } = await renderCurrent();
       const result = await saveCanvas(canvas, `vision-board-${year}-${board.template}-${preset.id}.png`);
       if (result !== 'cancelled') setSavedOnce(true);
       track('wallpaper_save', { preset: preset.id, template: board.template });
@@ -114,6 +119,11 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
           )}
         </div>
 
+        {skipped > 0 && (
+          <p className="text-caption text-[#B45309] mt-3 text-center">
+            ⚠️ 사진 {skipped}장은 못 불러와서 빠졌어. 보드에서 바꾸거나 지울 수 있어.
+          </p>
+        )}
         {error && <p className="text-caption text-[#B91C1C] mt-3 text-center">{error}</p>}
 
         <button

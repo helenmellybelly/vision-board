@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { track } from '@/lib/analytics';
 import AccountButton from '@/components/AccountButton';
@@ -12,12 +12,15 @@ import {
   saveCollageDevicePreset,
   saveCollageTemplate,
   saveFutureDayStory,
+  saveUploadedImage,
 } from '@/lib/storage';
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
-import { SECTIONS } from '@/lib/questions';
-import { BoardData, CollageLayout, CollageTemplate } from '@/lib/types';
+import { SECTIONS, getSection } from '@/lib/questions';
+import { BoardData, CollageLayout, CollageTemplate, SectionId } from '@/lib/types';
 import { ASPECT, CollageItem, DEFAULT_TEMPLATE, TEMPLATE_ORDER, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
-import { WALLPAPER_PRESETS, WallpaperPreset } from '@/lib/wallpaper';
+import { WALLPAPER_PRESETS, WallpaperPreset, loadOne } from '@/lib/wallpaper';
+import { compressImage } from '@/lib/imageUtils';
+import { removeSlotImage } from '@/lib/photoSlots';
 import { FIRST_BOARD_THRESHOLD, isStoryStale } from '@/lib/milestone';
 import StoryModal from '@/components/StoryModal';
 import WallpaperSheet from '@/components/WallpaperSheet';
@@ -25,8 +28,10 @@ import CollageBoard from '@/components/collage/CollageBoard';
 import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 
 // 화면 구조 (v7.2) — choose 뷰 제거, 한 화면에서 뷰 토글 + 인라인 사이즈 선택
-// v7.3 — 기본 뷰 PC, 사이즈는 패널 대신 상단 칩 상시 노출, ?view= URL 동기화
+// v7.3 — 사이즈는 패널 대신 상단 칩 상시 노출, ?view= URL 동기화
 // v7.5 — 보드 탭 제거(폰/PC 2탭): 결과물은 결국 배경화면이라 중간 산출물 뷰를 치움
+// v8.1 — 넓은 화면(lg+)은 PC·폰 나란히 실렌더(?view= 무시), 좁은 화면은 2탭 + 기본 phone.
+//        편집 모드: 출처 섹션 배지 + 사진 교체/삭제 + 깨진 사진 ⚠️
 type CollageView = 'phone' | 'desktop';
 
 // id 'polaroid'는 localStorage 키 계약이라 유지 — v7.6에서 UI 라벨만 '숲'으로.
@@ -78,10 +83,23 @@ function TemplateSwatch({ id }: { id: CollageTemplate }) {
 export default function CollagePage() {
   const router = useRouter();
   const [board, setBoard] = useState<BoardData | null>(null);
-  const [view, setView] = useState<CollageView>('desktop'); // 기본 PC — 가로 시야 확보 (v7.3)
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [confirmReseed, setConfirmReseed] = useState<WallpaperPreset | null>(null);
+  // 좁은 화면의 활성 탭 — lg+에선 나란히 렌더라 이 값은 무시된다 (v8.1)
+  const [view, setView] = useState<CollageView>('phone');
+  const [wide, setWide] = useState(false);
+  const [sheetView, setSheetView] = useState<CollageView | null>(null);
+  const [confirmReseed, setConfirmReseed] = useState<{ view: CollageView; preset: WallpaperPreset } | null>(null);
   const [showCoach, setShowCoach] = useState(false);
+  // 나란히 두 보드의 편집 배타성 — 한쪽이 편집을 잡으면 다른 쪽은 감상 모드 (v8.1)
+  const [activeEditView, setActiveEditView] = useState<CollageView | null>(null);
+  // 사진 교체 인라인 패널 대상 — key는 `${sectionId}-${slotIdx}` (v8.1)
+  const [replaceTarget, setReplaceTarget] = useState<{ view: CollageView; key: string } | null>(null);
+  const [replaceUrl, setReplaceUrl] = useState('');
+  const [replaceChecking, setReplaceChecking] = useState(false);
+  const [replaceNotice, setReplaceNotice] = useState('');
+  const replaceFileRef = useRef<HTMLInputElement>(null);
+  // 로드 실패 사진 키 — 저장 전 경고 배너의 재료 (v8.1)
+  const [brokenKeys, setBrokenKeys] = useState<string[]>([]);
+  const [saveWarnView, setSaveWarnView] = useState<CollageView | null>(null);
 
   useEffect(() => {
     const b = loadBoard();
@@ -96,28 +114,40 @@ export default function CollagePage() {
     } catch {
       // iOS 프라이빗 모드 등 localStorage 접근 불가 — 코치마크 없이 진행
     }
-    // ?view= 우선, 레거시 ?device=(/finish 딥링크) 호환 — URL은 ?view=로 정규화해
+    // ?view= 우선, 레거시 ?device=(구 /finish 딥링크) 호환 — URL은 ?view=로 정규화해
     // 페이지뷰 분석에서 서브뷰가 구분되게 남긴다 (v7.3)
     // useSearchParams는 Suspense 바운더리를 요구하므로 클라이언트 마운트에서 직접 파싱
     const params = new URLSearchParams(window.location.search);
     const v = params.get('view');
     const device = params.get('device');
-    let initial: CollageView = 'desktop';
+    // 기본값 (v8.1): 좁은 화면은 phone(결과물 1순위가 폰 배경화면), 넓은 화면은 desktop 강조
+    let initial: CollageView = window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'phone';
     if (v === 'phone' || v === 'desktop') initial = v;
     else if (device === 'phone' || device === 'desktop') initial = device;
-    // 레거시 ?view=board (v7.3 이전 북마크·공유 URL)는 desktop으로 흡수
+    else if (v === 'board') initial = 'desktop'; // 레거시 ?view=board (v7.3 이전 북마크·공유 URL)
     setView(initial);
     history.replaceState(null, '', `${window.location.pathname}?view=${initial}`);
   }, [router]);
 
-  // 기기 뷰 첫 진입 — 프리셋 미선택이면 표준값 자동 선택 (v7.3, 빈 피커 화면 제거)
+  // lg 브레이크포인트 추적 — 나란히/2탭 전환 (v8.1)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const apply = () => setWide(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  // 첫 진입 — 프리셋 미선택이면 양쪽 뷰 모두 표준값 자동 시드 (v7.3 → v8.1 양쪽 확장)
   // 시드 id는 반드시 실존 프리셋만 ('phone', 'pc-fhd')
   useEffect(() => {
     if (!board) return;
-    if (board.collageDevicePresets?.[view]) return;
-    saveCollageDevicePreset(view, view === 'phone' ? 'phone' : 'pc-fhd');
+    const presets = board.collageDevicePresets ?? {};
+    if (presets.phone && presets.desktop) return;
+    if (!presets.phone) saveCollageDevicePreset('phone', 'phone');
+    if (!presets.desktop) saveCollageDevicePreset('desktop', 'pc-fhd');
     setBoard(loadBoard());
-  }, [view, board]);
+  }, [board]);
 
   function dismissCoach() {
     // iOS 프라이빗 모드에서 setItem이 throw해도 오버레이는 닫히게 (v7.4 감사 M6)
@@ -160,24 +190,24 @@ export default function CollagePage() {
   // 중앙 연도의 소스는 targetDate(일기 날짜)로 통일 (v7.0-r3) — 연도 편집도 targetDate의 연도만 교체
   const boardYear = getTargetYear(board);
 
-  // 기기 뷰의 선택 사이즈 — 편집·내보내기 비율을 이 프리셋이 결정한다 (v6.19)
-  const devicePresetId = board.collageDevicePresets?.[view];
-  const devicePreset = WALLPAPER_PRESETS.find((p) => p.id === devicePresetId);
-  const aspect = !devicePreset ? ASPECT : devicePreset.w / devicePreset.h;
-
-  // 뷰별 저장된 배치 — 폰/PC collageDeviceLayouts (구 보드 뷰의 collageLayouts는 데이터만 보존)
-  const savedLayout = board.collageDeviceLayouts?.[view]?.[template];
-
-  // 화면에 보이는 배치 그대로 — 배경화면 내보내기와 공유
-  const currentLayout = resolveLayout(template, keyedItems, savedLayout, aspect);
+  // 뷰별 파생값 — 선택 프리셋이 편집·내보내기 비율을 결정한다 (v6.19)
+  function forView(v: CollageView) {
+    const presetId = board!.collageDevicePresets?.[v];
+    const preset = WALLPAPER_PRESETS.find((p) => p.id === presetId);
+    const aspect = !preset ? ASPECT : preset.w / preset.h;
+    const savedLayout = board!.collageDeviceLayouts?.[v]?.[template];
+    // 화면에 보이는 배치 그대로 — 배경화면 내보내기와 공유
+    const currentLayout = resolveLayout(template, keyedItems, savedLayout, aspect);
+    return { preset, aspect, savedLayout, currentLayout };
+  }
 
   function selectTemplate(id: CollageTemplate) {
     saveCollageTemplate(id);
     setBoard(loadBoard());
   }
 
-  function handleLayoutChange(l: CollageLayout) {
-    saveCollageDeviceLayout(view, template, { ...l, aspect });
+  function handleLayoutChange(v: CollageView, l: CollageLayout, aspect: number) {
+    saveCollageDeviceLayout(v, template, { ...l, aspect });
     setBoard(loadBoard());
   }
 
@@ -186,35 +216,127 @@ export default function CollagePage() {
     setBoard(loadBoard());
   }
 
-  // 탭 전환 — reseed 확인은 뷰 이동 시 접고, URL을 ?view=로 동기화 (분석 구분용)
+  // 좁은 화면 탭 전환 — reseed 확인·경고는 접고, URL을 ?view=로 동기화 (분석 구분용)
   function switchView(v: CollageView) {
     setView(v);
     setConfirmReseed(null);
+    setSaveWarnView(null);
+    setReplaceTarget(null);
     history.replaceState(null, '', `${window.location.pathname}?view=${v}`);
     track('collage_view', { view: v }); // Pro 플랜에서만 수집 — Hobby에선 무해한 no-op
   }
 
   // 사이즈 선택 — 비율이 거의 같으면 배치 유지, 다르면 리시드 확인
-  function handleSelectPreset(preset: WallpaperPreset) {
+  function handleSelectPreset(v: CollageView, preset: WallpaperPreset) {
     if (!board) return;
-    const hasLayouts =
-      Object.keys(board.collageDeviceLayouts?.[view] ?? {}).length > 0;
+    const { preset: current } = forView(v);
+    const hasLayouts = Object.keys(board.collageDeviceLayouts?.[v] ?? {}).length > 0;
     const newAspect = preset.w / preset.h;
-    if (devicePreset && hasLayouts && !aspectsEqual(devicePreset.w / devicePreset.h, newAspect)) {
-      setConfirmReseed(preset);
+    if (current && hasLayouts && !aspectsEqual(current.w / current.h, newAspect)) {
+      setConfirmReseed({ view: v, preset });
       return;
     }
-    saveCollageDevicePreset(view, preset.id);
+    saveCollageDevicePreset(v, preset.id);
     setBoard(loadBoard());
     setConfirmReseed(null);
   }
 
   function applyReseed() {
     if (!confirmReseed) return;
-    clearCollageDeviceLayouts(view);
-    saveCollageDevicePreset(view, confirmReseed.id);
+    clearCollageDeviceLayouts(confirmReseed.view);
+    saveCollageDevicePreset(confirmReseed.view, confirmReseed.preset.id);
     setBoard(loadBoard());
     setConfirmReseed(null);
+  }
+
+  // 사진 키 `${sectionId}-${slotIdx}` 파싱 — CollageBoard 배지와 같은 키 계약
+  function parsePhotoKey(key: string): { sectionId: SectionId; slot: number } | null {
+    const m = /^(\d+)-(\d+)$/.exec(key);
+    if (!m) return null;
+    return { sectionId: Number(m[1]) as SectionId, slot: Number(m[2]) };
+  }
+
+  function handleRemovePhoto(key: string) {
+    const parsed = parsePhotoKey(key);
+    if (!parsed) return;
+    removeSlotImage(parsed.sectionId, parsed.slot);
+    if (replaceTarget?.key === key) setReplaceTarget(null);
+    setBoard(loadBoard());
+  }
+
+  function openReplace(v: CollageView, key: string) {
+    setReplaceTarget({ view: v, key });
+    setReplaceUrl('');
+    setReplaceNotice('');
+  }
+
+  // 같은 key(슬롯)에 새 사진 저장 — 배치·z·회전은 key 기준이라 그대로 유지된다.
+  // 업로드 슬롯이 우선 소스라 여기 쓰면 생성 이미지가 있던 슬롯도 이 사진으로 교체된다
+  function applyReplacement(src: string): boolean {
+    if (!replaceTarget) return false;
+    const parsed = parsePhotoKey(replaceTarget.key);
+    if (!parsed) return false;
+    if (!saveUploadedImage(parsed.sectionId, parsed.slot, src)) {
+      setReplaceNotice('저장 공간이 부족해 담지 못했어. 사진을 지우고 다시 시도해줘.');
+      return false;
+    }
+    setBoard(loadBoard());
+    setReplaceTarget(null);
+    setReplaceUrl('');
+    setReplaceNotice('');
+    return true;
+  }
+
+  async function handleReplaceUrl() {
+    const url = replaceUrl.trim();
+    if (!url || replaceChecking) return;
+    // /scenes URL 게이트와 같은 규칙 (v8.1 T3) — 핀 페이지 주소 차단 + 실로드 프로브
+    if (/\/pin\//.test(url)) {
+      setReplaceNotice("그건 핀 페이지 주소야. 사진을 꾹 눌러서(PC는 우클릭) '이미지 주소 복사'로 가져와줘.");
+      return;
+    }
+    setReplaceChecking(true);
+    setReplaceNotice('');
+    try {
+      await loadOne(url);
+    } catch {
+      setReplaceNotice('이 주소에선 사진을 못 불러왔어. 이미지 자체 주소(…jpg 같은)를 붙여넣어줘.');
+      setReplaceChecking(false);
+      return;
+    }
+    setReplaceChecking(false);
+    applyReplacement(url);
+  }
+
+  async function handleReplaceFile(file: File) {
+    setReplaceNotice('');
+    try {
+      const raw = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = () => reject(new Error('read-failed'));
+        reader.readAsDataURL(file);
+      });
+      const compressed = await compressImage(raw, 0.60, 800);
+      // 브라우저가 디코드 못 한 포맷(HEIC 등)은 JPEG 재인코딩에 실패한다 — 깨진 썸네일 방지 (v7.4 감사 M5)
+      if (!compressed.startsWith('data:image/jpeg')) {
+        setReplaceNotice('이 사진은 형식을 지원하지 않아. JPG나 PNG로 다시 올려줄래?');
+        return;
+      }
+      applyReplacement(compressed);
+    } catch {
+      setReplaceNotice('사진을 읽지 못했어. 다른 사진으로 다시 시도해줘.');
+    }
+  }
+
+  function handleOpenSheet(v: CollageView) {
+    // 깨진 사진이 있으면 한 번 경고 — 저장을 막지는 않는다 (v8.1)
+    if (brokenKeys.length > 0 && saveWarnView !== v) {
+      setSaveWarnView(v);
+      return;
+    }
+    setSaveWarnView(null);
+    setSheetView(v);
   }
 
   const templateSelector = (
@@ -236,8 +358,142 @@ export default function CollagePage() {
     </div>
   );
 
+  // 뷰 하나의 전체 패널 — 프리셋 칩·리시드 확인·보드·캡션·경고·저장·교체 패널 (v8.1 나란히 공용)
+  function renderViewPanel(v: CollageView) {
+    const { preset, aspect, savedLayout } = forView(v);
+    const replaceSection =
+      replaceTarget?.view === v ? getSection(parsePhotoKey(replaceTarget.key)?.sectionId ?? (1 as SectionId)) : null;
+    return (
+      <div>
+        <DevicePresetPicker
+          groups={v === 'phone' ? ['휴대폰', '태블릿'] : ['PC']}
+          selectedId={preset?.id}
+          onSelect={(p) => handleSelectPreset(v, p)}
+        />
+        {preset && (
+          <p className="text-caption text-[#6E6962] mt-1.5 mb-3">
+            {preset.label} · {preset.w}×{preset.h}
+          </p>
+        )}
+        {confirmReseed && confirmReseed.view === v && (
+          <div className="mb-4 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
+            <p className="text-caption text-[#92400E] mb-2">
+              비율이 달라져서 배치를 새로 짜야 해. 지금까지 꾸민 배치는 사라져. 계속할까?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={applyReseed} className="text-caption font-semibold text-[#92400E]">
+                계속
+              </button>
+              <button onClick={() => setConfirmReseed(null)} className="text-caption text-[#6E6962]">
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+        {preset && (
+          <>
+            <CollageBoard
+              key={`${v}-${preset.id}-${template}`}
+              view={v}
+              template={template}
+              items={keyedItems}
+              layout={savedLayout}
+              aspect={preset.w / preset.h}
+              onLayoutChange={(l) => handleLayoutChange(v, l, aspect)}
+              year={boardYear}
+              onYearChange={handleYearChange}
+              active={activeEditView === null || activeEditView === v}
+              onEditingChange={(editing) => setActiveEditView(editing ? v : null)}
+              onRequestReplace={(key) => openReplace(v, key)}
+              onRequestRemove={handleRemovePhoto}
+              onBrokenChange={setBrokenKeys}
+            />
+            <p className="text-micro text-[#6E6962] text-center mt-2">
+              {v === 'phone'
+                ? '선택한 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
+                : '선택한 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
+            </p>
+            {replaceTarget && replaceTarget.view === v && (
+              <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 animate-fadeIn">
+                <p className="text-caption font-semibold text-[#1C1B19] mb-0.5">
+                  {replaceSection ? `${replaceSection.shortTitle ?? replaceSection.title.split(' — ')[0]} 사진 바꾸기` : '사진 바꾸기'}
+                </p>
+                <p className="text-caption text-[#6E6962] mb-2.5">
+                  이 자리에 넣을 사진을 골라줘. 링크를 붙여넣거나 내 사진을 올려도 돼.
+                </p>
+                <button
+                  onClick={() => replaceFileRef.current?.click()}
+                  className="w-full py-2.5 rounded-xl text-caption font-semibold text-white active:opacity-80"
+                  style={{ backgroundColor: replaceSection?.color ?? '#1C1B19' }}
+                >
+                  📷 내 사진 올리기
+                </button>
+                <input
+                  ref={replaceFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleReplaceFile(file);
+                    e.target.value = '';
+                  }}
+                />
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="url"
+                    value={replaceUrl}
+                    onChange={(e) => setReplaceUrl(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleReplaceUrl(); }}
+                    placeholder="이미지 URL 주소 붙여넣기"
+                    className="flex-1 text-caption px-3 py-2.5 rounded-xl border border-[#E5E3DF] bg-white outline-none focus:border-[#9CA3AF] placeholder:text-[#C9C5BE]"
+                  />
+                  <button
+                    onClick={handleReplaceUrl}
+                    disabled={!replaceUrl.trim() || replaceChecking}
+                    className="px-3 py-2.5 rounded-xl text-caption font-medium text-white bg-[#1C1B19] disabled:opacity-40 transition-opacity"
+                  >
+                    {replaceChecking ? '사진 확인 중…' : '불러오기'}
+                  </button>
+                </div>
+                {replaceNotice && <p className="text-micro text-[#B45309] mt-1.5">{replaceNotice}</p>}
+                <button
+                  onClick={() => setReplaceTarget(null)}
+                  className="text-caption text-[#6E6962] underline mt-2 active:opacity-70"
+                >
+                  그대로 둘래
+                </button>
+              </div>
+            )}
+            {saveWarnView === v && brokenKeys.length > 0 && (
+              <div className="mt-3 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
+                <p className="text-caption text-[#92400E] mb-2">
+                  몇 장은 못 불러와서 배경화면엔 안 들어가. ⚠️ 사진을 바꾸거나 지우고 저장해봐.
+                </p>
+                <button
+                  onClick={() => { setSaveWarnView(null); setSheetView(v); }}
+                  className="text-caption font-semibold text-[#92400E]"
+                >
+                  그래도 저장할래
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => handleOpenSheet(v)}
+              className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
+            >
+              {v === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
+            </button>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  const sheetData = sheetView ? forView(sheetView) : null;
+
   return (
-    <main className="min-h-screen flex flex-col max-w-md md:max-w-3xl mx-auto w-full pb-10">
+    <main className="min-h-screen flex flex-col max-w-md md:max-w-3xl lg:max-w-6xl mx-auto w-full pb-10">
       {/* 헤더 — 상위는 대시보드 하나 (v7.2 한 화면 통합) */}
       <div className="px-6 pt-4 pb-3">
         <div className="flex items-center gap-3 mb-3">
@@ -254,7 +510,8 @@ export default function CollagePage() {
             <AccountButton />
           </div>
         </div>
-        <div className="flex gap-1.5 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="보기 방식">
+        {/* 뷰 토글 — 좁은 화면 전용. lg+는 두 뷰가 나란히 실렌더라 탭이 무의미 (v8.1) */}
+        <div className="flex gap-1.5 bg-[#F5F5F3] rounded-xl p-1 lg:hidden" role="radiogroup" aria-label="보기 방식">
           {([
             { id: 'phone' as const, label: '📱 폰' },
             { id: 'desktop' as const, label: '🖥️ PC' },
@@ -291,57 +548,16 @@ export default function CollagePage() {
           </div>
         ) : (
           <>
-            {/* 표준 사이즈 칩 — 상단 상시 노출, 탭 즉시 적용 (v7.3, 구 '사이즈 바꾸기' 패널 대체) */}
-            <DevicePresetPicker
-              groups={view === 'phone' ? ['휴대폰', '태블릿'] : ['PC']}
-              selectedId={devicePreset?.id}
-              onSelect={handleSelectPreset}
-            />
-            {devicePreset && (
-              <p className="text-caption text-[#6E6962] mt-1.5 mb-3">
-                {devicePreset.label} · {devicePreset.w}×{devicePreset.h}
-              </p>
-            )}
-            {confirmReseed && (
-              <div className="mb-4 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
-                <p className="text-caption text-[#92400E] mb-2">
-                  비율이 달라져서 배치를 새로 짜야 해. 지금까지 꾸민 배치는 사라져. 계속할까?
-                </p>
-                <div className="flex gap-3">
-                  <button onClick={applyReseed} className="text-caption font-semibold text-[#92400E]">
-                    계속
-                  </button>
-                  <button onClick={() => setConfirmReseed(null)} className="text-caption text-[#6E6962]">
-                    취소
-                  </button>
-                </div>
+            {/* 템플릿은 뷰 공통 단일 값 — 나란히에서도 셀렉터는 하나 (v8.1) */}
+            {templateSelector}
+            {wide ? (
+              // 넓은 화면 — 좌 PC(주 시야)·우 폰 나란히, 둘 다 실렌더 (v8.1)
+              <div className="grid grid-cols-2 gap-8 items-start">
+                {renderViewPanel('desktop')}
+                {renderViewPanel('phone')}
               </div>
-            )}
-            {devicePreset && (
-              <>
-                {templateSelector}
-                <CollageBoard
-                  key={`${view}-${devicePreset.id}-${template}`}
-                  template={template}
-                  items={keyedItems}
-                  layout={savedLayout}
-                  aspect={aspect}
-                  onLayoutChange={handleLayoutChange}
-                  year={boardYear}
-                  onYearChange={handleYearChange}
-                />
-                <p className="text-micro text-[#6E6962] text-center mt-2">
-                  {view === 'phone'
-                    ? '선택한 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
-                    : '선택한 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
-                </p>
-                <button
-                  onClick={() => setSheetOpen(true)}
-                  className="mt-3 w-full py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity"
-                >
-                  {view === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
-                </button>
-              </>
+            ) : (
+              renderViewPanel(view)
             )}
           </>
         )}
@@ -422,15 +638,16 @@ export default function CollagePage() {
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <span className="w-8 h-8 rounded-xl bg-[#F5F5F3] flex items-center justify-center flex-shrink-0 text-body" aria-hidden="true">🖼️</span>
+                <span className="w-8 h-8 rounded-xl bg-[#F5F5F3] flex items-center justify-center flex-shrink-0 text-body" aria-hidden="true">🔄</span>
                 <p className="text-body text-[#1C1B19] leading-snug">
-                  위 탭에서 <span className="font-semibold">숲·모자이크·미니멀</span> 스타일을 바꿔봐.
+                  {/* v8.1: 편집 모드 교체·삭제 — 사진 단위 재조치 동선 안내 */}
+                  편집 중에 <span className="font-semibold">사진을 탭하면 바꾸거나 지울 수 있어.</span> 색 테두리가 사진의 출처 칸이야.
                 </p>
               </div>
               <div className="flex items-start gap-3">
                 <span className="w-8 h-8 rounded-xl bg-[#F5F5F3] flex items-center justify-center flex-shrink-0 text-body" aria-hidden="true">📱</span>
                 <p className="text-body text-[#1C1B19] leading-snug">
-                  위 <span className="font-semibold">폰·PC 탭</span>에서 기기 사이즈를 고르면, 그 비율 그대로 꾸며서 저장할 수 있어.
+                  폰·PC <span className="font-semibold">기기 사이즈를 고르면, 그 비율 그대로</span> 꾸며서 저장할 수 있어.
                 </p>
               </div>
             </div>
@@ -444,12 +661,12 @@ export default function CollagePage() {
         </div>
       )}
 
-      {sheetOpen && devicePreset && (
+      {sheetView && sheetData?.preset && (
         <WallpaperSheet
           year={boardYear}
-          preset={devicePreset}
-          board={{ template, layout: currentLayout, items: keyedItems }}
-          onClose={() => setSheetOpen(false)}
+          preset={sheetData.preset}
+          board={{ template, layout: sheetData.currentLayout, items: keyedItems }}
+          onClose={() => setSheetView(null)}
         />
       )}
     </main>

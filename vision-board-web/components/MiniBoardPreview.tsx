@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionId, SectionStatus } from '@/lib/types';
 import { getTargetYear } from '@/lib/targetDate';
@@ -67,6 +68,8 @@ export default function MiniBoardPreview({
   const renderCell = (area: Area, index: number) => {
     const polaroid = (
       <MiniPolaroid
+        // 사진이 바뀌면 리마운트 — 깨짐 판정(imgBroken)이 새 사진에 들러붙지 않게
+        key={area.photo ?? 'empty'}
         area={area}
         index={index}
         highlighted={area.id === highlightSectionId}
@@ -118,6 +121,7 @@ function MiniPolaroid({
   isNext?: boolean;
   compact?: boolean;
 }) {
+  const [imgBroken, setImgBroken] = useState(false);
   // v7.7: 흰 폴라로이드 프레임 제거 — CollageBoard(v7.6 숲 테마)와 같은 프레임리스 타일.
   // overflow-hidden은 안쪽 사진 타일에만 — 토리·뱃지 오버레이(음수 오프셋)가 잘리지 않게.
   const boxShadow = highlighted
@@ -154,9 +158,15 @@ function MiniPolaroid({
         className="w-full aspect-square flex items-center justify-center overflow-hidden rounded-xl shadow-lg"
         style={{ backgroundColor: FOREST.card, boxShadow }}
       >
-        {area.photo ? (
+        {area.photo && !imgBroken ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={area.photo} alt={area.label} className="w-full h-full object-cover" />
+          <img
+            src={area.photo}
+            alt={area.label}
+            className="w-full h-full object-cover"
+            // 깨진 URL 사진은 빈 흰 칸 대신 이모지 타일로 (v8.1)
+            onError={() => setImgBroken(true)}
+          />
         ) : (
           <span className="text-heading leading-none" aria-hidden="true">
             {area.status === 'not_started' ? '🌱' : '🌿'}

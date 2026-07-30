@@ -227,13 +227,14 @@ function drawSticker(
 
 // 편집 배치를 선택한 해상도 그대로 캔버스에 옮긴다 — 사진 배치·회전·스티커 일치(무크롭 WYSIWYG, v6.19).
 // 좌표 공간이 캔버스와 동일(0..1 정규화)하므로 레터박스 없이 화면 전체를 쓴다.
+// skipped: 로드에 실패해 캔버스에서 빠진 사진 수 — 조용한 누락 대신 호출부가 알린다 (v8.1)
 export async function renderBoardLayout(
   template: CollageTemplate,
   layout: CollageLayout,
   items: CollageItem[],
   year: string,
   size: { w: number; h: number }
-): Promise<HTMLCanvasElement> {
+): Promise<{ canvas: HTMLCanvasElement; skipped: number }> {
   await ensureFonts();
   const theme = COLLAGE_THEMES[template];
   const { canvas, ctx, w, h } = newCanvas(theme.bg, size.w, size.h);
@@ -262,10 +263,11 @@ export async function renderBoardLayout(
       try {
         loadedByKey.set(i.key, await loadOne(i.src));
       } catch {
-        // 깨진 이미지는 건너뛴다
+        // 깨진 이미지는 건너뛴다 — 수는 skipped로 집계해 반환
       }
     })
   );
+  const skipped = items.length - loadedByKey.size;
 
   // 상단 타이틀 밴드 (mosaic·minimal) — 사진보다 먼저.
   // 세로로 긴 화면은 상단 시계 영역 아래로 내린다 — DOM(CollageBoard)의 padTop과 동일 기준
@@ -345,7 +347,7 @@ export async function renderBoardLayout(
     ctx.fillText(year, cx, cy + cardH * 0.16);
   }
 
-  return canvas;
+  return { canvas, skipped };
 }
 
 // 모바일은 공유 시트(사진 앱 저장), 미지원 환경은 파일 다운로드

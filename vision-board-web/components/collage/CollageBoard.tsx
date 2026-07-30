@@ -18,6 +18,8 @@ import {
   stickerKey,
 } from '@/lib/collageTemplates';
 import { FOREST } from '@/lib/colors';
+import { SECTIONS } from '@/lib/questions';
+import { SectionId } from '@/lib/types';
 import EditableYear from './EditableYear';
 import StickerSheet from './StickerSheet';
 
@@ -30,6 +32,25 @@ interface Props {
   onYearChange: (year: string) => void;
   /** 캔버스 비율(w/h) — 보드 4:5, 폰/PC는 선택한 기기 사이즈 비율. 좌표 공간과 시드가 비율별로 다르다 (v6.19) */
   aspect?: number;
+  /** 나란히 배치 식별 (v8.1) — data-view 속성으로 노출, 테스트는 testid+view 조합 셀렉터 */
+  view?: string;
+  /** false로 바뀌면 편집 종료 — 나란히 두 보드의 편집 배타성 (v8.1) */
+  active?: boolean;
+  onEditingChange?: (editing: boolean) => void;
+  /** 사진 액션 칩 '사진 바꾸기'·'지우기' (v8.1) — 핸들러가 있을 때만 칩 노출 */
+  onRequestReplace?: (key: string) => void;
+  onRequestRemove?: (key: string) => void;
+  /** 로드 실패 사진 키 통지 (v8.1) — 부모가 저장 전 경고 배너에 사용 */
+  onBrokenChange?: (keys: string[]) => void;
+}
+
+// 사진 키 `${sectionId}-${slotIdx}` → 출처 섹션 배지 (v8.1 편집 모드)
+function sectionBadge(key: string): { color: string; label: string } | null {
+  const m = /^(\d+)-\d+$/.exec(key);
+  if (!m) return null;
+  const section = SECTIONS.find((s) => s.id === (Number(m[1]) as SectionId));
+  if (!section) return null;
+  return { color: section.color, label: section.shortTitle ?? section.title.split(' — ')[0] };
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -113,7 +134,10 @@ function StickerView({
 
 // 통합 콜라주 보드 — 모든 템플릿이 같은 드래그 엔진을 쓴다.
 // 보드를 탭하면 편집 모드: 사진·스티커 이동/리사이즈, + 문구 추가, 변경 즉시 저장.
-export default function CollageBoard({ template, items, layout, onLayoutChange, year, onYearChange, aspect = ASPECT }: Props) {
+export default function CollageBoard({
+  template, items, layout, onLayoutChange, year, onYearChange, aspect = ASPECT,
+  view, active, onEditingChange, onRequestReplace, onRequestRemove, onBrokenChange,
+}: Props) {
   const theme = COLLAGE_THEMES[template];
   const boardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -122,8 +146,45 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
   // 탭한 사진의 구제 액션(맨 뒤로·바로 세우기) — 묻힌 사진을 꺼내는 유일한 동선 (v8.0)
   const [photoAction, setPhotoAction] = useState<string | null>(null);
   const [sheet, setSheet] = useState<{ open: boolean; editId?: string }>({ open: false });
+  // 로드 실패 사진 (v8.1) — 사진 구성이 바뀌면 리셋, 여전히 깨졌으면 onError가 다시 채운다
+  const [brokenKeys, setBrokenKeys] = useState<Set<string>>(new Set());
   const [live, setLive] = useState<CollageLayout>(() => resolveLayout(template, items, layout, aspect));
   const liveRef = useRef(live);
+
+  // 편집 상태 전환은 이 함수로만 — 부모(나란히 배타 편집)에 항상 통지 (v8.1)
+  function switchEditing(next: boolean) {
+    setEditing(next);
+    if (!next) setPhotoAction(null);
+    onEditingChange?.(next);
+  }
+
+  // 다른 쪽 보드가 편집을 가져가면 이쪽은 감상 모드로 (StickerSheet 중복 방지)
+  useEffect(() => {
+    if (active === false) {
+      setEditing(false);
+      setPhotoAction(null);
+      setSheet({ open: false });
+    }
+  }, [active]);
+
+  function markBroken(key: string) {
+    setBrokenKeys((prev) => {
+      if (prev.has(key)) return prev;
+      const next = new Set(prev).add(key);
+      onBrokenChange?.([...next]);
+      return next;
+    });
+  }
+
+  // 사진 교체·삭제로 구성이 바뀌면 깨짐 판정 초기화 — 새 src가 실패하면 onError가 재판정
+  useEffect(() => {
+    setBrokenKeys((prev) => {
+      if (prev.size === 0) return prev;
+      onBrokenChange?.([]);
+      return new Set();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.map((i) => `${i.key}:${i.src.slice(0, 40)}`).join(',')]);
 
   function commitLive(updater: (prev: CollageLayout) => CollageLayout) {
     setLive((prev) => {
@@ -135,8 +196,8 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
 
   // 템플릿 전환 시에만 편집 종료 — 저장(onLayoutChange)으로 layout 객체가 갱신될 때 풀리면 안 된다
   useEffect(() => {
-    setEditing(false);
-    setPhotoAction(null);
+    switchEditing(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template]);
 
   // 외부 layout·사진 구성 변경 동기화 (드래그 중이 아닐 때)
@@ -268,7 +329,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
     tapRef.current = null;
     if (editing || !tap) return;
     if (Math.abs(e.clientX - tap.x) < TAP_THRESHOLD && Math.abs(e.clientY - tap.y) < TAP_THRESHOLD) {
-      setEditing(true);
+      switchEditing(true);
     }
   }
 
@@ -324,6 +385,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
       <div
         ref={boardRef}
         data-testid="collage-board"
+        data-view={view}
         className="relative w-full mx-auto rounded-3xl overflow-hidden select-none"
         style={{
           aspectRatio: String(aspect),
@@ -393,17 +455,46 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
               >
                 {sticker ? (
                   <StickerView sticker={sticker} it={it} dark={theme.dark} />
-                ) : (
-                  // v7.6 프레임리스 — 흰 폴라로이드 프레임 제거, 전 템플릿 사진만 + 라운드·그림자
-                  <div className={`w-full h-full rounded-xl overflow-hidden ${theme.dark ? 'shadow-lg' : 'shadow-sm'} ${editing ? (theme.dark ? 'ring-1 ring-white/30' : 'ring-1 ring-black/15') : ''}`}>
-                    <img
-                      src={src}
-                      alt=""
-                      draggable={false}
-                      className={`w-full object-cover pointer-events-none ${it.h !== undefined ? 'h-full' : 'aspect-square'}`}
-                    />
-                  </div>
-                )}
+                ) : (() => {
+                  const badge = sectionBadge(key);
+                  return (
+                    // v7.6 프레임리스 — 흰 폴라로이드 프레임 제거, 전 템플릿 사진만 + 라운드·그림자.
+                    // 편집 모드의 링은 출처 섹션 색 2px — 어느 칸의 사진인지 보드 위에서 바로 보인다 (v8.1)
+                    <div
+                      className={`w-full h-full rounded-xl overflow-hidden ${theme.dark ? 'shadow-lg' : 'shadow-sm'} ${editing && !badge ? (theme.dark ? 'ring-1 ring-white/30' : 'ring-1 ring-black/15') : ''}`}
+                      style={editing && badge ? { boxShadow: `0 0 0 2px ${badge.color}` } : undefined}
+                    >
+                      {brokenKeys.has(key) ? (
+                        <div
+                          data-broken-photo={key}
+                          className={`w-full bg-[#EDECEA] flex flex-col items-center justify-center text-center px-[1cqmin] ${it.h !== undefined ? 'h-full' : 'aspect-square'}`}
+                        >
+                          <span aria-hidden="true" style={{ fontSize: '5cqmin' }}>⚠️</span>
+                          <span className="text-[#6E6962] leading-tight" style={{ fontSize: '2.4cqmin' }}>
+                            사진을 못 불러왔어
+                          </span>
+                        </div>
+                      ) : (
+                        <img
+                          src={src}
+                          alt=""
+                          draggable={false}
+                          className={`w-full object-cover pointer-events-none ${it.h !== undefined ? 'h-full' : 'aspect-square'}`}
+                          onError={() => markBroken(key)}
+                        />
+                      )}
+                      {/* 출처 섹션 칩 (v8.1) — 편집 모드에서만, 좌상단 */}
+                      {editing && badge && (
+                        <span
+                          className="absolute top-0 left-0 z-10 rounded-tl-xl rounded-br-md px-[1.6cqmin] py-[0.6cqmin] font-semibold text-white pointer-events-none"
+                          style={{ backgroundColor: badge.color, fontSize: '2.2cqmin' }}
+                        >
+                          {badge.label}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
                 {editing && (
                   <div
                     onPointerDown={(e) => onItemPointerDown(e, key, 'resize')}
@@ -491,7 +582,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
               </button>
             </div>
             <button
-              onClick={() => { setEditing(false); setPhotoAction(null); }}
+              onClick={() => switchEditing(false)}
               className="px-4 py-1.5 rounded-full bg-white text-[#1C1B19] text-caption font-bold shadow active:opacity-70"
             >
               완료
@@ -499,13 +590,31 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
           </div>
         )}
 
-        {/* 사진 구제 액션 (v8.0) — 탭한 사진을 뒤로 보내거나 반듯하게 세운다 */}
+        {/* 사진 구제 액션 (v8.0) — 뒤로 보내기·세우기에 더해 교체·삭제 (v8.1, 백로그 '사진 개별 삭제' 흡수) */}
         {editing && photoAction && live.items[photoAction] && (
           <div
-            className="absolute top-12 inset-x-2 flex items-center gap-1.5 z-50"
+            className="absolute top-12 inset-x-2 flex flex-wrap items-center gap-1.5 z-50"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
           >
+            {onRequestReplace && (
+              <button
+                onClick={() => { onRequestReplace(photoAction); setPhotoAction(null); }}
+                className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
+                aria-label="사진 바꾸기"
+              >
+                {brokenKeys.has(photoAction) ? '⚠️ 사진 바꾸기' : '사진 바꾸기'}
+              </button>
+            )}
+            {onRequestRemove && (
+              <button
+                onClick={() => { onRequestRemove(photoAction); setPhotoAction(null); }}
+                className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
+                aria-label="사진 지우기"
+              >
+                지우기
+              </button>
+            )}
             <button
               onClick={() => sendToBack(photoAction)}
               className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
@@ -535,7 +644,7 @@ export default function CollageBoard({ template, items, layout, onLayoutChange, 
 
       <p className="text-micro text-[#6E6962] text-center mt-2">
         {editing
-          ? '끌어서 옮기고, ⤡로 크기·↻로 각도를 바꿔봐. 사진을 탭하면 맨 뒤로 보낼 수도 있어.'
+          ? '끌어서 옮기고, ⤡로 크기·↻로 각도를 바꿔봐. 사진을 탭하면 바꾸거나 지울 수도 있어.'
           : '보드를 탭하면 배치를 직접 수정할 수 있어'}
       </p>
 

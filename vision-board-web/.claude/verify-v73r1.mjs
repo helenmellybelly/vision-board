@@ -104,16 +104,19 @@ async function newPage(seed) {
   await ctx.close();
 }
 
-// ── 3) collage: 기본 PC + 자동 시드 + 상시 칩 + 보드뷰 저장 + ?view= ──
+// ── 3) collage: 좁은 화면 기본 폰(v8.1) + 자동 시드 + 상시 칩 + ?view= ──
 {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
-  ok('V3-3a 기본 뷰 = PC', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
-  ok('V3-3b URL 정규화 ?view=desktop', new URL(page.url()).search === '?view=desktop', page.url());
-  ok('V3-3c PC 프리셋 자동 시드 (FHD 선택)', await page.getByRole('radio', { name: 'FHD', exact: true }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
-  ok('V3-3d 저장 버튼 즉시 노출', await page.getByText('PC 배경화면 저장').isVisible().catch(() => false));
-  // 칩 탭 즉시 적용
+  // v8.1: 좁은 화면 기본 뷰 phone — 결과물 1순위가 폰 배경화면 (오너 결정 3)
+  ok('V3-3a 기본 뷰 = 폰(좁은 화면)', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  ok('V3-3b URL 정규화 ?view=phone', new URL(page.url()).search === '?view=phone', page.url());
+  ok('V3-3c 폰 프리셋 자동 시드 (기본 폰 선택)', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  ok('V3-3d 저장 버튼 즉시 노출', await page.getByText('폰 배경화면 저장').isVisible().catch(() => false));
+  // PC 탭 전환 후 칩 탭 즉시 적용
+  await page.getByRole('radio', { name: '🖥️ PC' }).click();
+  await page.waitForTimeout(500);
   await page.getByRole('radio', { name: 'QHD', exact: true }).click();
   await page.waitForTimeout(500);
   ok('V3-3e 칩 탭 → 즉시 적용', await page.getByText('PC QHD (16:9)').isVisible().catch(() => false));

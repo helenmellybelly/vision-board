@@ -97,14 +97,12 @@ async function newPage(seed) {
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
-  // v7.3: 기본 뷰가 PC
-  ok('V2-3a-1 진입 즉시 PC 탭 활성 (v7.3 기본)', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // v8.1: 좁은 화면 기본 뷰가 폰
+  ok('V2-3a-1 진입 즉시 폰 탭 활성 (v8.1 기본)', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   ok('V2-3a-2 choose 뷰 부재', (await page.getByText('완성된 보드, 어디에 둘까?').count()) === 0);
 
-  // 폰 탭 → 표준 프리셋 자동 선택 + 상시 칩 행 (v7.3)
-  await page.getByRole('radio', { name: '📱 폰' }).click();
-  await page.waitForTimeout(800);
-  ok('V2-3b 폰 탭 → 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // 표준 프리셋 자동 선택 + 상시 칩 행 (v7.3)
+  ok('V2-3b 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
 
   // 다른 칩 탭 → 즉시 적용 + 같은 화면에 저장 버튼
   await page.getByRole('radio', { name: 'iPhone', exact: true }).click();

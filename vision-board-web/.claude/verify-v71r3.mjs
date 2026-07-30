@@ -129,8 +129,8 @@ async function newPage(seed) {
   ok('R3-4b 사진 있으면 보드 버튼 노출', await page.getByText('내 비전보드 보기').isVisible().catch(() => false));
   await page.getByText('내 비전보드 보기').click();
   await page.waitForTimeout(800);
-  // v7.3: 기본 뷰가 PC — 진입 즉시 PC 탭 활성
-  ok('R3-4c 진입 즉시 PC 뷰 (v7.3 기본)', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // v8.1: 좁은 화면 기본 뷰 phone — 진입 즉시 폰 탭 활성
+  ok('R3-4c 진입 즉시 폰 뷰 (v8.1 기본)', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   // 딥링크는 URL 직접 진입으로 검증 (대시보드 퀵 버튼은 v7.2에서 제거, /finish 진입용으로 유지)
   await page.goto(`${BASE}/collage?device=phone`);
   await page.waitForTimeout(800);

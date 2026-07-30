@@ -20,6 +20,7 @@ import {
 } from '@/lib/storage';
 import { compressImage } from '@/lib/imageUtils';
 import { loadOne } from '@/lib/wallpaper';
+import { removeSlotImage } from '@/lib/photoSlots';
 import { getPickedPhotoIds } from '@/lib/imagePick';
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
@@ -65,6 +66,8 @@ export default function ScenesPage() {
   const [urlOpen, setUrlOpen] = useState(false); // ① 직접 올리기 아래 URL 입력 토글 (v7.3)
   const [urlChecking, setUrlChecking] = useState(false); // URL 로드 프로브 진행 중 (v8.1)
   const [slotNotice, setSlotNotice] = useState('');
+  // 로드 실패 슬롯 (v8.1) — 슬롯 내용이 바뀌면 이미지가 리마운트되며 onError로 다시 판정된다
+  const [brokenSlots, setBrokenSlots] = useState<Set<number>>(new Set());
 
   const uploadRefs = [
     useRef<HTMLInputElement>(null),
@@ -194,6 +197,7 @@ export default function ScenesPage() {
   // 순차 처리인 이유: saveUploadedImage가 매번 loadBoard→save라 동시 실행하면 서로를 덮는다
   async function handleUploadFiles(startIndex: number, files: File[]) {
     setSlotNotice('');
+    setBrokenSlots(new Set());
     const local = [...uploadedImages];
     const isFree = (i: number) => !local[i] && !(i < generatedImages.length && generatedImages[i]?.url);
     const order = [startIndex, ...[0, 1, 2].filter((i) => i !== startIndex)];
@@ -280,23 +284,26 @@ export default function ScenesPage() {
   }
 
   function handleRemoveSlot(index: number) {
+    setBrokenSlots((prev) => {
+      const next = new Set(prev);
+      next.delete(index);
+      return next;
+    });
     if (uploadedImages[index]) {
       const updated = [...uploadedImages];
       updated[index] = null;
       setUploadedImages(updated);
-      saveUploadedImage(sectionId, index, null);
+      removeSlotImage(sectionId, index);
       // 슬롯을 비우면 갤러리 '담았어' 오버레이도 해제 (v7.1-r2)
       setPickedIds(getPickedPhotoIds(sectionId));
     } else if (index < 3 && generatedImages[index]?.url) {
-      const updated = generatedImages.map((img, i) =>
-        i === index ? { ...img, url: '' } : img
-      );
-      setGeneratedImages(updated);
-      saveGeneratedImages(sectionId, updated.map((img) => img.url));
+      removeSlotImage(sectionId, index);
+      setGeneratedImages(generatedImages.map((img, i) => (i === index ? { ...img, url: '' } : img)));
     }
   }
 
   function refreshSlots() {
+    setBrokenSlots(new Set());
     const imgs = loadBoard().sections[sectionId].uploadedImages ?? [];
     setUploadedImages([imgs[0] ?? null, imgs[1] ?? null, imgs[2] ?? null]);
     setPickedIds(getPickedPhotoIds(sectionId));
@@ -360,8 +367,16 @@ export default function ScenesPage() {
                 fill
                 className="object-cover"
                 unoptimized
+                onError={() => setBrokenSlots((prev) => new Set(prev).add(i))}
               />
             </button>
+            {/* 깨진 URL 사진 (v8.1) — 보드·배경화면에 안 들어간다는 걸 담은 자리에서 바로 알린다 */}
+            {brokenSlots.has(i) && (
+              <div className="absolute inset-0 bg-[#EDECEA] flex flex-col items-center justify-center text-center px-1 pointer-events-none">
+                <span className="text-body leading-none" aria-hidden="true">⚠️</span>
+                <span className="text-micro text-[#6E6962] mt-1">사진을 못 불러왔어. 지우고 다시 담아줘</span>
+              </div>
+            )}
             <button
               onClick={() => handleRemoveSlot(i)}
               className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-caption flex items-center justify-center z-10"

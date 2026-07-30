@@ -66,14 +66,12 @@ const withPhoto = (extra = {}) =>
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
-  // v7.3: 기본 뷰가 PC
-  ok('R5-1a 진입 즉시 PC 탭 활성 (v7.3 기본)', await page.getByRole('radio', { name: '🖥️ PC' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  // v8.1: 좁은 화면 기본 뷰가 폰
+  ok('R5-1a 진입 즉시 폰 탭 활성 (v8.1 기본)', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('숲').first().isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r5-collage-unified.png`, fullPage: true });
-  await page.getByRole('radio', { name: '📱 폰' }).click();
-  await page.waitForTimeout(500);
   // v7.3: 빈 피커 대신 표준 프리셋 자동 선택 + 상시 칩 행
-  ok('R5-1e 폰 탭 → 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
+  ok('R5-1e 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
   // R5-2: 뒤로가기는 대시보드로 (choose 왕복 단언은 v7.2에서 삭제)
   await page.getByLabel('대시보드로 돌아가기').click();
   await page.waitForTimeout(800);

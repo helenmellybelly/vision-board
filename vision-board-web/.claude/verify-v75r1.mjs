@@ -157,9 +157,10 @@ async function newPage(seed) {
   await page.waitForTimeout(1500);
   ok('V5-10a 뷰 라디오 2개', (await page.getByRole('radiogroup', { name: '보기 방식' }).getByRole('radio').count()) === 2);
   ok('V5-10b 보드 탭 부재', (await page.getByRole('radio', { name: '보드', exact: true }).count()) === 0);
-  ok('V5-10c 기본 desktop', new URL(page.url()).search === '?view=desktop', page.url());
+  // v8.1: 좁은 화면 기본 뷰 phone (오너 결정 3)
+  ok('V5-10c 기본 phone(좁은 화면)', new URL(page.url()).search === '?view=phone', page.url());
   ok('V5-13a 이미지로 저장 부재', (await page.getByText('🖼️ 이미지로 저장').count()) === 0);
-  ok('V5-13b PC 배경화면 저장 존재', await page.getByText('PC 배경화면 저장').isVisible().catch(() => false));
+  ok('V5-13b 폰 배경화면 저장 존재', await page.getByText('폰 배경화면 저장').isVisible().catch(() => false));
   await ctx.close();
 }
 {
