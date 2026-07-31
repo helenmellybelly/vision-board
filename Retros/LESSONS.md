@@ -118,6 +118,9 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 
 ## Testing / QA
 
+### 같은 '완주'라도 컴포넌트마다 정의가 다르다 — 연출 게이트와 시드 판정은 정의 단위로 확인 #coding #testing #state
+v8.3에서 산책길 지도 `allDone`은 6/6 completed만 보고, 대시보드 `isFinished`는 6/6+futureDayStory까지 본다. 참나무 승격 연출을 allDone에 걸었더니 스토리 없는 6/6 시드(v7r5 R5-7)도 연출을 탄다 — 사전 grep에서 이 시드가 무엇을 단언하는지 확인해 무해함을 판정했다. 상태 연출·분기를 추가할 때는 "어느 완료 정의에 게이트했는지"를 명시하고, 영향 스위트는 계약 문자열 grep에 더해 각 시드가 그 정의를 충족하는지까지 봐야 갱신 대상이 정확해진다.
+
 ### 통과 중인 검증 매트릭스도 허용오차 밑에 수식 버그를 숨긴다 — 새 입력 구성이 그걸 노출한다 #coding #testing #geometry
 v8.2 리사이즈 리플로우 검증(히어로 2개 구성)이 콜라주 시드의 잠재 버그를 처음 노출했다: 세로 초과 시 축소계수 `k = availH/neededH`가 셀만 줄이고 갭은 안 줄여 `(1-k)×갭`만큼 하단이 넘치는데, 기존 45개 시드 케이스에선 오차가 0.001 tolerance 아래라 전건 PASS였다. 스케일 팩터는 항상 "고정량(갭·마진) 제외 예산 ÷ 스케일 대상"으로 구하고, 계약 스위트에 새 케이스를 더했을 때 기존 수식이 깨지면 새 코드가 아니라 원 수식부터 의심하라.
 
@@ -161,6 +164,9 @@ useSession status가 해소될 때까지 `return null`인 페이지(/onboarding/
 `addInitScript`로 localStorage를 시드하면 `reload()`·`goto()` 때마다 다시 실행되어 앱이 저장한 값을 시드로 덮어쓴다. "수정 후 새로고침 유지" 같은 영속성 검증이 앱 버그처럼 보이는 거짓 실패를 만든다. `if (!localStorage.getItem(key))` 가드를 넣어 최초 1회만 시드할 것. 같은 텍스트가 반응형 중복 렌더(모바일/웹 블록)로 2곳에 있으면 `getByText().isVisible()`이 strict mode 위반으로 false가 되므로 `.all()` 순회로 검사한다.
 
 ## Design System
+
+### 1회성 파티클은 base opacity:0 + forwards 애니메이션으로 — reduced-motion에서 잔존물이 안 남는다 #coding #animation #accessibility
+v8.3 첫 완주 잎 파티클: 이 프로젝트의 reduced-motion 대응은 `.animate-*`에 `animation: none`을 거는 방식이라, 파티클 요소의 가시성이 애니메이션 키프레임에만 의존하면 모션 끔 환경에서 요소가 정지 상태로 화면에 남는다. 클래스 base에 `opacity: 0`을 두고 키프레임이 올렸다 내리게 하면 animation:none 시 자동으로 아무것도 안 보인다. 추가로 JS 트리거 쪽에서도 `matchMedia('(prefers-reduced-motion: reduce)')`로 시작 자체를 생략하고, 1회성 스탬프(finishCelebrated)는 연출 완료가 아니라 시작 시점에 즉시 기록해 중간 이탈에도 반복을 막는다.
 
 ### transform으로 위치 잡는 요소에 transform 애니메이션을 얹지 말라 — reduced-motion에서 위치까지 사라진다 #coding #css
 `left-1/2` + keyframe 안의 `translate(-50%, y)`로 센터링과 바운스를 한 요소에 합치면, `prefers-reduced-motion`으로 animation이 none이 되는 순간 센터링 translate도 소실돼 요소가 어긋난다. 바깥 스팬이 위치(-translate-x-1/2), 안쪽 스팬이 애니메이션(translateY만)을 맡게 분리하면 모션 온·오프 모두 정위치다(v7.6 "여기서 시작" 라벨).
