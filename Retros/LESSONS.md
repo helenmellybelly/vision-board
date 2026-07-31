@@ -118,6 +118,9 @@ Act 4 카루셀에서 이미지 높이는 `h-64` 고정인데도 슬라이드를
 
 ## Testing / QA
 
+### showSaveFilePicker는 헤드리스에서 자동 AbortError — 픽커 도입 시 기존 E2E에 undefined 스텁 소급이 완료 정의 #coding #testing #playwright
+v8.4에서 저장 위치 픽커를 넣자 헤드리스 Chromium이 네이티브 대화상자를 자동 취소(AbortError)해 저장이 '사용자 취소'로 처리됐고, download 이벤트·저장 후 UI를 단언하던 구 스위트(r2b C-1)가 조용히 FAIL했다. 픽커류(File System Access API) 도입 시엔 ① 취소를 조용한 no-op으로 처리하는 앱 코드와 ② 기존 저장 검증 스위트 전부에 `addInitScript(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined }))` 스텁 소급(폴백 경로 강제)이 한 세트다. '이미지로 저장' 같은 트리거 문자열로 전 스위트를 grep해 결합점을 찾는다.
+
 ### 같은 '완주'라도 컴포넌트마다 정의가 다르다 — 연출 게이트와 시드 판정은 정의 단위로 확인 #coding #testing #state
 v8.3에서 산책길 지도 `allDone`은 6/6 completed만 보고, 대시보드 `isFinished`는 6/6+futureDayStory까지 본다. 참나무 승격 연출을 allDone에 걸었더니 스토리 없는 6/6 시드(v7r5 R5-7)도 연출을 탄다 — 사전 grep에서 이 시드가 무엇을 단언하는지 확인해 무해함을 판정했다. 상태 연출·분기를 추가할 때는 "어느 완료 정의에 게이트했는지"를 명시하고, 영향 스위트는 계약 문자열 grep에 더해 각 시드가 그 정의를 충족하는지까지 봐야 갱신 대상이 정확해진다.
 
@@ -239,6 +242,9 @@ Act 2 비전보드 스토리텔링 말풍선 7개처럼 감정적 흐름이 중�
 세션 시작 시 핸드오프 내용을 그대로 실행하면 안 된다. `git log`로 핸드오프 이후 커밋을 먼저 확인하고, 이미 해결된 작업이나 방향이 바뀐 계획을 걸러낸 뒤 실행한다. 이번 세션에서 v2.4c AI 채팅 버그 플랜이 v2.7에서 채팅 자체가 제거되면서 완전히 무효화된 상태였다.
 
 ## Git / Workflow
+
+### PS5.1 Get-Content/Set-Content 라운드트립은 UTF-8 한글 소스를 통째로 모지바케로 만든다 — 코드 수정은 Edit/Write 도구로만 #coding #powershell #encoding ✅승급(2026-07-31 → ~/.claude/CLAUDE.md '파일 편집')
+v8.4에서 story route에 한 줄 삽입을 `(Get-Content -Raw) -replace ... | Set-Content -Encoding utf8`로 처리했더니, Get-Content가 BOM 없는 UTF-8을 ANSI로 읽어 삽입 줄 빼고 파일 전체 한글이 손상됐다. 소스 파일 일괄 치환은 절대 PowerShell로 하지 말고 Edit(부분)/Write(전체) 도구로만. 사고 시 복구는 `git checkout -- <file>` 원복 후 Write로 변경분 재작성이 가장 빠르다 — 커밋 전 `git diff`로 한글 정상 여부를 훑는 게 최후 방어선.
 
 ### 고정 경로 커밋 메시지 파일(/tmp/cm.txt)은 이전 세션 잔존물이 그대로 커밋된다 #coding #git
 `printf ... > /tmp/cm.txt && git commit -F /tmp/cm.txt`에서 앞 단계 파일 쓰기가 조용히 다른 경로로 빠지면($TMPDIR 폴백 분기 등), 이전 세션이 남긴 구 메시지가 그대로 커밋된다 — v7.2 Task 4 커밋이 Task 3 메시지로 들어가 amend로 교정한 사례. 쓰기와 커밋 사이에 `cat`으로 파일 내용을 출력해 확인하거나, 커밋 직후 `git log -1`로 메시지를 검증하는 단계를 한 명령에 포함할 것.
