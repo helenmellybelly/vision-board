@@ -4,8 +4,9 @@
 //   3) 모자이크·미니멀: 콘텐츠 수직 센터링 (상하 여백 차 ≤ 보드 높이의 6%)
 //   4) reconcile: edited 배치에 사진 추가 → 기존 rect 불변 + 새 rect 겹침 ≤ 20%
 //   5) edited:false 배치에 사진 추가 → 신선한 시드로 재배치
-//   8) 미니멀 균형 행 (v8.4): n=2..18 전 비율 — 고아 행(1장) 없음·행당 개수 차 ≤1·행 센터링
-//   9) 미니멀 reflow 라운드트립 (v8.4): 편집 리플로우 후에도 고아 행 재발 없음
+//   8) 미니멀 혼합 그리드 (v8.5): n=2..18 전 비율 — 무겹침(≤0.1%)·경계·크기 위계(n≥3 최대 면적
+//      ≥ 2×최소)·고아 금지(같은 y밴드 이웃 없는 사진은 넓은 배너여야)·전체 가로 센터링
+//   9) 미니멀 reflow 라운드트립 (v8.5): 혼합 시드가 그리드 정합(스팬 ≤4) → 리플로우 무겹침·z 보존
 //  10) 숲 레거시 가시성 가드 (v8.4): 손상+플래그無 → 리시드, edited:true·무손상은 보존
 // 실행: node scripts/verify-collage-layout.js  (tsx 없이 돌도록 esbuild-register 대신 정규식 트랜스파일)
 const { execSync } = require('child_process');
@@ -147,56 +148,68 @@ for (const t of ['mosaic', 'minimal']) {
   }
 }
 
-// 8) 미니멀 균형 행 (v8.4) — 고아 행 없음(전 행 1장 균일 스택 예외)·행당 개수 차 ≤1·행 가운데 정렬
+// 8) 미니멀 혼합 그리드 (v8.5) — 밴드 타일링 계약:
+//    무겹침(≤0.1%)·경계 내부·크기 위계(n≥3: 최대 면적 ≥ 2×최소)·고아 금지(같은 y밴드에
+//    이웃이 없는 사진은 가용 폭의 절반 이상인 배너여야)·전체 콘텐츠 가로 센터링
 for (const [aName, aspect] of Object.entries(ASPECTS)) {
   for (let n = 2; n <= 18; n++) {
     const items = mkItems(n);
     const layout = seedLayout('minimal', items, aspect);
     const rects = items.map((it) => rectOf(layout.items[it.key], aspect));
-    const rows = new Map();
-    for (const r of rects) {
-      const arr = rows.get(r.y) ?? [];
-      arr.push(r);
-      rows.set(r.y, arr);
+    let worst = 0;
+    for (let i = 0; i < rects.length; i++)
+      for (let j = i + 1; j < rects.length; j++) worst = Math.max(worst, ratio(rects[i], rects[j]));
+    ok(\`혼합그리드(\${aName}/n=\${n}) 무겹침\`, worst <= 0.001, \`worst=\${(worst * 100).toFixed(2)}%\`);
+    const inB = rects.every((r) => r.x >= -0.001 && r.y >= -0.001 && r.x + r.w <= 1.001 && r.y + r.h <= 1.001);
+    ok(\`혼합그리드(\${aName}/n=\${n}) 경계 내부\`, inB);
+    if (n >= 3) {
+      const areas = rects.map((r) => r.w * r.h);
+      ok(\`혼합그리드(\${aName}/n=\${n}) 크기 위계\`, Math.max(...areas) >= Math.min(...areas) * 2,
+        \`max/min=\${(Math.max(...areas) / Math.min(...areas)).toFixed(2)}\`);
     }
-    const counts = [...rows.values()].map((a) => a.length);
-    const allSingle = counts.every((c) => c === 1);
-    const noOrphan = allSingle || counts.every((c) => c >= 2);
-    ok(\`균형행(\${aName}/n=\${n}) 고아 없음\`, noOrphan, \`rows=\${counts.join(',')}\`);
-    ok(\`균형행(\${aName}/n=\${n}) 개수 차 ≤1\`, Math.max(...counts) - Math.min(...counts) <= 1);
-    const centered = [...rows.values()].every((arr) => {
-      const minX = Math.min(...arr.map((r) => r.x));
-      const maxR = Math.max(...arr.map((r) => r.x + r.w));
-      return Math.abs(minX - (1 - maxR)) <= 0.005;
+    // 고아 금지 — y구간이 50% 이상 겹치는 이웃이 하나도 없는 사진은 넓은 배너여야.
+    // 기준은 보드 폭이 아니라 콘텐츠 폭(k-축소 시 그리드 전체가 좁아져도 배너=그리드 전폭)
+    const minX = Math.min(...rects.map((r) => r.x));
+    const maxR = Math.max(...rects.map((r) => r.x + r.w));
+    const contentW = maxR - minX;
+    const noOrphan = rects.every((r, i) => {
+      const hasNeighbor = rects.some((o, j) => {
+        if (i === j) return false;
+        const oy = Math.min(r.y + r.h, o.y + o.h) - Math.max(r.y, o.y);
+        return oy >= Math.min(r.h, o.h) * 0.5;
+      });
+      return hasNeighbor || r.w >= contentW * 0.5;
     });
-    ok(\`균형행(\${aName}/n=\${n}) 행 센터링\`, centered);
+    ok(\`혼합그리드(\${aName}/n=\${n}) 고아 없음\`, noOrphan);
+    ok(\`혼합그리드(\${aName}/n=\${n}) 가로 센터링\`, Math.abs(minX - (1 - maxR)) <= 0.005);
   }
 }
 
-// 9) 미니멀 reflow 라운드트립 (v8.4) — 편집 리플로우(전 스팬 1×1)도 균형 행 유지 + h·z 계약
+// 9) 미니멀 reflow 라운드트립 (v8.5) — 혼합 시드가 그리드 정합(스팬 ≤4, 반자동 리사이즈 참여 조건)
+//    → 리플로우 결과 무겹침·경계·h·z 보존
 {
   const aspect = ASPECTS.phone;
   const items = mkItems(13);
   const layout = seedLayout('minimal', items, aspect);
   const info = inferGridSpans(layout.items, aspect);
-  ok('균형행 reflow(n=13) 시드 그리드 정합', !!info);
+  ok('혼합그리드 reflow(n=13) 시드 그리드 정합', !!info);
   if (info) {
+    ok('혼합그리드 reflow(n=13) 스팬 ≤4', Object.values(info.spans).every(([sc, sr]) => sc <= 4 && sr <= 4));
     const ordered = Object.entries(layout.items)
       .sort(([, a], [, b]) => a.y - b.y || a.x - b.x)
       .map(([k, it]) => ({ key: k, span: info.spans[k], z: it.z }));
     const placed = reflowLayout('minimal', ordered, aspect);
-    ok('균형행 reflow(n=13) 결과 존재', !!placed);
+    ok('혼합그리드 reflow(n=13) 결과 존재', !!placed);
     if (placed) {
-      const rows = new Map();
-      for (const it of Object.values(placed)) {
-        const arr = rows.get(it.y) ?? [];
-        arr.push(it);
-        rows.set(it.y, arr);
-      }
-      const counts = [...rows.values()].map((a) => a.length);
-      ok('균형행 reflow(n=13) 고아 없음', counts.every((c) => c >= 2) || counts.every((c) => c === 1), \`rows=\${counts.join(',')}\`);
-      ok('균형행 reflow(n=13) h 존재', Object.values(placed).every((it) => typeof it.h === 'number'));
-      ok('균형행 reflow(n=13) z 보존', ordered.every((e) => placed[e.key].z === e.z));
+      const rects2 = Object.values(placed).map((it) => ({ x: it.x, y: it.y, w: it.w, h: it.h }));
+      let worst = 0;
+      for (let i = 0; i < rects2.length; i++)
+        for (let j = i + 1; j < rects2.length; j++) worst = Math.max(worst, ratio(rects2[i], rects2[j]));
+      ok('혼합그리드 reflow(n=13) 무겹침', worst <= 0.001, \`worst=\${(worst * 100).toFixed(2)}%\`);
+      const inB = rects2.every((r) => r.x >= -0.001 && r.y >= -0.001 && r.x + r.w <= 1.001 && r.y + r.h <= 1.001);
+      ok('혼합그리드 reflow(n=13) 경계 내부', inB);
+      ok('혼합그리드 reflow(n=13) h 존재', Object.values(placed).every((it) => typeof it.h === 'number'));
+      ok('혼합그리드 reflow(n=13) z 보존', ordered.every((e) => placed[e.key].z === e.z));
     }
   }
 }

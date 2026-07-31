@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { freeChat, freeLlmConfigured } from '@/lib/llm';
+import { hasForeignScript, stripForeignScript } from '@/lib/honorific';
 import { IMAGE_DESCRIBE_CORE_RULES } from '@/lib/prompts';
 import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
@@ -69,6 +70,9 @@ export async function POST(req: NextRequest) {
         throw new Error('Could not parse descriptions');
       }
     }
+
+    // 유틸 라우트라 재생성 없이 외국 문자만 기계 제거 (v8.5 — 사용자 노출 한국어 묘사)
+    descriptions = descriptions.map((d) => (hasForeignScript(d) ? stripForeignScript(d) : d));
 
     return NextResponse.json({ descriptions });
   } catch (err) {

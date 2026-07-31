@@ -65,9 +65,12 @@ async function newPage(seed) {
   ok('V83-1a 헤더', await page.getByText('헬렌의 미래 일기').isVisible().catch(() => false));
   ok('V83-1b 하루 이야기 본문', await page.getByText('미래의 어느 하루.').isVisible().catch(() => false));
   ok('V83-1c 한 문장 블록', await page.getByText('여유로운 사람.').isVisible().catch(() => false));
-  ok('V83-1d 섹션 일기 6편 헤더', await page.getByText('미래 일기 6편').isVisible().catch(() => false));
-  ok('V83-1e 섹션 일기 본문', await page.getByText('일기3.').isVisible().catch(() => false));
-  ok('V83-1f 다듬기 링크', await page.getByText('이야기 다듬기 →').isVisible().catch(() => false));
+  // v8.5 — 6편 부록 삭제(섹션 탭과 중복), 다듬기는 /finish 이동 대신 인라인 액션
+  ok('V83-1d 전체 탭 6편 부록 부재', (await page.getByText('미래 일기 6편').count()) === 0);
+  ok('V83-1f 인라인 다듬기 액션', (await page.getByText('✍️ 직접 수정하기').count()) >= 1 && (await page.getByText('🔄 AI로 다시 쓰기').count()) >= 1);
+  await page.getByRole('tab', { name: '관계', exact: true }).click();
+  await page.waitForTimeout(400);
+  ok('V83-1e 섹션 탭 일기 본문', await page.getByText('일기3.').isVisible().catch(() => false));
   await page.getByRole('button', { name: '내 비전보드 보기 →', exact: true }).click();
   await page.waitForURL('**/collage**', { timeout: 8000 }).catch(() => {});
   ok('V83-1g 하단 CTA → /collage', page.url().includes('/collage'), page.url());
@@ -80,7 +83,10 @@ async function newPage(seed) {
   await page.goto(`${BASE}/diary`);
   await page.waitForTimeout(1500);
   ok('V83-2a 미완성 안내', await page.getByText('여섯 그루가 다 자라면 하루 이야기가 완성돼').isVisible().catch(() => false));
-  ok('V83-2b 있는 일기 2편', await page.getByText('미래 일기 2편').isVisible().catch(() => false));
+  // v8.5 — 부록 삭제: 있는 일기는 섹션 탭에서 확인
+  await page.getByRole('tab', { name: '원하는 내 모습', exact: true }).click();
+  await page.waitForTimeout(400);
+  ok('V83-2b 섹션 탭에 있는 일기', await page.getByText('일기1.').isVisible().catch(() => false));
   ok('V83-2c 다듬기 링크 부재(이야기 없음)', (await page.getByText('이야기 다듬기').count()) === 0);
   await ctx.close();
 }
@@ -101,8 +107,8 @@ async function newPage(seed) {
   await page.waitForTimeout(1500);
   ok('V83-4a 📷 행 부재', (await page.getByText('질문 없이, 사진부터 담아볼래?').count()) === 0);
   ok('V83-4b 일기 N편 트리거 부재', (await page.getByText(/미래 일기 \d+편/).count()) === 0);
-  // v8.4 — 연도 완료형 카피 삭제(오너: "이 말 자체가 필요 없다"), '완성 ≠ 종결' 카피로 대체
-  ok('V83-4c 완성 지속 카피', await page.getByText('완성해도 끝은 아니야').isVisible().catch(() => false));
+  // v8.5 — "완성해도 끝은 아니야 …" 인과 어색 카피 교체 (오너 피드백)
+  ok('V83-4c 완성 지속 카피', await page.getByText('비전보드는 계속 가꿔 나갈 수 있어').isVisible().catch(() => false));
   ok('V83-4c2 구 연도 완료형 부재', (await page.getByText('나를 그린 보드야').count()) === 0);
   ok('V83-4d 연도 바꾸기 부재', (await page.getByText('연도 바꾸기').count()) === 0);
   const diaryLink = page.getByRole('button', { name: '📖 미래 일기 읽기 →', exact: true });

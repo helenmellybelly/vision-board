@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { track } from '@/lib/analytics';
 import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice, saveLoginNudgeSeen, dismissLoginBanner, saveFinishCelebrated, dismissStoryUpgradeNudge } from '@/lib/storage';
-import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
+import { getTargetDate, getTargetYear, withYear, formatDiaryDate } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, SectionId } from '@/lib/types';
 import { getSectionRoute, getRecommendedSection, isPhotoOnlySection, sectionHasPhoto } from '@/lib/sectionRoute';
@@ -142,6 +142,8 @@ export default function DashboardPage() {
   const hasAnyProgress = photoSectionCount > 0 || statuses.some((s) => s !== 'not_started');
   // 완주 = 6칸 완성 + 미래의 하루 이야기까지 (v8.1) — 이후의 주 행동은 '만들기'가 아니라 '감상'
   const isFinished = completedCount === 6 && !!board.futureDayStory;
+  // 미래의 하루까지 남은 날 (v8.5) — 완주 대시보드의 가치 정보. 날짜 편집은 /diary가 담당
+  const dday = Math.ceil((new Date(getTargetDate(board)).getTime() - Date.now()) / 86400000);
   const walkCaption = !hasAnyProgress
     ? '토리랑 첫 스테이션부터 걸어보자 🌰'
     : completedCount === 0
@@ -151,7 +153,8 @@ export default function DashboardPage() {
       // 예산 예외(R2-2): 로그인 재유도 배너는 3중 조건부 1줄(~40px)이라 상시 예산에 계상하지 않는다
       `${completedCount}/6 스테이션을 지났어 — 서두르지 않아도 돼 🐿️`
     : isFinished
-    ? '길 끝까지 다 걸었어 — 이제 네 보드를 즐기면 돼 🐿️'
+    ? // 완주 후 지도 캡션 없음 (v8.5 오너 피드백 — "길 끝까지 다 걸었어" 류 군더더기 삭제)
+      ''
     : '길 끝에 도착! 이제 배경화면으로 만들어보자 🐿️';
 
   // 추천 카드 — 다음 할 일 1개만 (v7.1-r3 → v7.2 문장형: 섹션명 단독 노출이 어색하다는 피드백)
@@ -263,15 +266,29 @@ export default function DashboardPage() {
             >
               📖 미래 일기 읽기 →
             </button>
-            {/* 완성 ≠ 종결 카피 (v8.4) — 삭제한 연도 완료형 문구 대신, 보드가 계속 열려 있음을 알린다 */}
-            <p className="text-caption text-[#6E6962] text-center mt-2">
-              완성해도 끝은 아니야 — 사진을 바꾸고, 새 꿈을 더하고, 보드는 계속 자라 🌱
+            {/* 완주 후 가치 정보 (v8.5 오너 피드백) — 어색한 인과 카피 대신 유저 자신의 한 문장(북극성)과
+                미래의 하루 D-day. 그 외 통계는 추가 금지(군더더기). 날짜 탭 → /diary(날짜 편집이 사는 곳) */}
+            {board.oneSentence && (
+              <p className="text-caption text-[#1C1B19] text-center mt-2.5">
+                &ldquo;{board.oneSentence}&rdquo;
+              </p>
+            )}
+            <button
+              onClick={() => router.push('/diary')}
+              className="block mx-auto mt-1 text-caption text-[#6E6962] active:opacity-70"
+            >
+              🗓️ {formatDiaryDate(getTargetDate(board))}
+              {dday > 0 ? ` — 그 하루까지 ${dday}일` : ''}
+            </button>
+            <p className="text-caption text-[#6E6962] text-center mt-1">
+              비전보드는 계속 가꿔 나갈 수 있어 🌱
             </p>
-            {/* 프롬프트 업그레이드 재작성 넛지 (v8.4) — 옛 프롬프트로 쓴 이야기만, 닫으면 재노출 없음 */}
+            {/* 프롬프트 업그레이드 재작성 넛지 (v8.4) — 옛 프롬프트로 쓴 이야기만, 닫으면 재노출 없음.
+                v8.5: 목적지 /finish → /diary (다듬기가 /diary 인라인으로 이사 — 완성 화면 재진입이 어색하다는 피드백) */}
             {needsStoryUpgrade(board) && (
               <div className="flex items-center justify-center gap-1 mt-1">
                 <button
-                  onClick={() => router.push('/finish')}
+                  onClick={() => router.push('/diary')}
                   className="py-1.5 text-caption text-[#6E6962] underline active:opacity-70"
                 >
                   이야기 짓는 솜씨가 늘었어 — 다시 써볼까? →
@@ -409,7 +426,9 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
-          <p className="text-caption text-[#6E6962] text-center mt-2">{walkCaption}</p>
+          {walkCaption && (
+            <p className="text-caption text-[#6E6962] text-center mt-2">{walkCaption}</p>
+          )}
           {/* 보드 연도 — 고정처럼 보인다는 피드백에 편집 진입점 노출 (v7.3).
               완주 후엔 연도 줄 자체를 제거 (v8.4, 오너 피드백 "이 말 자체가 필요 없다") —
               "완성 ≠ 종결" 카피가 CTA 블록에서 대신한다. 연도 수정은 콜라주 편집에 유지 */}

@@ -307,13 +307,11 @@ function seedMosaic(items: CollageItem[], aspect: number): CollageLayout {
   return { items: result, aspect, edited: false };
 }
 
-// ── 미니멀: 상단 타이틀 + 균일 정사각 그리드, 균형 행 분배 (v8.4) ──
-// 구 버전은 셀 크기만 최적화해 마지막 줄에 1장만 남는 고아 행이 생겼다(폰 n=2,3,5,7,9,13,16 등).
-// 행 수 후보마다 행당 개수 차 ≤1로 균형 분배하고, 후보 집합에서 "1장짜리 행"을 원천 배제한다:
-// r ∈ [ceil(n/maxCols) .. floor(n/2)]는 모든 행이 ≥2장, r = n은 전 행 1장(세로 스택 히어로)뿐.
-// n≥2에서 항상 유효 후보가 존재: r=floor(n/2)는 2·3장 행만 만들고 cols_eff ≤ 3 ≤ maxCols.
+// ── 미니멀: 균일 균형 행 그리드 (v8.4) — v8.5부터 시드는 아래 혼합 밴드 타일링으로 이사.
+// 이 함수는 reflowLayout의 전-스팬-1×1 경로(편집으로 균일해진 배치의 리플로우)에만 남는다.
+// 고아 행 배제 원리: r ∈ [ceil(n/maxCols) .. floor(n/2)]는 모든 행이 ≥2장, r = n은 전 행 1장뿐.
 
-/** 균형 행 그리드 배치 — seedMinimal(시드)과 reflowLayout(편집 리플로우)이 공유.
+/** 균형 행 그리드 배치 — reflowLayout(편집 리플로우)의 균일 1×1 경로 전용 (v8.5부터).
  *  z: 시드는 i+1, 리플로우는 entries.z 보존. includeH: 리플로우 계약은 h를 직접 읽는다 */
 function layoutBalancedGrid(
   entries: { key: string; z?: number }[],
@@ -376,12 +374,166 @@ function layoutBalancedGrid(
   return result;
 }
 
+// ── 미니멀 혼합 그리드 시드 (v8.5) ──
+// 구 균일 시드는 1~18장 전부 같은 크기라 "배치를 전혀 고려하지 않았다"는 오너 피드백.
+// "큰 사진 1개"가 아니라 크고 작은 여러 장이 섞이되(오너 확정), 미니멀답게 여백·정렬은 유지:
+// 밴드가 C열 그리드를 정확히 타일해 구멍·겹침이 원천적으로 없다.
+//  - 히어로 밴드(2행): 2×2 하나 + (C−2)열×(1×1 두 장 스택) = 1+2(C−2)장. 밴드마다 좌/우 교대
+//  - 균일 행: C×1×1. 히어로와 교차 배열해 리듬을 만든다
+//  - 나머지 r: r=1 → 가운데 배너 [min(C,4),1] (⚠️ 스팬 ≤4 — inferGridSpans 캡과 락스텝),
+//    r≥2 → 가운데 짧은 행
+// C는 3..maxCols 후보마다 실제 구성해 보고 k-축소 반영 최종 셀 폭이 가장 큰 값을 고른다
+// (seedMosaic·layoutBalancedGrid와 같은 탐색 철학 — 장수·비율 전 범위 자동 적응).
+type MinimalBand =
+  | { kind: 'hero'; heroRight: boolean }
+  | { kind: 'row'; count: number }
+  | { kind: 'banner' };
+
 function seedMinimal(items: CollageItem[], aspect: number): CollageLayout {
-  return {
-    items: layoutBalancedGrid(items, aspect, false),
-    aspect,
-    edited: false,
-  };
+  const n = items.length;
+  const result: Record<string, CollageLayoutItem> = {};
+  if (n === 0) return { items: result, aspect, edited: false };
+
+  const g = 0.02;
+  const gy = g * aspect;
+  const margin = 0.035;
+  const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.16 : 0.17;
+  const availH = 0.95 - titleBottom;
+
+  // 특례 n=1 — 전폭 히어로 (가로형은 높이 기준 클램프), 수직 센터
+  if (n === 1) {
+    let w = 1 - margin * 2;
+    let h = w * aspect;
+    if (h > availH) {
+      h = availH;
+      w = h / aspect;
+    }
+    result[items[0].key] = { x: (1 - w) / 2, y: titleBottom + (availH - h) / 2, w, h, z: 1 };
+    return { items: result, aspect, edited: false };
+  }
+  // 특례 n=2 — 폰은 전폭 2단 스택, 4:5·가로형은 좌우 2분할
+  if (n === 2) {
+    if (hasTopReserve(aspect)) {
+      let w = 1 - margin * 2;
+      let h = w * aspect;
+      if (2 * h + gy > availH) {
+        const k = Math.max(0.01, (availH - gy) / (2 * h));
+        w *= k;
+        h *= k;
+      }
+      const top = titleBottom + Math.max(0, (availH - (2 * h + gy)) / 2);
+      items.forEach((item, i) => {
+        result[item.key] = { x: (1 - w) / 2, y: top + i * (h + gy), w, h, z: i + 1 };
+      });
+    } else {
+      let w = (1 - margin * 2 - g) / 2;
+      let h = w * aspect;
+      if (h > availH) {
+        const k = availH / h;
+        w *= k;
+        h *= k;
+      }
+      const left = (1 - (2 * w + g)) / 2;
+      const top = titleBottom + Math.max(0, (availH - h) / 2);
+      items.forEach((item, i) => {
+        result[item.key] = { x: left + i * (w + g), y: top, w, h, z: i + 1 };
+      });
+    }
+    return { items: result, aspect, edited: false };
+  }
+
+  // C 후보 탐색 — n ≥ 3이면 C=3(히어로 밴드 3장)이 항상 유효해 best가 존재한다
+  const maxCols = hasTopReserve(aspect) ? 5 : 7;
+  let best: { cols: number; w: number; hNorm: number; bands: MinimalBand[] } | null = null;
+  for (let C = 3; C <= maxCols; C++) {
+    const heroSize = 1 + 2 * (C - 2);
+    if (n < heroSize) continue;
+    const heroCount = clamp(Math.round(n / (heroSize + C)), 1, 3);
+    const rem = n - heroCount * heroSize;
+    if (rem < 0) continue; // clamp 하한 1에서만 가능(heroSize > n) — 위 가드로 이미 배제
+    const uniformRows = Math.floor(rem / C);
+    const r = rem % C;
+    const bands: MinimalBand[] = [];
+    for (let i = 0; i < Math.max(heroCount, uniformRows); i++) {
+      if (i < heroCount) bands.push({ kind: 'hero', heroRight: i % 2 === 1 });
+      if (i < uniformRows) bands.push({ kind: 'row', count: C });
+    }
+    if (r === 1) bands.push({ kind: 'banner' });
+    else if (r >= 2) bands.push({ kind: 'row', count: r });
+
+    const totalRows = bands.reduce((acc, b) => acc + (b.kind === 'hero' ? 2 : 1), 0);
+    let w = (1 - margin * 2 - (C - 1) * g) / C;
+    let hNorm = w * aspect;
+    const neededH = totalRows * hNorm + (totalRows - 1) * gy;
+    if (neededH > availH) {
+      // 갭 제외 셀 예산 기준 축소 — seedMosaic와 동일한 이유 (v8.2)
+      const k = Math.max(0.01, (availH - (totalRows - 1) * gy) / (totalRows * hNorm));
+      w *= k;
+      hNorm *= k;
+    }
+    if (!best || w > best.w + 1e-9) best = { cols: C, w, hNorm, bands };
+  }
+  const { cols, w, hNorm, bands } = best!;
+  const gridW = cols * w + (cols - 1) * g;
+  const left = (1 - gridW) / 2;
+  const totalRows = bands.reduce((acc, b) => acc + (b.kind === 'hero' ? 2 : 1), 0);
+  const contentH = totalRows * hNorm + (totalRows - 1) * gy;
+  let rowY = titleBottom + Math.max(0, (availH - contentH) / 2);
+
+  let i = 0;
+  for (const band of bands) {
+    if (band.kind === 'hero') {
+      const heroCol = band.heroRight ? cols - 2 : 0;
+      result[items[i].key] = {
+        x: left + heroCol * (w + g),
+        y: rowY,
+        w: 2 * w + g,
+        h: 2 * hNorm + gy,
+        z: i + 1,
+      };
+      i++;
+      for (let c = 0; c < cols; c++) {
+        if (c >= heroCol && c < heroCol + 2) continue; // 히어로 점유 열
+        for (let rr = 0; rr < 2; rr++) {
+          result[items[i].key] = {
+            x: left + c * (w + g),
+            y: rowY + rr * (hNorm + gy),
+            w,
+            h: hNorm,
+            z: i + 1,
+          };
+          i++;
+        }
+      }
+      rowY += 2 * (hNorm + gy);
+    } else if (band.kind === 'row') {
+      const rowOffset = ((cols - band.count) * (w + g)) / 2; // 짧은 행 가운데 정렬
+      for (let c = 0; c < band.count; c++) {
+        result[items[i].key] = {
+          x: left + rowOffset + c * (w + g),
+          y: rowY,
+          w,
+          h: hNorm,
+          z: i + 1,
+        };
+        i++;
+      }
+      rowY += hNorm + gy;
+    } else {
+      const span = Math.min(cols, 4); // ⚠️ inferGridSpans 스팬 캡 1..4 락스텝
+      const bw = span * w + (span - 1) * g;
+      result[items[i].key] = {
+        x: left + (gridW - bw) / 2,
+        y: rowY,
+        w: bw,
+        h: hNorm,
+        z: i + 1,
+      };
+      i++;
+      rowY += hNorm + gy;
+    }
+  }
+  return { items: result, aspect, edited: false };
 }
 
 export function seedLayout(

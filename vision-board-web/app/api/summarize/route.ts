@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
+import { freeLlmConfigured } from '@/lib/llm';
+import { generateGatedStory } from '@/lib/storyGate';
 import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
 
 interface SectionInput {
@@ -16,8 +17,9 @@ interface RequestBody {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
+  // v8.5 — 직접 Groq 호출을 공용 경로(freeChat+품질 게이트)로 이전.
+  // 유일하게 게이트 없던 한국어 산출 라우트라 존댓말·외국 문자가 그대로 새던 곳
+  if (!freeLlmConfigured()) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
   if (rateLimited(req)) return tooManyRequests();
@@ -45,23 +47,22 @@ export async function POST(req: NextRequest) {
     })
     .join('\n\n');
 
-  const prompt = `다음은 ${userName || '사용자'}이(가) 비전보드 작성 과정에서 6개 영역에 걸쳐 답한 내용이야.
+  const system = `이 사람의 전체적인 모습과 원하는 것을 따뜻하고 공감 어린 한국어로 2~3문장으로 요약하세요.
+숫자나 리스트 없이 자연스러운 문장으로, 이 사람을 잘 아는 친구처럼 쓰세요.
+"당신은" 대신 "너는"으로, 존댓말 없이 반말로 쓰세요.
+한국어로만 쓰세요 — 일본어 문자(히라가나·가타카나)·한자·키릴 문자 금지.`;
 
-${sectionLines}
+  const userPrompt = `다음은 ${userName || '사용자'}이(가) 비전보드 작성 과정에서 6개 영역에 걸쳐 답한 내용이야.
 
-이 사람의 전체적인 모습과 원하는 것을 따뜻하고 공감 어린 한국어로 2~3문장으로 요약해줘.
-숫자나 리스트 없이 자연스러운 문장으로, 이 사람을 잘 아는 친구처럼 써줘.
-"당신은" 대신 "너는"으로, 존댓말 없이 반말로 써줘.`;
+${sectionLines}`;
 
   try {
-    const groq = new Groq({ apiKey });
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      messages: [{ role: 'user', content: prompt }],
+    const summary = await generateGatedStory({
+      system,
+      user: userPrompt,
       temperature: 0.7,
+      retryStyleLine: '존댓말 없이 자연스러운 반말로, 금지 표현 없이 다시 써줘.',
     });
-
-    const summary = completion.choices[0]?.message?.content ?? '';
     return NextResponse.json({ summary });
   } catch (err) {
     console.error('Summarize API error:', err);

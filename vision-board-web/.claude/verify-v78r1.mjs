@@ -145,7 +145,8 @@ async function newPage(seed, { suppressCoach = true } = {}) {
   ok('V8-6a 대시보드 재작성 넛지', await page.getByText('보드가 더 자랐네 — 이야기 다시 써줄까?').isVisible().catch(() => false));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1200);
-  ok('V8-6b 콜라주 재작성 넛지 라벨', await page.getByText('보드가 자랐네 — 다시 써줄까? →').isVisible().catch(() => false));
+  // v8.5 — 콜라주 이야기 블록(넛지 라벨 포함) 삭제: 일기 링크로 대체
+  ok('V8-6b 콜라주 넛지 블록 부재·일기 링크', (await page.getByText('보드가 자랐네').count()) === 0 && await page.getByText('📖 미래 일기 읽기 →').isVisible().catch(() => false));
   await ctx.close();
 }
 
@@ -159,7 +160,8 @@ async function newPage(seed, { suppressCoach = true } = {}) {
   ok('V8-7a 대시보드 넛지 부재(구 데이터)', (await page.getByText('이야기 다시 써줄까?').count()) === 0);
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1200);
-  ok('V8-7b 콜라주 라벨 유지(다시 쓰러 가기)', await page.getByText('다시 쓰러 가기 →').isVisible().catch(() => false));
+  // v8.5 — '다시 쓰러 가기' 라벨 삭제(블록 제거): 일기 링크가 상시 진입점
+  ok('V8-7b 콜라주 일기 링크(구 라벨 대체)', await page.getByText('📖 미래 일기 읽기 →').isVisible().catch(() => false));
   await ctx.close();
 }
 

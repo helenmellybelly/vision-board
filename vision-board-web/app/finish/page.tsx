@@ -7,6 +7,7 @@ import { getTargetYear } from '@/lib/targetDate';
 import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
 import { countCompleted } from '@/lib/milestone';
+import { generateBoardStory } from '@/lib/storyClient';
 import MiniBoardPreview from '@/components/MiniBoardPreview';
 import AccountButton from '@/components/AccountButton';
 import { renderStory } from '@/components/StoryModal';
@@ -40,46 +41,13 @@ export default function FinishPage() {
   async function generateStory(sentence: string, currentBoard: BoardData) {
     setStoryFailed(false);
     setPhase('story-loading');
-
-    const sectionData = SECTIONS.map((s) => {
-      const sec = currentBoard.sections[s.id];
-      const slots = sec.extractedSlots || {};
-      return {
-        title: s.title.split(' — ')[0],
-        keyword: slots.keyword,
-        want: slots.want,
-        feeling: slots.feeling,
-        sceneText: sec.sceneText,
-        // v8.0 — 섹션 일기가 최종 이야기의 최우선 재료 (없는 섹션은 서버가 장면 메모로 폴백)
-        miniStory: sec.miniStory,
-      };
-    });
-
-    // 느린/멈춘 연결에서 무한 로딩을 막는 타임아웃 (v7.4 감사 M2)
-    // v8.0 — 존댓말 게이트로 서버가 최대 2회 생성할 수 있어 30s로 상향
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
     try {
-      const res = await fetch('/api/story', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userName: currentBoard.userName,
-          oneSentence: sentence,
-          targetDate: currentBoard.targetDate,
-          sections: sectionData,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-
-      if (!res.ok) throw new Error('API error');
-      const data = await res.json();
-      setStory(data.story);
-      saveFutureDayStory(data.story);
+      // 공용 클라이언트 경로 (v8.5) — /diary 인라인 다듬기와 같은 코드 (lib/storyClient)
+      const result = await generateBoardStory(currentBoard, sentence);
+      setStory(result);
+      saveFutureDayStory(result);
       setPhase('story');
     } catch {
-      clearTimeout(timer);
       // 실패 문자열을 스토리로 저장/표시하지 않는다 — 재시도만 노출하고 '완성' CTA는 숨긴다 (v7.4 감사 M4)
       setStoryFailed(true);
       setPhase('story');

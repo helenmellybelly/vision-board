@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { freeChat, freeLlmConfigured } from '@/lib/llm';
+import { freeLlmConfigured } from '@/lib/llm';
+import { generateGatedStory } from '@/lib/storyGate';
 import { formatDiaryDate, seasonOf } from '@/lib/targetDate';
 import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
-import { storyQualityIssues } from '@/lib/honorific';
 
 interface StorySection {
   title: string;
@@ -51,6 +51,7 @@ const SYSTEM_PROMPT = `당신은 사용자가 원하는 삶이 이미 이루어�
 [말투 — 절대 규칙]
 - 처음부터 끝까지 1인칭 반말 일기체, "~다"로 끝나는 담백한 문장으로만 씁니다.
 - 존댓말 어미(~요, ~습니다, ~세요 등)는 단 한 번도 쓰지 마세요.
+- 한국어로만 쓰세요. 일본어 문자(히라가나·가타카나)·한자·키릴 문자를 단 한 글자도 섞지 마세요.
 - 가끔 혼잣말을 섞어 사람 냄새가 나게 ("~네", "~지 뭐", "...")
 
 [하루의 흐름]
@@ -164,25 +165,14 @@ export async function POST(req: NextRequest) {
     // 최종 일기도 섹션 일기와 같은 품질 경로 — flash 상위 모델 (v8.0).
     // Groq 폴백도 스토리 계열은 70B (v8.4) — 8B는 짜깁기·비문이 나서 프롬프트로 못 살린다.
     // 모델 가용성은 실호출로 검증함(목록 존재 ≠ 호출 가능)
-    let story = await freeChat({
+    // 품질 게이트는 공용 경로 lib/storyGate — 존댓말·클리셰·외국 문자 검출 시 1회 재생성 후 재검증 (v8.5)
+    const story = await generateGatedStory({
       system: SYSTEM_PROMPT,
       user: userPrompt,
       temperature: 0.85,
       geminiModel: 'gemini-flash-latest',
       groqModel: 'llama-3.3-70b-versatile',
     });
-
-    // 품질 게이트 — 존댓말·클리셰가 섞이면 사유를 명시해 1회만 다시 쓴다 (v8.4 확장)
-    const issues = storyQualityIssues(story);
-    if (issues.length > 0) {
-      story = await freeChat({
-        system: SYSTEM_PROMPT,
-        user: `${userPrompt}\n\n(주의: 직전 결과에 ${issues.join('·')} 표현이 섞여 있었어. 처음부터 끝까지 반말 "~다"체로, 금지 표현 없이 다시 써줘.)`,
-        temperature: 0.7,
-        geminiModel: 'gemini-flash-latest',
-        groqModel: 'llama-3.3-70b-versatile',
-      });
-    }
 
     return NextResponse.json({ story });
   } catch (err) {

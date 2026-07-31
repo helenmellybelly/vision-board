@@ -155,6 +155,8 @@ export default function AccountFlow() {
           newer={mergeState.newer}
           localAt={loadBoard().lastVisitAt ?? null}
           serverAt={mergeState.serverAt}
+          localBoard={loadBoard()}
+          serverBoard={mergeState.server}
           onChoose={handleMergeChoice}
           onDismiss={() => setMergeState(null)}
         />

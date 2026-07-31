@@ -182,11 +182,12 @@ async function newPage(seed) {
   await ctx.close();
 }
 {
-  // futureDayStory 있음 — 기기 뷰에서 이야기 블록 노출
+  // v8.5 — 이야기 블록 삭제(/diary와 중복, 오너 피드백): 조용한 일기 링크만
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }, { futureDayStory: '미래의 어느 하루.' }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
-  ok('V5-12b 기기 뷰 이야기 블록', await page.getByText('미래의 하루 이야기').first().isVisible().catch(() => false));
+  ok('V5-12b 이야기 블록 부재', (await page.getByText('미래의 하루 읽기').count()) === 0);
+  ok('V5-12c 일기 링크 노출', await page.getByText('📖 미래 일기 읽기 →').isVisible().catch(() => false));
   await ctx.close();
 }
 

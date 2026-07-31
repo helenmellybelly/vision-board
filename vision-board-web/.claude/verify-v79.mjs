@@ -111,7 +111,10 @@ async function newPage(seed) {
   await trigger.click();
   await page.waitForTimeout(800);
   ok('V9-5b /diary 이동', page.url().includes('/diary'), page.url());
-  ok('V9-5c 일기 본문 렌더', await page.getByText('스토리.').first().isVisible().catch(() => false));
+  // v8.5 — 전체 탭 부록 삭제: 섹션 일기 본문은 섹션 탭에서 확인
+  await page.getByRole('tab', { name: '원하는 내 모습', exact: true }).click();
+  await page.waitForTimeout(400);
+  ok('V9-5c 일기 본문 렌더(섹션 탭)', await page.getByText('스토리.').first().isVisible().catch(() => false));
   await ctx.close();
 }
 

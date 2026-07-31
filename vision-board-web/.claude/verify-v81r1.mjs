@@ -187,7 +187,8 @@ const readSection = (page, id) =>
   ok('B-2a 구 CTA 부재', (await page.getByText('비전보드 완성하러 가기').count()) === 0);
   ok('B-2b 다른 다크 CTA 부재', (await page.getByText('다 됐다, 이제').count()) + (await page.getByText('첫 보드가 열렸어').count()) + (await page.getByText('보드가 더 자랐네').count()) === 0);
   ok('B-2c 중복 🖼️ 버튼 부재', (await page.getByText('🖼️ 내 비전보드 보기').count()) === 0);
-  ok('B-3 walkCaption 완주 분기', await page.getByText('길 끝까지 다 걸었어').isVisible().catch(() => false));
+  // v8.5 — 완주 walkCaption 삭제 (오너: "길 끝까지 다 걸어서 …" 군더더기 표현 제거)
+  ok('B-3 walkCaption 완주 분기 부재', (await page.getByText('길 끝까지 다 걸었어').count()) === 0);
   await page.getByRole('button', { name: '완성한 내 비전보드 보기 →', exact: true }).click();
   await page.waitForURL('**/collage**', { timeout: 8000 }).catch(() => {});
   ok('B-4 주 CTA → /collage', page.url().includes('/collage'));

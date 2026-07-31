@@ -2,9 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { UserRound } from 'lucide-react';
 import useFocusTrap from './useFocusTrap';
 import { resetBoard } from '@/lib/storage';
+
+// 도토리 아이콘 (v8.5) — 범용 사람 아이콘이 정원사 토리 세계관과 이질적이라는 피드백.
+// ⚠️ 버튼 aria-label('내 계정 — 로그인됨'/'계정')은 verify-r2a·v79 계약 — 아이콘만 교체
+function AcornIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 1.8c-.6 0-1 .5-1 1v1.7h2V2.8c0-.5-.4-1-1-1Z" fill="#6B4226" />
+      <path
+        d="M12 3.8c-4.3 0-7.2 2.2-7.2 5.2 0 .6.5 1 1 1h12.4c.5 0 1-.4 1-1 0-3-2.9-5.2-7.2-5.2Z"
+        fill="#8B5E3C"
+      />
+      <path
+        d="M5.6 11.4c.4 4.7 2.8 8.7 6.4 11.8 3.6-3.1 6-7.1 6.4-11.8H5.6Z"
+        fill="#C98A4B"
+      />
+    </svg>
+  );
+}
 
 type Me = { registered: boolean; email?: string; marketingConsent?: boolean };
 
@@ -58,9 +75,9 @@ export default function AccountButton() {
           setConfirmDelete(false);
         }}
         aria-label={loggedIn ? '내 계정 — 로그인됨' : '계정'}
-        className="relative p-2 rounded-full border border-[#E5E1DA] bg-white text-[#1C1B19] hover:bg-black/5"
+        className="relative p-2 rounded-full border border-[#E5E1DA] bg-[#FAF7F2] text-[#1C1B19] hover:bg-black/5"
       >
-        <UserRound size={20} />
+        <AcornIcon />
         {/* 로그인 상태 점 — 아이콘만으로 게스트/로그인 구분이 안 보인다는 피드백(v7.9) */}
         {loggedIn && (
           <span

@@ -23,6 +23,24 @@ export function isBoardMeaningful(b: BoardData | null | undefined): boolean {
   );
 }
 
+/** 병합 시트 옵션 카드 요약 (v8.5) — 타임스탬프만으론 어느 쪽이 내 보드인지 알 수 없다는 피드백.
+ *  일기 수 = miniStory 있는 섹션 수, 사진 수 = 업로드·생성 슬롯 합(legacy images는 그 폴백) */
+export function boardSummary(b: BoardData | null | undefined): {
+  diaryCount: number;
+  photoCount: number;
+} {
+  if (!b || !b.sections) return { diaryCount: 0, photoCount: 0 };
+  const sections = Object.values(b.sections);
+  const diaryCount = sections.filter((s) => !!s.miniStory?.trim()).length;
+  const photoCount = sections.reduce((acc, s) => {
+    const modern = [...(s.uploadedImages ?? []), ...(s.generatedImages ?? [])].filter(Boolean)
+      .length;
+    const legacy = (s.images ?? []).filter(Boolean).length;
+    return acc + (modern || legacy);
+  }, 0);
+  return { diaryCount, photoCount };
+}
+
 /** 로컬 최신성은 lastVisitAt(기획서 §5 — 로컬은 lastVisitAt), 서버는 boards.updated_at.
  *  둘 다 내용이 있으면 자동 덮어쓰기 금지 — 최신 쪽만 제안(ask)하고 선택은 사용자 몫. */
 export function decideMerge(

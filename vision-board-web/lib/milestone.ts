@@ -18,9 +18,10 @@ export function isStoryStale(board: BoardData): boolean {
   );
 }
 
-/** 미래의 하루 이야기 프롬프트 버전 (v8.4) — /api/story 프롬프트를 의미 있게 고칠 때 올린다.
- *  saveFutureDayStory가 저장 시점 버전을 스탬프한다 */
-export const STORY_PROMPT_VERSION = 2;
+/** 미래의 하루 이야기 프롬프트 버전 — /api/story 프롬프트를 의미 있게 고칠 때 올린다.
+ *  saveFutureDayStory가 저장 시점 버전을 스탬프한다.
+ *  v3 (v8.5): 외국 문자 금지 줄 + storyGate 재검증 — 구 이야기 전부에 재작성 넛지가 뜨는 것이 의도 */
+export const STORY_PROMPT_VERSION = 3;
 
 /** 프롬프트 업그레이드 재작성 넛지 판정 (v8.4).
  *  ⚠️ 스탬프 없는 구 데이터(=옛 프롬프트로 쓴 이야기)에 넛지가 뜨는 것이 의도 —

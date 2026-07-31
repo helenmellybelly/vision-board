@@ -15,10 +15,29 @@ export function hasCliche(text: string): boolean {
   );
 }
 
+/** 외국 문자 검출 (v8.5) — "유기のか 과일" 버그: LLM이 한국어 본문에 가나·한자를 흘린다.
+ *  가나·반각 가나·CJK 한자·가나 부호·키릴만 잡고, 라틴 문자는 게이트하지 않는다(영문 고유명사 허용).
+ *  ⚠️ 두 스토리 라우트 SYSTEM_PROMPT의 "한국어로만" 금지 줄, smoke-v80-story S9 정규식과 락스텝 */
+const FOREIGN_SCRIPT_RE = /[぀-ヿｦ-ﾝ一-鿿々〆・Ѐ-ӿ]/;
+
+export function hasForeignScript(text: string): boolean {
+  return FOREIGN_SCRIPT_RE.test(text);
+}
+
+/** 외국 문자 기계 제거 (최후 수단) — 재생성 후에도 남으면 문자만 걷어내고 공백을 정리한다.
+ *  LLM 3차 호출 대신 쓰는 이유: 클라이언트 30s 타임아웃 예산(호출 최대 2회) 보호 */
+export function stripForeignScript(text: string): string {
+  return text
+    .replace(new RegExp(FOREIGN_SCRIPT_RE.source, 'g'), '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/ +([.,!?…~)\]」』"'])/g, '$1');
+}
+
 /** 품질 게이트 판정 — 걸린 사유 목록 (없으면 통과). 재생성 프롬프트에 사유를 명시할 때 사용 */
 export function storyQualityIssues(text: string): string[] {
   const issues: string[] = [];
   if (hasHonorific(text)) issues.push('존댓말');
   if (hasCliche(text)) issues.push('오글거리는 클리셰');
+  if (hasForeignScript(text)) issues.push('한국어가 아닌 문자(일본어 등)');
   return issues;
 }

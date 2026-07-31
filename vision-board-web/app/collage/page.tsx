@@ -11,7 +11,6 @@ import {
   saveCollageDeviceLayout,
   saveCollageDevicePreset,
   saveCollageTemplate,
-  saveFutureDayStory,
   saveUploadedImage,
 } from '@/lib/storage';
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
@@ -21,8 +20,7 @@ import { ASPECT, CollageItem, DEFAULT_TEMPLATE, TEMPLATE_ORDER, aspectsEqual, re
 import { WALLPAPER_PRESETS, WallpaperPreset, loadOne } from '@/lib/wallpaper';
 import { compressImage } from '@/lib/imageUtils';
 import { removeSlotImage } from '@/lib/photoSlots';
-import { FIRST_BOARD_THRESHOLD, isStoryStale } from '@/lib/milestone';
-import StoryModal from '@/components/StoryModal';
+import { FIRST_BOARD_THRESHOLD } from '@/lib/milestone';
 import WallpaperSheet from '@/components/WallpaperSheet';
 import CollageBoard from '@/components/collage/CollageBoard';
 import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
@@ -544,30 +542,15 @@ export default function CollagePage() {
           </>
         )}
 
-        {/* 미래의 하루 이야기 / 완성 CTA — 구 보드 뷰 전용에서 공통 노출로 (v7.5 보드 탭 제거) */}
+        {/* 하단 동선 (v8.5) — 구 '미래의 하루 이야기' 블록 삭제: /diary와 완전 중복이라
+            자리만 차지한다는 오너 피드백. 읽기·다듬기는 /diary가 단일 홈, 여기선 조용한 링크 1줄 */}
         {collageImages.length > 0 && board.futureDayStory ? (
-          <div className="mt-8 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-body">미래의 하루 이야기</span>
-              <button
-                onClick={() => router.push('/finish')}
-                className="text-caption text-[#6E6962] active:opacity-70"
-              >
-                {/* 재작성 넛지 (v7.8) — 스토리 작성 후 보드가 더 자랐으면 라벨로 초대 */}
-                {isStoryStale(board) ? '보드가 자랐네 — 다시 써줄까? →' : '다시 쓰러 가기 →'}
-              </button>
-            </div>
-            <StoryModal
-              story={board.futureDayStory}
-              color="#1C1B19"
-              label="미래의 하루 읽기"
-              title="미래의 하루 이야기"
-              onSave={(s) => {
-                saveFutureDayStory(s);
-                setBoard(loadBoard());
-              }}
-            />
-          </div>
+          <button
+            onClick={() => router.push('/diary')}
+            className="mt-8 block mx-auto py-2 text-caption text-[#6E6962] underline active:opacity-70"
+          >
+            📖 미래 일기 읽기 →
+          </button>
         ) : collageImages.length > 0 && completedCount >= FIRST_BOARD_THRESHOLD ? (
           // 첫 보드 조기 개방 (v7.8) — 임계값부터 최종 스토리로 초대. 6/6 라벨은 불변(v75r1 계약)
           <div className="mt-8 space-y-2">

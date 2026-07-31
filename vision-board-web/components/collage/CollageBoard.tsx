@@ -6,6 +6,7 @@ import {
   ASPECT,
   COLLAGE_THEMES,
   CollageItem,
+  GridSpans,
   MAX_W,
   MIN_W,
   STICKER_FONT_RATIO,
@@ -82,6 +83,10 @@ interface DragState {
   centerX?: number;
   centerY?: number;
   startAngle?: number;
+  /** resize 모드 (v8.5) — 드래그 시작 시점 그리드 정합 캐시(undefined=미계산, null=자유 배치) */
+  gridInfo?: GridSpans | null;
+  /** resize 모드 (v8.5) — 마지막 프리뷰 스팬. 정수 스팬이 바뀔 때만 프리뷰 리플로우 재계산 */
+  previewSpan?: [number, number];
 }
 
 // 문구 스티커 1개 — 글자 크기는 cqi(보드 폭 %)로, canvas 렌더(lib/wallpaper.ts)와 같은 비율식
@@ -158,11 +163,20 @@ export default function CollageBoard({
   const [settling, setSettling] = useState(false);
   const settleTimer = useRef<number | null>(null);
   useEffect(() => () => { if (settleTimer.current) window.clearTimeout(settleTimer.current); }, []);
+  // 반자동 리사이즈 고스트 프리뷰 (v8.5) — 드래그 중 "놓으면 이렇게 정렬돼"를 점선으로 미리 보여준다.
+  // 실사진은 pointer-up에만 이동(커밋 경로 불변)
+  const [previewLayout, setPreviewLayout] = useState<Record<string, CollageLayoutItem> | null>(null);
+  // 자유 배치 안내 (v8.5) — 그리드가 깨져 자동 정렬이 침묵 무시되던 것을 1회 안내로 대체
+  const [freeformHint, setFreeformHint] = useState(false);
+  const freeformHintShown = useRef(false);
+  const hintTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (hintTimer.current) window.clearTimeout(hintTimer.current); }, []);
 
   // 편집 상태 전환은 이 함수로만 — 부모(나란히 배타 편집)에 항상 통지 (v8.1)
   function switchEditing(next: boolean) {
     setEditing(next);
     if (!next) setPhotoAction(null);
+    if (next) freeformHintShown.current = false; // 자유 배치 안내는 편집 세션당 1회 (v8.5)
     onEditingChange?.(next);
   }
 
@@ -309,28 +323,67 @@ export default function CollageBoard({
       next = { ...it, w, h: it.h !== undefined ? it.h * (w / it.w) : undefined };
     }
     commitLive((prev) => ({ ...prev, items: { ...prev.items, [drag.key]: next } }));
+
+    // 고스트 프리뷰 (v8.5) — 그리드 적격 리사이즈에서 정수 스팬이 바뀔 때만 리플로우를 미리 계산
+    if (drag.mode === 'resize' && !isSticker && template !== 'polaroid') {
+      if (drag.gridInfo === undefined) {
+        // 정합 판정은 리사이즈 전 상태 기준 — 드래그된 항목을 원래 rect로 되돌려 역산 (드래그당 1회 캐시)
+        drag.gridInfo = inferGridSpans({ ...liveRef.current.items, [drag.key]: drag.item }, aspect);
+      }
+      const info = drag.gridInfo;
+      if (info) {
+        const [tw, th] = snapSpan(info, next.w, next.h ?? next.w * aspect);
+        if (!drag.previewSpan || drag.previewSpan[0] !== tw || drag.previewSpan[1] !== th) {
+          drag.previewSpan = [tw, th];
+          setPreviewLayout(computeReflow(drag, info, next.w, next.h ?? next.w * aspect));
+        }
+      }
+    }
   }
 
-  // 리사이즈 종료 시 전체 리플로우 (v8.2) — 그리드 정합 배치에서만. 커진 스팬에 맞춰 나머지가
-  // 자리를 내주고, 드래그한 사진도 깔끔한 스팬 크기로 스냅된다. 자유 배치(정합 실패)면 현행 유지.
-  function tryReflow(drag: DragState): CollageLayout | null {
-    const cur = liveRef.current;
-    // 정합 판정은 리사이즈 전 상태 기준 — 드래그된 항목은 원래 rect로 되돌려 역산
-    const preItems = { ...cur.items, [drag.key]: drag.item };
-    const info = inferGridSpans(preItems, aspect);
-    if (!info) return null;
+  // 스팬 스냅 (v8.5) — 가로·세로를 각각 반올림한 비정사각 스팬. 캡 1..4는 inferGridSpans와 락스텝
+  // (구 v8.2는 정사각 [t,t]·캡 3이라 2×1 같은 시드 스팬을 드래그로 만들 수 없었다)
+  function snapSpan(info: GridSpans, w: number, h: number): [number, number] {
     const gx = 0.015;
-    const finalW = cur.items[drag.key].w;
-    const target = clamp(Math.round((finalW + gx) / (info.cellW + gx)), 1, 3);
-    const ordered = Object.entries(preItems)
+    const gy = gx * aspect;
+    const cellH = info.cellW * aspect;
+    return [
+      clamp(Math.round((w + gx) / (info.cellW + gx)), 1, 4),
+      clamp(Math.round((h + gy) / (cellH + gy)), 1, 4),
+    ];
+  }
+
+  // 리플로우 계산 (v8.5) — 프리뷰(드래그 중)와 커밋(pointer-up)이 같은 계산을 공유.
+  // 다른 항목들은 리사이즈 중 변하지 않으므로 드래그 항목만 원래 rect로 되돌린 스냅샷 기준
+  function computeReflow(
+    drag: DragState,
+    info: GridSpans,
+    finalW: number,
+    finalH: number
+  ): Record<string, CollageLayoutItem> | null {
+    const [tw, th] = snapSpan(info, finalW, finalH);
+    const ordered = Object.entries({ ...liveRef.current.items, [drag.key]: drag.item })
       .filter(([k]) => !k.startsWith('sticker:'))
       .sort(([, a], [, b]) => a.y - b.y || a.x - b.x)
       .map(([k, it]) => ({
         key: k,
-        span: k === drag.key ? ([target, target] as [number, number]) : info.spans[k],
+        span: k === drag.key ? ([tw, th] as [number, number]) : info.spans[k],
         z: it.z,
       }));
-    const placed = reflowLayout(template, ordered, aspect);
+    return reflowLayout(template, ordered, aspect);
+  }
+
+  // 리사이즈 종료 시 전체 리플로우 (v8.2 → v8.5 비정사각 스냅) — 그리드 정합 배치에서만.
+  // 커진 스팬에 맞춰 나머지가 자리를 내주고, 드래그한 사진도 깔끔한 스팬 크기로 스냅된다.
+  function tryReflow(drag: DragState): CollageLayout | null {
+    const cur = liveRef.current;
+    const info =
+      drag.gridInfo !== undefined
+        ? drag.gridInfo
+        : inferGridSpans({ ...cur.items, [drag.key]: drag.item }, aspect);
+    if (!info) return null;
+    const finalIt = cur.items[drag.key];
+    const placed = computeReflow(drag, info, finalIt.w, finalIt.h ?? finalIt.w * aspect);
     if (!placed) return null;
     return { ...cur, items: { ...cur.items, ...placed } };
   }
@@ -339,6 +392,7 @@ export default function CollageBoard({
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
+    setPreviewLayout(null);
     if (drag.mode === 'resize' && !drag.key.startsWith('sticker:') && template !== 'polaroid' && drag.maxDist >= TAP_THRESHOLD) {
       const reflowed = tryReflow(drag);
       if (reflowed) {
@@ -347,6 +401,15 @@ export default function CollageBoard({
         settleTimer.current = window.setTimeout(() => setSettling(false), 300);
         saveEdited(reflowed);
         return;
+      }
+      // 자유 배치 폴백 (v8.5) — 침묵 무시 대신 왜 자동 정렬이 안 되는지 1회 안내.
+      // 사진 1장은 inferGridSpans 정의상 부적격이라 안내 대상이 아니다
+      const photoCount = Object.keys(liveRef.current.items).filter((k) => !k.startsWith('sticker:')).length;
+      if (photoCount >= 2 && !freeformHintShown.current) {
+        freeformHintShown.current = true;
+        setFreeformHint(true);
+        if (hintTimer.current) window.clearTimeout(hintTimer.current);
+        hintTimer.current = window.setTimeout(() => setFreeformHint(false), 2500);
       }
     }
     saveEdited(liveRef.current);
@@ -602,6 +665,41 @@ export default function CollageBoard({
               </div>
             );
           })}
+
+        {/* 고스트 프리뷰 (v8.5) — 놓으면 정렬될 자리를 점선으로. 실사진은 pointer-up에 이동 */}
+        {previewLayout && (
+          <div
+            data-testid="reflow-preview"
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none z-40"
+          >
+            {Object.entries(previewLayout).map(([k, it]) => (
+              <div
+                key={k}
+                className="absolute rounded-xl border-2 border-dashed"
+                style={{
+                  left: `${it.x * 100}%`,
+                  top: `${it.y * 100}%`,
+                  width: `${it.w * 100}%`,
+                  height: `${(it.h ?? it.w * aspect) * 100}%`,
+                  borderColor: theme.dark ? 'rgba(255,255,255,0.55)' : 'rgba(28,27,25,0.35)',
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* 자유 배치 안내 (v8.5) — 그리드가 깨진 배치에서 리사이즈해도 자동 정렬이 없는 이유, 2.5s */}
+        {freeformHint && (
+          <div className="absolute bottom-[3cqmin] inset-x-[3cqmin] z-50 flex justify-center pointer-events-none">
+            <p
+              className="rounded-full bg-black/60 text-white px-[3cqmin] py-[1.5cqmin] text-center backdrop-blur-sm animate-fadeIn"
+              style={{ fontSize: '2.8cqmin' }}
+            >
+              자유 배치라 자동 정렬은 쉬어 갈게 — &lsquo;기본 배치로&rsquo;로 되돌릴 수 있어
+            </p>
+          </div>
+        )}
 
         {/* 중앙 연도 카드 — polaroid. 사진 위에 항상 보이는 보드의 시그니처 */}
         {theme.titlePos === 'center' && (

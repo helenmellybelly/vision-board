@@ -66,7 +66,8 @@ async function newPage(seed, init) {
   const { ctx, page } = await newPage(finishedBoard());
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
-  ok('V84-1a 완성 지속 카피', await page.getByText('완성해도 끝은 아니야').isVisible().catch(() => false));
+  // v8.5 — "완성해도 끝은 아니야 …" 인과 어색 카피 교체 (오너 피드백)
+  ok('V84-1a 완성 지속 카피', await page.getByText('비전보드는 계속 가꿔 나갈 수 있어').isVisible().catch(() => false));
   ok('V84-1b 구 연도 완료형 부재', (await page.getByText('나를 그린 보드야').count()) === 0);
   const diaryBtn = page.getByRole('button', { name: '📖 미래 일기 읽기 →', exact: true });
   ok('V84-1c 일기 버튼 존재', await diaryBtn.isVisible().catch(() => false));
@@ -91,7 +92,8 @@ async function newPage(seed, init) {
   await ctx.close();
 }
 {
-  const { ctx, page } = await newPage(finishedBoard({ storyPromptVersion: 2 }));
+  // v8.5 — STORY_PROMPT_VERSION 3 (외국 문자 게이트) — 최신 스탬프 = 3
+  const { ctx, page } = await newPage(finishedBoard({ storyPromptVersion: 3 }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
   ok('V84-2c 최신 스탬프 보드 비노출', (await page.getByText('이야기 짓는 솜씨가 늘었어').count()) === 0);
@@ -105,7 +107,8 @@ async function newPage(seed, init) {
   await page.waitForTimeout(1500);
   ok('V84-3a 탭 7개', (await page.getByRole('tab').count()) === 7);
   ok('V84-3b 기본 전체: 하루 이야기', await page.getByText('미래의 하루 이야기').isVisible().catch(() => false));
-  ok('V84-3c 기본 전체: 6편 부록', await page.getByText('미래 일기 6편').isVisible().catch(() => false));
+  // v8.5 — 6편 부록 삭제(섹션 탭과 중복, 오너 피드백) — 전체 탭은 대표 글 하나만
+  ok('V84-3c 전체 탭: 6편 부록 부재', (await page.getByText('미래 일기 6편').count()) === 0);
   ok('V84-3d /diary 넛지(구 이야기)', await page.getByText('이야기 짓는 솜씨가 늘었어').isVisible().catch(() => false));
   await page.getByRole('tab', { name: '건강', exact: true }).click();
   await page.waitForTimeout(400);
@@ -115,7 +118,7 @@ async function newPage(seed, init) {
   ok('V84-3h 건강 탭: 다른 섹션 숨김', (await page.getByText('일기3.').count()) === 0);
   await page.getByRole('tab', { name: '전체', exact: true }).click();
   await page.waitForTimeout(400);
-  ok('V84-3i 전체 복귀', await page.getByText('미래 일기 6편').isVisible().catch(() => false));
+  ok('V84-3i 전체 복귀(대표 글)', await page.getByText('미래의 어느 하루.').isVisible().catch(() => false));
   await ctx.close();
 }
 {
