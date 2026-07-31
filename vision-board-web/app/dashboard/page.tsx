@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { track } from '@/lib/analytics';
-import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice, saveLoginNudgeSeen, dismissLoginBanner } from '@/lib/storage';
+import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice, saveLoginNudgeSeen, dismissLoginBanner, saveFinishCelebrated } from '@/lib/storage';
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, SectionId } from '@/lib/types';
@@ -17,7 +17,6 @@ import DashboardIntroSheet from '@/components/DashboardIntroSheet';
 import LoginNudgeSheet from '@/components/LoginNudgeSheet';
 import AccountButton from '@/components/AccountButton';
 import WalkPathMap from '@/components/WalkPathMap';
-import DiarySheet from '@/components/DiarySheet';
 import useFocusTrap from '@/components/useFocusTrap';
 
 const RETURN_GAP_MS = 48 * 60 * 60 * 1000; // 복귀 인사 갭 (v7.1-r4)
@@ -41,6 +40,8 @@ export default function DashboardPage() {
   const photoSheetTrapRef = useFocusTrap<HTMLDivElement>(photoSheetOpen, () => setPhotoSheetOpen(false));
   // 보드 연도 편집 — targetDate의 연도만 교체 (v7.3, collage 연도 편집과 같은 소스)
   const [yearEditOpen, setYearEditOpen] = useState(false);
+  // 첫 완주 축하 잎 파티클 (v8.3) — 1회성, reduced-motion이면 시작 자체를 생략
+  const [celebrate, setCelebrate] = useState(false);
 
   useEffect(() => {
     const b = loadBoard();
@@ -56,6 +57,16 @@ export default function DashboardPage() {
     const incomplete = Object.values(b.sections).some((s) => s.status !== 'completed');
     if (b.lastVisitAt && Date.now() - b.lastVisitAt >= RETURN_GAP_MS && incomplete) {
       setShowReturnGreeting(true);
+    }
+    // 첫 완주 축하 (v8.3) — 완주 상태 첫 대시보드 진입 1회. 스탬프는 즉시(중간 이탈해도 반복 없음)
+    const finished =
+      Object.values(b.sections).every((s) => s.status === 'completed') && !!b.futureDayStory;
+    if (finished && !b.finishCelebrated) {
+      saveFinishCelebrated();
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setCelebrate(true);
+        setTimeout(() => setCelebrate(false), 2600);
+      }
     }
     saveLastVisit();
   }, [router]);
@@ -120,6 +131,11 @@ export default function DashboardPage() {
     track('login_nudge_shown', { source: 'banner' });
   }
   const photoSectionCount = SECTIONS.filter((section) => sectionHasPhoto(board.sections[section.id])).length;
+  // 미래 일기 편수 — /diary 링크 트리거 (v8.3, 구 DiarySheet 렌더 조건 승계: 0편이면 미노출)
+  const diaryCount = SECTIONS.filter((section) => {
+    const story = board.sections[section.id]?.miniStory;
+    return !!story && story.trim() !== '';
+  }).length;
   // 산책길 진행 카피 (v7.5) — '지났어'의 분자는 완료(completed) 스테이션 수.
   // 사진만 담긴 진행은 📷 마커 + 중간 카피가 담당(체감 진행 0으로 읽히지 않게)
   const completedCount = statuses.filter((s) => s === 'completed').length;
@@ -240,10 +256,10 @@ export default function DashboardPage() {
               완성한 내 비전보드 보기 →
             </button>
             <button
-              onClick={() => router.push('/finish')}
+              onClick={() => router.push('/diary')}
               className="w-full mt-1.5 py-1.5 text-caption text-[#6E6962] underline text-center active:opacity-70"
             >
-              미래의 하루 일기 다시 읽기 →
+              📖 미래 일기 읽기 →
             </button>
           </div>
         ) : (
@@ -303,16 +319,26 @@ export default function DashboardPage() {
               )}
             </button>
           )}
-          {/* 인터뷰 없이 사진부터(v7.3) + 미래 일기 모아 읽기(v7.9 A안) — 높이 예산상 한 행 공유, 일기 없으면 📷만 전체폭 */}
-          <div className="flex items-center">
-            <button
-              onClick={() => setPhotoSheetOpen(true)}
-              className="flex-1 py-2 text-caption text-[#6E6962] underline active:opacity-70"
-            >
-              📷 질문 없이, 사진부터 담아볼래? →
-            </button>
-            <DiarySheet board={board} />
-          </div>
+          {/* 인터뷰 없이 사진부터(v7.3) + 미래 일기 읽기(v8.3 — 구 DiarySheet 모달을 /diary 링크로 교체).
+              완주 후엔 행 전체 숨김 — 사진 담기는 끝났고, 일기는 주 CTA 아래 보조 링크가 담당 (v8.3) */}
+          {!isFinished && (
+            <div className="flex items-center">
+              <button
+                onClick={() => setPhotoSheetOpen(true)}
+                className="flex-1 py-2 text-caption text-[#6E6962] underline active:opacity-70"
+              >
+                📷 질문 없이, 사진부터 담아볼래? →
+              </button>
+              {diaryCount > 0 && (
+                <button
+                  onClick={() => router.push('/diary')}
+                  className="whitespace-nowrap px-2 py-2 text-caption text-[#6E6962] underline active:opacity-70"
+                >
+                  📖 미래 일기 {diaryCount}편 →
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 진행 현황 */}
@@ -332,16 +358,39 @@ export default function DashboardPage() {
         )}
 
         {/* 산책길 지도 (v7.5) — 스테이션 탭이 곧 섹션 이동 (구 미니보드 허브 계약 유지) */}
-        <div className="mb-5 animate-slideUp">
+        <div className="mb-5 animate-slideUp relative">
           <WalkPathMap
             board={board}
             nextSectionId={recommendedId}
             onSelectSection={handleSelectSection}
+            onOakTap={() => router.push('/collage')}
           />
+          {/* 첫 완주 잎 파티클 (v8.3) — 지도 영역(440px)만 덮는 1회성 오버레이 */}
+          {celebrate && (
+            <div
+              className="absolute top-0 left-0 right-0 h-[440px] rounded-3xl overflow-hidden pointer-events-none"
+              aria-hidden="true"
+            >
+              {Array.from({ length: 8 }, (_, i) => (
+                <span
+                  key={i}
+                  className="absolute animate-leafFall text-body"
+                  style={{ left: `${6 + i * 12}%`, top: '-24px', animationDelay: `${i * 0.16}s` }}
+                >
+                  🍃
+                </span>
+              ))}
+            </div>
+          )}
           <p className="text-caption text-[#6E6962] text-center mt-2">{walkCaption}</p>
-          {/* 보드 연도 — 고정처럼 보인다는 피드백에 편집 진입점 노출 (v7.3) */}
+          {/* 보드 연도 — 고정처럼 보인다는 피드백에 편집 진입점 노출 (v7.3).
+              완주 후엔 완료형 카피만 — 편집 어포던스는 소음, 연도 수정은 콜라주 편집에 유지 (v8.3) */}
           <div className="text-center mt-1">
-            {!yearEditOpen ? (
+            {isFinished ? (
+              <p className="text-caption text-[#6E6962]">
+                🗓️ {getTargetYear(board)}년의 나를 그린 보드야
+              </p>
+            ) : !yearEditOpen ? (
               <p className="text-caption text-[#6E6962]">
                 🗓️ {getTargetYear(board)}년의 나를 그리는 보드야 ·{' '}
                 <button

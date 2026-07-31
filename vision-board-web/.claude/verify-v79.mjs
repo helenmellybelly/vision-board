@@ -101,7 +101,7 @@ async function newPage(seed) {
   await ctx.close();
 }
 
-// ── 5) DiarySheet: 미래 일기 모아 읽기 (v7.9 A안) ──
+// ── 5) 미래 일기 읽기: 대시보드 트리거 → /diary 통합 열람 (v8.3 — 구 DiarySheet 모달 폐기) ──
 {
   const { ctx, page } = await newPage(board({ 1: withPhoto(), 2: withPhoto() }));
   await page.goto(`${BASE}/dashboard`);
@@ -109,8 +109,8 @@ async function newPage(seed) {
   const trigger = page.getByText('미래 일기 2편');
   ok('V9-5a 다시 읽기 트리거(2편)', await trigger.isVisible().catch(() => false));
   await trigger.click();
-  await page.waitForTimeout(400);
-  ok('V9-5b 모아 읽기 모달', await page.getByRole('dialog', { name: '미래 일기 모아 읽기' }).isVisible().catch(() => false));
+  await page.waitForTimeout(800);
+  ok('V9-5b /diary 이동', page.url().includes('/diary'), page.url());
   ok('V9-5c 일기 본문 렌더', await page.getByText('스토리.').first().isVisible().catch(() => false));
   await ctx.close();
 }

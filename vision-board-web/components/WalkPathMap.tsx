@@ -44,11 +44,14 @@ export default function WalkPathMap({
   board,
   nextSectionId,
   onSelectSection,
+  onOakTap,
 }: {
   board: BoardData;
   /** 토리가 서 있는 다음 추천 스테이션 — 전부 완성이면 null(도착점에 선다) */
   nextSectionId?: SectionId | null;
   onSelectSection: (id: SectionId) => void;
+  /** 완주 시 참나무 탭 목적지 (v8.3 — 대시보드가 /collage로 연결). 미완주면 장식 그대로 */
+  onOakTap?: () => void;
 }) {
   const allDone = SECTIONS.every((s) => board.sections[s.id].status === 'completed');
   // 첫 방문(전부 시작 전·사진도 없음)에만 "여기서 시작" 라벨 — 진행이 생기면 글로우+토리만 남긴다.
@@ -69,7 +72,8 @@ export default function WalkPathMap({
   return (
     <div
       className="relative rounded-3xl overflow-hidden h-[440px]"
-      style={{ background: FOREST.gradientCss }}
+      // 완주하면 노을빛 변주 — 돌아올 때마다 "완성된 풍경"으로 보이게 (v8.3)
+      style={{ background: allDone ? FOREST.gradientDoneCss : FOREST.gradientCss }}
     >
       {/* 산책길 — 걸어온 구간은 실선, 나머지는 점선 */}
       <svg
@@ -181,17 +185,37 @@ export default function WalkPathMap({
         );
       })}
 
-      {/* 도착 — 참나무 언덕 (R3에서 /collage 딥링크 예정, R1은 장식) */}
-      <div
-        className="absolute flex items-center gap-1.5 select-none"
-        style={{ left: `${ANCHORS[7].x}%`, top: `${ANCHORS[7].y}%`, transform: 'translate(-50%,-50%)' }}
-      >
-        <span className="relative text-title leading-none" aria-hidden="true">
-          {allDone && tori}
-          🌳
-        </span>
-        <span className="text-micro text-[#C4C2BE] whitespace-nowrap">참나무 언덕</span>
-      </div>
+      {/* 도착 — 참나무 언덕. 완주하면 다 자란 참나무로 승격 + 완성한 보드 딥링크 (v8.3) */}
+      {allDone ? (
+        <button
+          onClick={onOakTap}
+          disabled={!onOakTap}
+          aria-label="완성한 보드 보기"
+          className="absolute flex items-center gap-1.5 select-none active:opacity-80 transition-opacity"
+          style={{ left: `${ANCHORS[7].x}%`, top: `${ANCHORS[7].y}%`, transform: 'translate(-50%,-50%)' }}
+        >
+          <span className="relative leading-none" aria-hidden="true">
+            {tori}
+            {/* 노을빛 글로우 — 완주 보상의 시각 앵커 */}
+            <span
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{ boxShadow: '0 0 26px 10px rgba(255, 214, 130, 0.35)' }}
+            />
+            <span className="block text-4xl">🌳</span>
+          </span>
+          <span className="text-micro text-[#C4C2BE] whitespace-nowrap">다 자란 참나무</span>
+        </button>
+      ) : (
+        <div
+          className="absolute flex items-center gap-1.5 select-none"
+          style={{ left: `${ANCHORS[7].x}%`, top: `${ANCHORS[7].y}%`, transform: 'translate(-50%,-50%)' }}
+        >
+          <span className="relative text-title leading-none" aria-hidden="true">
+            🌳
+          </span>
+          <span className="text-micro text-[#C4C2BE] whitespace-nowrap">참나무 언덕</span>
+        </div>
+      )}
     </div>
   );
 }

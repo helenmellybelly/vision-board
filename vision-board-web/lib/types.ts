@@ -163,4 +163,6 @@ export interface BoardData {
   loginNudgeSeen?: boolean;
   /** 로그인 재유도 배너 마지막 닫은 시각(ms) (R2-2) — 7일 지나면 재노출 */
   loginBannerDismissedAt?: number;
+  /** 첫 완주 축하 연출 1회 완료 (v8.3) — 스탬프형(storyWrittenAtCount 관례): 없으면 연출 후 스탬프 */
+  finishCelebrated?: boolean;
 }

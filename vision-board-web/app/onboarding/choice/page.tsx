@@ -36,10 +36,14 @@ export default function OnboardingChoicePage() {
       </p>
       <button
         onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-        className="w-full py-3.5 rounded-2xl bg-[#1C1B19] text-white font-bold mb-3"
+        className="w-full py-3.5 rounded-2xl bg-[#1C1B19] text-white font-bold"
       >
         Google로 시작하기
       </button>
+      {/* 재방문자 안내 (v8.3 P1) — 기존 회원이 게스트로 잘못 새는 걸 방지 */}
+      <p className="text-caption text-[#9CA3AF] text-center mt-1.5 mb-3">
+        전에 만들던 보드가 있으면 그대로 이어져.
+      </p>
       <button
         onClick={() => router.replace('/dashboard')}
         className="w-full py-3.5 rounded-2xl border border-[#E5E1DA] font-bold mb-6"

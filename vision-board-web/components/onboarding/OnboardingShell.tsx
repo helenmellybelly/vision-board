@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { signIn } from 'next-auth/react';
 
 const TOTAL_STEPS = 3;
 
@@ -31,10 +32,23 @@ export default function OnboardingShell({
         {children}
       </div>
 
+      {/* 재방문자 로그인 진입 (v8.3 P1) — 기존 회원이 온보딩을 다 지나지 않고 바로 보드를 복원.
+          로그인 후 AccountFlow(전역)가 서버 보드를 병합하고 루트가 상태에 따라 배분한다.
+          서버 보드가 없는 신규 유저가 눌러도 흐름 유지 — 로그인 상태로 온보딩 계속, choice는 스킵됨 */}
+      <p className="text-center text-caption text-[#9CA3AF] mt-4">
+        만들던 보드가 있어?{' '}
+        <button
+          onClick={() => void signIn('google', { callbackUrl: '/' })}
+          className="font-semibold text-[#6E6962] underline hover:text-[#1C1B19] transition-colors"
+        >
+          Google로 이어가기 →
+        </button>
+      </p>
+
       {onBack && (
         <button
           onClick={onBack}
-          className="w-full text-[#6E6962] py-2 text-caption mt-4 flex items-center justify-center gap-1 hover:text-[#1C1B19] transition-colors"
+          className="w-full text-[#6E6962] py-2 text-caption mt-2 flex items-center justify-center gap-1 hover:text-[#1C1B19] transition-colors"
         >
           ← 이전
         </button>

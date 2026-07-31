@@ -183,7 +183,21 @@ textarea {
     height 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* 첫 완주 축하 (v8.3) — 대시보드 산책길 위로 잎이 흩날리는 1회성 연출.
+   기본 opacity 0 — reduced-motion에서 animation이 꺼져도 잎이 정지 상태로 남지 않는다 */
+@keyframes leafFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  12% { opacity: 0.9; }
+  100% { transform: translateY(430px) rotate(150deg); opacity: 0; }
+}
+
+.animate-leafFall {
+  opacity: 0;
+  animation: leafFall 2s ease-in forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .animate-leafFall,
   .animate-fadeIn,
   .animate-slideUp,
   .animate-breath,

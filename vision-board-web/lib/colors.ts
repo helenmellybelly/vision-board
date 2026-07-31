@@ -29,4 +29,7 @@ export const FOREST = {
   base: '#243627', // 단색 fallback (그라디언트 불가 컨텍스트)
   card: '#33473A', // 연도 카드 (구 #3A3734)
   gradientCss: 'linear-gradient(180deg, #1F2E22 0%, #2A3D2E 100%)',
+  // v8.3 완주 변주 — 노을빛이 스민 숲. 대시보드 산책길 지도 전용 (콜라주 DOM/canvas에는 미적용 —
+  // 락스텝 계약 유지). 흰 라벨 대비: #43391F 위 11.8:1 — AA 통과
+  gradientDoneCss: 'linear-gradient(180deg, #43391F 0%, #2A3D2E 55%, #1F2E22 100%)',
 } as const;

@@ -57,6 +57,8 @@ ok('S4 존댓말 부재(반말 계약)', !hasHonorific(story));
 const boldCount = (story.match(/\*\*(.*?)\*\*/g) ?? []).length;
 ok('S5 볼드 1곳(soft)', boldCount === 1, `bold=${boldCount}`);
 ok('S6 영역 이름 직접 언급 부재', !/\[(나|건강|관계|일|돈|공간)\]|《/.test(story));
+// v8.3 — 짜깁기감 가드: 영역명이 소제목처럼 줄 머리에 등장하지 않아야 한다
+ok('S7 영역명 소제목 부재', !/^(나|건강|관계|일|돈|공간)\s*[:：—-]/m.test(story));
 
 console.log('\n===== v8.0 최종 일기 스모크 =====');
 for (const r of results) console.log(r);

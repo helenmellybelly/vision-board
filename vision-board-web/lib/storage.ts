@@ -251,6 +251,13 @@ export function markBoardFinished(): void {
   saveBoard(board);
 }
 
+// 첫 완주 축하 연출 1회 스탬프 (v8.3) — 대시보드 잎 파티클이 재방문마다 반복되지 않게
+export function saveFinishCelebrated(): void {
+  const board = loadBoard();
+  board.finishCelebrated = true;
+  saveBoard(board);
+}
+
 // ── 사진 먼저 플로우 (v7.1-r4) ──
 
 // 답변 없이 사진부터 담은 섹션 — in_progress로만 승격 (completed는 답변+사진의 의미 불변)

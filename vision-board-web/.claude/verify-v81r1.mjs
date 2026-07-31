@@ -177,12 +177,13 @@ const readSection = (page, id) =>
   const overrides = {};
   for (let id = 1; id <= 6; id++) overrides[id] = withPhoto();
   const { ctx, page } = await newPage(
-    board(overrides, { futureDayStory: '미래의 어느 하루.', storyWrittenAtCount: 6, oneSentence: '여유로운 사람.' })
+    // finishCelebrated: 축하 파티클 1회 연출이 스위트 타이밍을 흔들지 않게 시드에서 억제 (v8.3)
+    board(overrides, { futureDayStory: '미래의 어느 하루.', storyWrittenAtCount: 6, oneSentence: '여유로운 사람.', finishCelebrated: true })
   );
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(1500);
   ok('B-1a 완주 주 CTA', await page.getByRole('button', { name: '완성한 내 비전보드 보기 →', exact: true }).isVisible().catch(() => false));
-  ok('B-1b 보조 일기 링크', await page.getByRole('button', { name: '미래의 하루 일기 다시 읽기 →', exact: true }).isVisible().catch(() => false));
+  ok('B-1b 보조 일기 링크', await page.getByRole('button', { name: '📖 미래 일기 읽기 →', exact: true }).isVisible().catch(() => false));
   ok('B-2a 구 CTA 부재', (await page.getByText('비전보드 완성하러 가기').count()) === 0);
   ok('B-2b 다른 다크 CTA 부재', (await page.getByText('다 됐다, 이제').count()) + (await page.getByText('첫 보드가 열렸어').count()) + (await page.getByText('보드가 더 자랐네').count()) === 0);
   ok('B-2c 중복 🖼️ 버튼 부재', (await page.getByText('🖼️ 내 비전보드 보기').count()) === 0);

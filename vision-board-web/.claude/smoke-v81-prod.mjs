@@ -72,11 +72,12 @@ for (const path of ['/', '/dashboard', '/collage', '/section/1', '/scene/1', '/s
 {
   const overrides = {};
   for (let id = 1; id <= 6; id++) overrides[id] = withPhoto();
-  const { ctx, page } = await newPage(board(overrides, { futureDayStory: '미래의 어느 하루.', oneSentence: '여유로운 사람.' }));
+  // finishCelebrated: 첫 완주 파티클 억제 (v8.3 시드 관례)
+  const { ctx, page } = await newPage(board(overrides, { futureDayStory: '미래의 어느 하루.', oneSentence: '여유로운 사람.', finishCelebrated: true }));
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(2000);
   ok('S3a 완주 주 CTA', await page.getByText('완성한 내 비전보드 보기').isVisible().catch(() => false));
-  ok('S3b 보조 일기 링크', await page.getByText('미래의 하루 일기 다시 읽기').isVisible().catch(() => false));
+  ok('S3b 보조 일기 링크', await page.getByText('📖 미래 일기 읽기').isVisible().catch(() => false));
   ok('S3c 구 CTA 부재', (await page.getByText('비전보드 완성하러 가기').count()) === 0);
   await ctx.close();
 }
