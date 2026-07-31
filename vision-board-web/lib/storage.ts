@@ -1,4 +1,5 @@
 import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, ChatMessage, ExtractedSlots } from './types';
+import { STORY_PROMPT_VERSION } from './milestone';
 
 const STORAGE_KEY = 'vision-board-data';
 
@@ -372,6 +373,15 @@ export function saveFutureDayStory(story: string): void {
   board.storyWrittenAtCount = Object.values(board.sections).filter(
     (s) => s.status === 'completed'
   ).length;
+  // 프롬프트 버전 스탬프 (v8.4) — 최신 프롬프트로 다시 쓰면 업그레이드 넛지가 접힌다
+  board.storyPromptVersion = STORY_PROMPT_VERSION;
+  saveBoard(board);
+}
+
+// 프롬프트 업그레이드 재작성 넛지 닫기 (v8.4) — 한 번 닫으면 재노출 없음
+export function dismissStoryUpgradeNudge(): void {
+  const board = loadBoard();
+  board.storyUpgradeNudgeDismissed = true;
   saveBoard(board);
 }
 

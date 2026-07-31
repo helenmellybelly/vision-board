@@ -101,7 +101,9 @@ async function newPage(seed) {
   await page.waitForTimeout(1500);
   ok('V83-4a 📷 행 부재', (await page.getByText('질문 없이, 사진부터 담아볼래?').count()) === 0);
   ok('V83-4b 일기 N편 트리거 부재', (await page.getByText(/미래 일기 \d+편/).count()) === 0);
-  ok('V83-4c 연도 완료형 카피', await page.getByText('2029년의 나를 그린 보드야').isVisible().catch(() => false));
+  // v8.4 — 연도 완료형 카피 삭제(오너: "이 말 자체가 필요 없다"), '완성 ≠ 종결' 카피로 대체
+  ok('V83-4c 완성 지속 카피', await page.getByText('완성해도 끝은 아니야').isVisible().catch(() => false));
+  ok('V83-4c2 구 연도 완료형 부재', (await page.getByText('나를 그린 보드야').count()) === 0);
   ok('V83-4d 연도 바꾸기 부재', (await page.getByText('연도 바꾸기').count()) === 0);
   const diaryLink = page.getByRole('button', { name: '📖 미래 일기 읽기 →', exact: true });
   ok('V83-4e 보조 일기 링크', await diaryLink.isVisible().catch(() => false));

@@ -13,6 +13,10 @@ function isAllowed(url: URL): boolean {
   if (ALLOWED_HOSTS.includes(url.hostname)) return true;
   // DALL-E 생성 이미지 (Azure Blob, SAS URL)
   if (url.hostname.endsWith('.blob.core.windows.net')) return true;
+  // 우리 앱의 사진 저장소 (v8.4) — 로그인 시 lib/sync가 data URL을 Vercel Blob으로 전환한다.
+  // app/api/blob/upload/route.ts(put access:'public')와 락스텝: 저장소 호스트가 바뀌면 여기도 함께.
+  // 이 호스트가 빠지면 캔버스 내보내기의 CORS 폴백이 403으로 죽어 사진이 조용히 누락된다.
+  if (url.hostname.endsWith('.public.blob.vercel-storage.com')) return true;
   return false;
 }
 

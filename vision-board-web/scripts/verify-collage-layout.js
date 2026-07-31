@@ -4,13 +4,16 @@
 //   3) 모자이크·미니멀: 콘텐츠 수직 센터링 (상하 여백 차 ≤ 보드 높이의 6%)
 //   4) reconcile: edited 배치에 사진 추가 → 기존 rect 불변 + 새 rect 겹침 ≤ 20%
 //   5) edited:false 배치에 사진 추가 → 신선한 시드로 재배치
+//   8) 미니멀 균형 행 (v8.4): n=2..18 전 비율 — 고아 행(1장) 없음·행당 개수 차 ≤1·행 센터링
+//   9) 미니멀 reflow 라운드트립 (v8.4): 편집 리플로우 후에도 고아 행 재발 없음
+//  10) 숲 레거시 가시성 가드 (v8.4): 손상+플래그無 → 리시드, edited:true·무손상은 보존
 // 실행: node scripts/verify-collage-layout.js  (tsx 없이 돌도록 esbuild-register 대신 정규식 트랜스파일)
 const { execSync } = require('child_process');
 const path = require('path');
 
 // TS 모듈을 그대로 부르기 위해 next 번들 대신 tsx 사용 시도 → 없으면 안내
 const inline = `
-import { seedLayout, resolveLayout, polaroidReserveRect, ASPECT, stickerKey, inferGridSpans, reflowLayout } from '../lib/collageTemplates';
+import { seedLayout, resolveLayout, polaroidReserveRect, ASPECT, stickerKey, inferGridSpans, reflowLayout, isLayoutBroken } from '../lib/collageTemplates';
 
 const results = [];
 const ok = (name, cond, extra = '') => results.push(\`\${cond ? 'PASS' : 'FAIL'} \${name}\${extra ? ' — ' + extra : ''}\`);
@@ -142,6 +145,110 @@ for (const t of ['mosaic', 'minimal']) {
     ok(\`reflow(\${aName}/\${t}) 타깃 사진 확대\`, grew);
     ok(\`reflow(\${aName}/\${t}) z 보존\`, ordered.every((e) => placed[e.key].z === e.z));
   }
+}
+
+// 8) 미니멀 균형 행 (v8.4) — 고아 행 없음(전 행 1장 균일 스택 예외)·행당 개수 차 ≤1·행 가운데 정렬
+for (const [aName, aspect] of Object.entries(ASPECTS)) {
+  for (let n = 2; n <= 18; n++) {
+    const items = mkItems(n);
+    const layout = seedLayout('minimal', items, aspect);
+    const rects = items.map((it) => rectOf(layout.items[it.key], aspect));
+    const rows = new Map();
+    for (const r of rects) {
+      const arr = rows.get(r.y) ?? [];
+      arr.push(r);
+      rows.set(r.y, arr);
+    }
+    const counts = [...rows.values()].map((a) => a.length);
+    const allSingle = counts.every((c) => c === 1);
+    const noOrphan = allSingle || counts.every((c) => c >= 2);
+    ok(\`균형행(\${aName}/n=\${n}) 고아 없음\`, noOrphan, \`rows=\${counts.join(',')}\`);
+    ok(\`균형행(\${aName}/n=\${n}) 개수 차 ≤1\`, Math.max(...counts) - Math.min(...counts) <= 1);
+    const centered = [...rows.values()].every((arr) => {
+      const minX = Math.min(...arr.map((r) => r.x));
+      const maxR = Math.max(...arr.map((r) => r.x + r.w));
+      return Math.abs(minX - (1 - maxR)) <= 0.005;
+    });
+    ok(\`균형행(\${aName}/n=\${n}) 행 센터링\`, centered);
+  }
+}
+
+// 9) 미니멀 reflow 라운드트립 (v8.4) — 편집 리플로우(전 스팬 1×1)도 균형 행 유지 + h·z 계약
+{
+  const aspect = ASPECTS.phone;
+  const items = mkItems(13);
+  const layout = seedLayout('minimal', items, aspect);
+  const info = inferGridSpans(layout.items, aspect);
+  ok('균형행 reflow(n=13) 시드 그리드 정합', !!info);
+  if (info) {
+    const ordered = Object.entries(layout.items)
+      .sort(([, a], [, b]) => a.y - b.y || a.x - b.x)
+      .map(([k, it]) => ({ key: k, span: info.spans[k], z: it.z }));
+    const placed = reflowLayout('minimal', ordered, aspect);
+    ok('균형행 reflow(n=13) 결과 존재', !!placed);
+    if (placed) {
+      const rows = new Map();
+      for (const it of Object.values(placed)) {
+        const arr = rows.get(it.y) ?? [];
+        arr.push(it);
+        rows.set(it.y, arr);
+      }
+      const counts = [...rows.values()].map((a) => a.length);
+      ok('균형행 reflow(n=13) 고아 없음', counts.every((c) => c >= 2) || counts.every((c) => c === 1), \`rows=\${counts.join(',')}\`);
+      ok('균형행 reflow(n=13) h 존재', Object.values(placed).every((it) => typeof it.h === 'number'));
+      ok('균형행 reflow(n=13) z 보존', ordered.every((e) => placed[e.key].z === e.z));
+    }
+  }
+}
+
+// 10) 숲 레거시 가시성 가드 (v8.4) — pre-v8.0 겹침 배치(edited 플래그 없음)만 리시드
+{
+  const aspect = ASPECTS.phone;
+  const items = mkItems(6);
+  const good = seedLayout('polaroid', items, aspect);
+  // 손상 레거시 — 두 사진을 완전히 겹치고 edited 플래그 제거
+  const corrupt = JSON.parse(JSON.stringify(good));
+  corrupt.items['2-0'] = { ...corrupt.items['1-0'], z: corrupt.items['2-0'].z };
+  delete corrupt.edited;
+  ok('숲가드 판정: 손상 레거시 broken', isLayoutBroken(corrupt, items, aspect));
+  const reseeded = resolveLayout('polaroid', items, corrupt, aspect);
+  const fresh = seedLayout('polaroid', items, aspect);
+  const same = items.every((it) => {
+    const a = reseeded.items[it.key]; const b = fresh.items[it.key];
+    return a && b && a.x === b.x && a.y === b.y && a.w === b.w;
+  });
+  ok('숲가드: 손상+플래그無 → 리시드', same);
+  // 사용자가 손댄 배치(edited:true)는 겹쳐도 보존
+  const editedCorrupt = JSON.parse(JSON.stringify(corrupt));
+  editedCorrupt.edited = true;
+  const kept = resolveLayout('polaroid', items, editedCorrupt, aspect);
+  const preservedEdited = items.every((it) => {
+    const a = editedCorrupt.items[it.key]; const b = kept.items[it.key];
+    return b && a.x === b.x && a.y === b.y;
+  });
+  ok('숲가드: 손상+edited:true → 보존', preservedEdited);
+  // 무손상 레거시 — 과발동 없음
+  const legacyOk = JSON.parse(JSON.stringify(good));
+  delete legacyOk.edited;
+  ok('숲가드 판정: 무손상 레거시 정상', !isLayoutBroken(legacyOk, items, aspect));
+  const kept2 = resolveLayout('polaroid', items, legacyOk, aspect);
+  const preservedLegacy = items.every((it) => {
+    const a = legacyOk.items[it.key]; const b = kept2.items[it.key];
+    return b && a.x === b.x && a.y === b.y;
+  });
+  ok('숲가드: 무손상 레거시 → 보존', preservedLegacy);
+  // 단위 판정 — 경계 밖 broken / 40% 겹침 정상 / 스티커 겹침 무시(사진 키만 검사)
+  const oob = { items: { '1-0': { x: 1.1, y: 0.2, w: 0.3, z: 1 } } };
+  ok('숲가드 판정: 경계 밖 broken', isLayoutBroken(oob, [{ key: '1-0', src: 'x' }], aspect));
+  const partial = { items: {
+    '1-0': { x: 0.1, y: 0.1, w: 0.3, z: 1 },
+    '2-0': { x: 0.28, y: 0.1, w: 0.3, z: 2 },
+  } };
+  ok('숲가드 판정: 40% 겹침 정상', !isLayoutBroken(partial, [{ key: '1-0', src: 'x' }, { key: '2-0', src: 'x' }], aspect));
+  const stickerOnly = JSON.parse(JSON.stringify(good));
+  delete stickerOnly.edited;
+  stickerOnly.items[stickerKey('seed-chip')] = { ...stickerOnly.items['1-0'], z: 99 };
+  ok('숲가드 판정: 스티커 겹침 무시', !isLayoutBroken(stickerOnly, items, aspect));
 }
 
 console.log('\\n===== v8.0 콜라주 배치 기하 검증 =====');

@@ -201,6 +201,9 @@ const banner = (page) => page.getByText('브라우저를 정리하면 보드가 
       collageDevicePresets: { phone: 'phone', desktop: 'pc-fhd' },
     }),
   });
+  // v8.4 — 저장 위치 픽커 도입: 헤드리스는 픽커가 자동 취소(AbortError)돼 저장이 '취소'로 처리됨.
+  // 앵커 다운로드 폴백을 강제해 기존 download 단언·저장 성공 흐름을 유지한다
+  await page.addInitScript(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined }));
   await page.goto(`${BASE}/collage?view=phone`); // 기본 view는 desktop — 폰 저장 버튼을 위해 명시
   await page.getByRole('button', { name: '폰 배경화면 저장' }).click();
   const saveBtn = page.getByRole('button', { name: '이미지로 저장' });
@@ -232,6 +235,8 @@ const banner = (page) => page.getByText('브라우저를 정리하면 보드가 
     session: SESSION,
     me: { authenticated: true, registered: true, email: 'helen@test.dev', marketingConsent: false, hasBoard: false, boardUpdatedAt: null },
   });
+  // v8.4 — 헤드리스 픽커 자동 취소 회피: 앵커 다운로드 폴백 강제 (C-1과 동일)
+  await page.addInitScript(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined }));
   await page.goto(`${BASE}/collage?view=phone`); // 기본 view는 desktop — 폰 저장 버튼을 위해 명시
   await page.getByRole('button', { name: '폰 배경화면 저장' }).click();
   const saveBtn = page.getByRole('button', { name: '이미지로 저장' });

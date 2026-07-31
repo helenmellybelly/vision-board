@@ -264,6 +264,8 @@ function seedBoard(page) {
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
     const page = await ctx.newPage();
+    // v8.4 — 저장 위치 픽커 도입: 헤드리스에서 앵커 다운로드 폴백을 강제 (download 단언 유지)
+    await page.addInitScript(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined }));
     await page.goto(BASE, { waitUntil: 'networkidle' });
     await seedBoard(page);
     await page.goto(BASE + '/collage', { waitUntil: 'networkidle' });

@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { track } from '@/lib/analytics';
-import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice, saveLoginNudgeSeen, dismissLoginBanner, saveFinishCelebrated } from '@/lib/storage';
+import { loadBoard, saveDashboardIntroSeen, saveLastVisit, saveTargetDate, recordPathChoice, saveLoginNudgeSeen, dismissLoginBanner, saveFinishCelebrated, dismissStoryUpgradeNudge } from '@/lib/storage';
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, SectionId } from '@/lib/types';
 import { getSectionRoute, getRecommendedSection, isPhotoOnlySection, sectionHasPhoto } from '@/lib/sectionRoute';
-import { FIRST_BOARD_THRESHOLD, isStoryStale } from '@/lib/milestone';
+import { FIRST_BOARD_THRESHOLD, isStoryStale, needsStoryUpgrade } from '@/lib/milestone';
 import { josa } from '@/lib/josa';
 import ProcessBar from '@/components/ProcessBar';
 import ProcessGuide from '@/components/ProcessGuide';
@@ -246,7 +246,9 @@ export default function DashboardPage() {
             <p className="font-semibold text-body">{recommendAction}</p>
           </button>
         ) : isFinished ? (
-          // 완주 후 상태 (v8.1) — Peak-End: 주 행동은 완성한 보드 감상, 일기 다시 읽기는 보조 링크
+          // 완주 후 상태 (v8.1) — Peak-End: 주 행동은 완성한 보드 감상.
+          // 일기 읽기는 v8.4에서 보더 필 버튼으로 승격(밑줄 텍스트는 너무 작아 효용이 낮다는 피드백).
+          // ⚠️ 다크 CTA 동시 1개 계약(v7.9) — 승격 버튼은 흰 배경 보더로 유지할 것
           <div className="mb-3">
             <button
               onClick={() => router.push('/collage')}
@@ -257,10 +259,35 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => router.push('/diary')}
-              className="w-full mt-1.5 py-1.5 text-caption text-[#6E6962] underline text-center active:opacity-70"
+              className="w-full mt-2 py-3 rounded-2xl border border-[#E5E3DF] bg-white text-body font-semibold text-[#1C1B19] active:opacity-70 transition-opacity"
             >
               📖 미래 일기 읽기 →
             </button>
+            {/* 완성 ≠ 종결 카피 (v8.4) — 삭제한 연도 완료형 문구 대신, 보드가 계속 열려 있음을 알린다 */}
+            <p className="text-caption text-[#6E6962] text-center mt-2">
+              완성해도 끝은 아니야 — 사진을 바꾸고, 새 꿈을 더하고, 보드는 계속 자라 🌱
+            </p>
+            {/* 프롬프트 업그레이드 재작성 넛지 (v8.4) — 옛 프롬프트로 쓴 이야기만, 닫으면 재노출 없음 */}
+            {needsStoryUpgrade(board) && (
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <button
+                  onClick={() => router.push('/finish')}
+                  className="py-1.5 text-caption text-[#6E6962] underline active:opacity-70"
+                >
+                  이야기 짓는 솜씨가 늘었어 — 다시 써볼까? →
+                </button>
+                <button
+                  onClick={() => {
+                    dismissStoryUpgradeNudge();
+                    setBoard(loadBoard());
+                  }}
+                  aria-label="다시 쓰기 안내 닫기"
+                  className="text-[#C9C5BE] text-caption px-1 active:opacity-60"
+                >
+                  ×
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <button
@@ -384,13 +411,10 @@ export default function DashboardPage() {
           )}
           <p className="text-caption text-[#6E6962] text-center mt-2">{walkCaption}</p>
           {/* 보드 연도 — 고정처럼 보인다는 피드백에 편집 진입점 노출 (v7.3).
-              완주 후엔 완료형 카피만 — 편집 어포던스는 소음, 연도 수정은 콜라주 편집에 유지 (v8.3) */}
+              완주 후엔 연도 줄 자체를 제거 (v8.4, 오너 피드백 "이 말 자체가 필요 없다") —
+              "완성 ≠ 종결" 카피가 CTA 블록에서 대신한다. 연도 수정은 콜라주 편집에 유지 */}
           <div className="text-center mt-1">
-            {isFinished ? (
-              <p className="text-caption text-[#6E6962]">
-                🗓️ {getTargetYear(board)}년의 나를 그린 보드야
-              </p>
-            ) : !yearEditOpen ? (
+            {isFinished ? null : !yearEditOpen ? (
               <p className="text-caption text-[#6E6962]">
                 🗓️ {getTargetYear(board)}년의 나를 그리는 보드야 ·{' '}
                 <button

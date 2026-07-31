@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { track } from '@/lib/analytics';
 import useFocusTrap from './useFocusTrap';
 import { CollageLayout, CollageTemplate } from '@/lib/types';
 import { CollageItem } from '@/lib/collageTemplates';
-import { WallpaperPreset, renderBoardLayout, saveCanvas } from '@/lib/wallpaper';
+import {
+  WallpaperPreset,
+  pickSaveHandle,
+  renderBoardLayout,
+  saveCanvas,
+  writeCanvasToHandle,
+} from '@/lib/wallpaper';
 
 interface Props {
   year: string;
@@ -29,6 +35,9 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
   const [savedOnce, setSavedOnce] = useState(false);
 
   const landscape = preset.w > preset.h;
+  // 미리보기로 렌더한 캔버스를 보관 — 저장 시 재렌더(이미지 전체 재로드) 없이 그대로 쓴다 (v8.4)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cancelledRef = useRef(false);
 
   function renderCurrent(): Promise<{ canvas: HTMLCanvasElement; skipped: number }> {
     return renderBoardLayout(board.template, board.layout, board.items, year, {
@@ -38,21 +47,27 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
   }
 
   // 미리보기 생성 — 편집 보드의 배치·스티커를 선택한 해상도 그대로 옮긴다(WYSIWYG)
+  // 못 불러온 사진이 있으면 "다시 시도" 버튼이 같은 함수를 재호출한다 (v8.4)
+  async function buildPreview() {
+    setError('');
+    setPreview('');
+    setSkipped(0);
+    try {
+      const rendered = await renderCurrent();
+      if (cancelledRef.current) return;
+      canvasRef.current = rendered.canvas;
+      setPreview(rendered.canvas.toDataURL('image/jpeg', 0.82));
+      setSkipped(rendered.skipped);
+    } catch {
+      if (!cancelledRef.current) setError('미리보기를 만들지 못했어. 잠시 후 다시 시도해줘.');
+    }
+  }
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const rendered = await renderCurrent();
-        if (!cancelled) {
-          setPreview(rendered.canvas.toDataURL('image/jpeg', 0.82));
-          setSkipped(rendered.skipped);
-        }
-      } catch {
-        if (!cancelled) setError('미리보기를 만들지 못했어. 잠시 후 다시 시도해줘.');
-      }
-    })();
+    cancelledRef.current = false;
+    void buildPreview();
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -61,9 +76,19 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
     setSaving(true);
     setError('');
     try {
-      const { canvas } = await renderCurrent();
-      const result = await saveCanvas(canvas, `vision-board-${year}-${board.template}-${preset.id}.png`);
-      if (result !== 'cancelled') setSavedOnce(true);
+      const filename = `vision-board-${year}-${board.template}-${preset.id}.png`;
+      // ⚠️ 위치 선택 대화상자는 클릭 직후(첫 await)에 열어야 한다 — transient user activation
+      const picked = await pickSaveHandle(filename);
+      if (picked === 'cancelled') return;
+      const canvas = canvasRef.current ?? (await renderCurrent()).canvas;
+      if (picked === 'unsupported') {
+        // 픽커 미지원(모바일·Safari·Firefox) — 기존 공유/다운로드 흐름
+        const result = await saveCanvas(canvas, filename);
+        if (result === 'cancelled') return;
+      } else {
+        await writeCanvasToHandle(canvas, picked);
+      }
+      setSavedOnce(true);
       track('wallpaper_save', { preset: preset.id, template: board.template });
     } catch {
       setError('저장에 실패했어. 다시 시도해줘.');
@@ -121,7 +146,13 @@ export default function WallpaperSheet({ year, preset, board, onClose }: Props) 
 
         {skipped > 0 && (
           <p className="text-caption text-[#B45309] mt-3 text-center">
-            ⚠️ 사진 {skipped}장은 못 불러와서 빠졌어. 보드에서 바꾸거나 지울 수 있어.
+            ⚠️ 사진 {skipped}장은 못 불러와서 빠졌어.{' '}
+            <button
+              onClick={() => void buildPreview()}
+              className="font-semibold underline active:opacity-70"
+            >
+              다시 시도
+            </button>
           </p>
         )}
         {error && <p className="text-caption text-[#B91C1C] mt-3 text-center">{error}</p>}

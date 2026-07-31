@@ -17,3 +17,18 @@ export function isStoryStale(board: BoardData): boolean {
     countCompleted(board) > board.storyWrittenAtCount
   );
 }
+
+/** 미래의 하루 이야기 프롬프트 버전 (v8.4) — /api/story 프롬프트를 의미 있게 고칠 때 올린다.
+ *  saveFutureDayStory가 저장 시점 버전을 스탬프한다 */
+export const STORY_PROMPT_VERSION = 2;
+
+/** 프롬프트 업그레이드 재작성 넛지 판정 (v8.4).
+ *  ⚠️ 스탬프 없는 구 데이터(=옛 프롬프트로 쓴 이야기)에 넛지가 뜨는 것이 의도 —
+ *  storyWrittenAtCount(없으면 비노출, v7.8)와 반대 방향이다 */
+export function needsStoryUpgrade(board: BoardData): boolean {
+  return (
+    !!board.futureDayStory &&
+    (board.storyPromptVersion ?? 1) < STORY_PROMPT_VERSION &&
+    !board.storyUpgradeNudgeDismissed
+  );
+}

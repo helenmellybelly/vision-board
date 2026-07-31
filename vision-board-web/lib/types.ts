@@ -165,4 +165,9 @@ export interface BoardData {
   loginBannerDismissedAt?: number;
   /** 첫 완주 축하 연출 1회 완료 (v8.3) — 스탬프형(storyWrittenAtCount 관례): 없으면 연출 후 스탬프 */
   finishCelebrated?: boolean;
+  /** 최종 스토리를 생성한 프롬프트 버전 (v8.4) — lib/milestone STORY_PROMPT_VERSION보다 낮으면(없으면 1)
+   *  "다시 써볼까" 업그레이드 넛지 대상. ⚠️ 구 데이터에 넛지가 뜨는 것이 의도 — storyWrittenAtCount와 반대 방향 */
+  storyPromptVersion?: number;
+  /** 프롬프트 업그레이드 재작성 넛지 닫음 (v8.4) — 한 번 닫으면 재노출 없음 */
+  storyUpgradeNudgeDismissed?: boolean;
 }

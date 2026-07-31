@@ -112,6 +112,37 @@ export function polaroidReserveRect(aspect: number): { x: number; y: number; w: 
 interface Rect { x: number; y: number; w: number; h: number }
 const rectsIntersect = (a: Rect, b: Rect) =>
   a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const overlapArea = (a: Rect, b: Rect) => {
+  const ox = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const oy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  return ox * oy;
+};
+
+/** 저장된 배치가 "사진이 서로를 가리는" 수준으로 망가졌는지 판정 (v8.4).
+ *  현재 사진 키만 검사(스티커·삭제된 키 제외). 경계 대폭 이탈 또는 어느 쌍이든
+ *  겹침이 작은 쪽 면적의 50%를 넘으면 broken — v8.0 시드의 최대 겹침은 ~13%라
+ *  정상 시드 계열은 이 임계에 절대 걸리지 않는다. verify-collage-layout이 직접 검증 */
+export function isLayoutBroken(
+  saved: CollageLayout,
+  items: CollageItem[],
+  aspect: number = ASPECT
+): boolean {
+  const rects: Rect[] = [];
+  for (const item of items) {
+    const it = saved.items[item.key];
+    if (!it) continue;
+    const r = { x: it.x, y: it.y, w: it.w, h: it.h ?? it.w * aspect };
+    if (r.x < -0.02 || r.y < -0.02 || r.x + r.w > 1.02 || r.y + r.h > 1.02) return true;
+    rects.push(r);
+  }
+  for (let i = 0; i < rects.length; i++) {
+    for (let j = i + 1; j < rects.length; j++) {
+      const minA = Math.min(rects[i].w * rects[i].h, rects[j].w * rects[j].h);
+      if (minA > 0 && overlapArea(rects[i], rects[j]) / minA > 0.5) return true;
+    }
+  }
+  return false;
+}
 
 /** 숲 그리드 셀 계산 — 픽셀 기준 정사각 셀(cellH = cellW × aspect), 예약 영역과 겹치는 셀은 제외.
  *  cols를 2부터 키워가며 (사진 n + 스티커 2)개가 들어가는 최소 cols를 찾는다 → 사진이 최대한 커진다 */
@@ -276,23 +307,37 @@ function seedMosaic(items: CollageItem[], aspect: number): CollageLayout {
   return { items: result, aspect, edited: false };
 }
 
-// ── 미니멀: 상단 타이틀 + 균일 정사각 그리드, 마지막 줄 가운데 정렬 ──
+// ── 미니멀: 상단 타이틀 + 균일 정사각 그리드, 균형 행 분배 (v8.4) ──
+// 구 버전은 셀 크기만 최적화해 마지막 줄에 1장만 남는 고아 행이 생겼다(폰 n=2,3,5,7,9,13,16 등).
+// 행 수 후보마다 행당 개수 차 ≤1로 균형 분배하고, 후보 집합에서 "1장짜리 행"을 원천 배제한다:
+// r ∈ [ceil(n/maxCols) .. floor(n/2)]는 모든 행이 ≥2장, r = n은 전 행 1장(세로 스택 히어로)뿐.
+// n≥2에서 항상 유효 후보가 존재: r=floor(n/2)는 2·3장 행만 만들고 cols_eff ≤ 3 ≤ maxCols.
 
-function seedMinimal(items: CollageItem[], aspect: number): CollageLayout {
-  const n = items.length;
+/** 균형 행 그리드 배치 — seedMinimal(시드)과 reflowLayout(편집 리플로우)이 공유.
+ *  z: 시드는 i+1, 리플로우는 entries.z 보존. includeH: 리플로우 계약은 h를 직접 읽는다 */
+function layoutBalancedGrid(
+  entries: { key: string; z?: number }[],
+  aspect: number,
+  includeH: boolean
+): Record<string, CollageLayoutItem> {
+  const n = entries.length;
+  const result: Record<string, CollageLayoutItem> = {};
+  if (n === 0) return result;
   const g = 0.02;
   const margin = 0.035;
   const titleBottom = hasTopReserve(aspect) ? 0.22 : isLandscape(aspect) ? 0.16 : 0.17;
   const availH = 0.95 - titleBottom;
   const gy = g * aspect;
 
-  // 컬럼 수 최적 탐색 (v8.2) — 세로 초과 축소까지 반영한 최종 셀 폭이 최대인 cols.
-  // 균일 그리드라 cols=1(세로 스택 히어로)도 후보 — 사진이 적을 땐 그게 제일 크다.
   const maxCols = Math.min(n, hasTopReserve(aspect) ? 5 : 9);
-  let best: { cols: number; w: number; hNorm: number } | null = null;
-  for (let cols = 1; cols <= maxCols; cols++) {
-    let w = (1 - margin * 2 - (cols - 1) * g) / cols;
-    const rows = Math.ceil(n / cols);
+  const candidates: number[] = [];
+  for (let r = Math.ceil(n / maxCols); r <= Math.floor(n / 2); r++) candidates.push(r);
+  candidates.push(n); // 1열 세로 스택 — 사진이 적을 땐 이게 제일 크다
+  let best: { rows: number; colsEff: number; w: number; hNorm: number } | null = null;
+  for (const rows of candidates) {
+    const colsEff = Math.ceil(n / rows); // 균형 분배의 최대 행 개수 = base + (extra>0)
+    if (colsEff > maxCols) continue;
+    let w = (1 - margin * 2 - (colsEff - 1) * g) / colsEff;
     let hNorm = w * aspect;
     const neededH = rows * hNorm + (rows - 1) * gy;
     if (neededH > availH) {
@@ -301,30 +346,42 @@ function seedMinimal(items: CollageItem[], aspect: number): CollageLayout {
       w *= k;
       hNorm *= k;
     }
-    if (!best || w > best.w + 1e-9) best = { cols, w, hNorm };
+    if (!best || w > best.w + 1e-9) best = { rows, colsEff, w, hNorm };
   }
-  const { cols, w, hNorm } = best!;
-  const rows = Math.ceil(n / cols);
-  const gridW = cols * w + (cols - 1) * g;
+  const { rows, colsEff, w, hNorm } = best!;
+  // 균형 분배 — 앞쪽 extra개 행이 1장 더 갖는다 (행당 개수 차 ≤1)
+  const base = Math.floor(n / rows);
+  const extra = n % rows;
+  const gridW = colsEff * w + (colsEff - 1) * g;
   const left = (1 - gridW) / 2;
   // v8.0 — 세로도 가운데 정렬
   const contentH = rows * hNorm + (rows - 1) * gy;
   const top = titleBottom + Math.max(0, (availH - contentH) / 2);
 
-  const result: Record<string, CollageLayoutItem> = {};
-  items.forEach((item, i) => {
-    const r = Math.floor(i / cols);
-    const c = i % cols;
-    const inRow = Math.min(cols, n - r * cols);
-    const rowOffset = ((cols - inRow) * (w + g)) / 2; // 마지막 줄 가운데 정렬
-    result[item.key] = {
-      x: left + rowOffset + c * (w + g),
-      y: top + r * (hNorm + gy),
-      w,
-      z: i + 1,
-    };
-  });
-  return { items: result, aspect, edited: false };
+  let i = 0;
+  for (let r = 0; r < rows; r++) {
+    const inRow = base + (r < extra ? 1 : 0);
+    const rowOffset = ((colsEff - inRow) * (w + g)) / 2; // 모든 짧은 행 가운데 정렬
+    for (let c = 0; c < inRow; c++, i++) {
+      const e = entries[i];
+      result[e.key] = {
+        x: left + rowOffset + c * (w + g),
+        y: top + r * (hNorm + gy),
+        w,
+        ...(includeH ? { h: hNorm } : {}),
+        z: e.z ?? i + 1,
+      };
+    }
+  }
+  return result;
+}
+
+function seedMinimal(items: CollageItem[], aspect: number): CollageLayout {
+  return {
+    items: layoutBalancedGrid(items, aspect, false),
+    aspect,
+    edited: false,
+  };
 }
 
 export function seedLayout(
@@ -381,6 +438,12 @@ export function reflowLayout(
   aspect: number = ASPECT
 ): Record<string, CollageLayoutItem> | null {
   if (template === 'polaroid' || ordered.length === 0) return null;
+  // 미니멀 균일(전 스팬 1×1) 리플로우는 시드와 같은 균형 행 분배로 — 편집 후에도 고아 행이
+  // 재발하지 않는다 (v8.4). 스팬 혼합(사진 확대 편집)은 기존 first-fit 유지 — 스팬 패킹엔
+  // 균형 분배 등가물이 없어 고아 가능성을 허용한다.
+  if (template === 'minimal' && ordered.every((e) => e.span[0] === 1 && e.span[1] === 1)) {
+    return layoutBalancedGrid(ordered, aspect, true);
+  }
   const gx = template === 'mosaic' ? 0.015 : 0.02;
   const gy = gx * aspect;
   const margin = template === 'mosaic' ? 0.02 : 0.035;
@@ -485,11 +548,6 @@ export function placeNewItems(
     // 스티커는 텍스트라 실높이가 낮다 — 정사각 가정이면 팬텀 블록이 생겨 빈 공간 탐색을 방해
     h: it.h ?? (key.startsWith('sticker:') ? it.w * 0.35 : it.w * aspect),
   });
-  const overlapArea = (a: Rect, b: Rect) => {
-    const ox = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
-    const oy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
-    return ox * oy;
-  };
 
   // 새 사진 폭 = 기존 사진 폭 중앙값 (없으면 비율별 기본값)
   const photoWs = Object.entries(existing)
@@ -550,6 +608,12 @@ export function resolveLayout(
     return seedLayout(template, items, aspect);
   }
   if (saved.edited === false) return seedLayout(template, items, aspect);
+  // 숲 레거시 가시성 가드 (v8.4) — edited 플래그 없는 pre-v8.0 배치(18개 고정 슬롯이 서로 겹침)가
+  // "손댄 배치" 취급으로 보존돼 사진이 가려지는 문제. 사진이 실제로 서로를 가릴 때만 시드로 복구.
+  // saveEdited는 항상 edited:true를 쓰므로 사용자가 만진 배치(의도적 겹침 포함)는 절대 리시드되지 않는다.
+  if (template === 'polaroid' && saved.edited === undefined && isLayoutBroken(saved, items, aspect)) {
+    return seedLayout(template, items, aspect);
+  }
 
   const result: Record<string, CollageLayoutItem> = {};
   const newKeys: string[] = [];

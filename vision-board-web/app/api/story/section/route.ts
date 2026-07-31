@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { freeChat, freeLlmConfigured } from '@/lib/llm';
 import { formatDiaryDate, seasonOf } from '@/lib/targetDate';
 import { rateLimited, tooManyRequests, clampStr } from '@/lib/apiGuard';
+import { storyQualityIssues } from '@/lib/honorific';
 
 interface SectionStoryRequest {
   sectionTitle: string;
@@ -110,7 +111,10 @@ const SYSTEM_PROMPT = `당신은 사용자가 원하는 삶이 이미 이루어�
 - 인사말, 진부한 서두 ("오늘은 참 ~한 하루였다" 류)
 - 본문에 날짜·요일 직접 언급
 - 섹션 이름 직접 언급 (나/건강/관계/일/돈/공간)
-- 감정 단어 나열`;
+- 감정 단어 나열
+- 오글거리는 클리셰와 그 변주 (v8.4, lib/honorific hasCliche와 락스텝):
+  "가슴이 벅찼다", "뭉클했다", "이게 꿈인지", "내가 해냈다",
+  "감사한 하루", "완벽한 하루", "미소가 지어졌다", "눈시울이 뜨거워졌다", "울컥했다"`;
 
 export async function POST(req: NextRequest) {
   // v7.4 LLM 무료화 — gpt-4o-mini → Gemini flash(1차)·Groq(2차). 프롬프트는 불변
@@ -177,13 +181,29 @@ ${extractedSlots.feeling || ''}
 [그려낸 장면]이 하루의 중심이 되게.`;
 
   try {
-    // 일기는 결과물 품질이 핵심 — flash 상위 모델 사용 (나머지 유틸 라우트는 flash-lite)
-    const story = await freeChat({
+    // 일기는 결과물 품질이 핵심 — flash 상위 모델 사용 (나머지 유틸 라우트는 flash-lite).
+    // Groq 폴백도 스토리 계열은 70B (v8.4) — 8B는 짜깁기·비문이 나서 프롬프트로 못 살린다
+    let story = await freeChat({
       system: SYSTEM_PROMPT,
       user: userPrompt,
       temperature: 0.9,
       geminiModel: 'gemini-flash-latest',
+      groqModel: 'llama-3.3-70b-versatile',
     });
+
+    // 품질 게이트 (v8.4) — /api/story와 같은 공용 게이트: 존댓말·클리셰 검출 시 1회만 재생성.
+    // 같은 산출물 계열(미래 일기)의 라우트는 검증 경로를 공유해야 품질 격차가 안 생긴다
+    const issues = storyQualityIssues(story);
+    if (issues.length > 0) {
+      story = await freeChat({
+        system: SYSTEM_PROMPT,
+        user: `${userPrompt}\n\n(주의: 직전 결과에 ${issues.join('·')} 표현이 섞여 있었어. 처음부터 끝까지 반말 "~다"체로, 금지 표현 없이 다시 써줘.)`,
+        temperature: 0.7,
+        geminiModel: 'gemini-flash-latest',
+        groqModel: 'llama-3.3-70b-versatile',
+      });
+    }
+
     return NextResponse.json({ story });
   } catch (err) {
     console.error('Section story API error:', err);

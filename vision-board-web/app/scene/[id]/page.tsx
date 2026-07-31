@@ -99,8 +99,9 @@ export default function ScenePage() {
 
   async function generateStory(scene: string, additional?: string): Promise<string> {
     // 느린/멈춘 연결에서 무한 로딩을 막는 타임아웃 (v7.4 감사 M2)
+    // v8.4 — 품질 게이트가 최대 2회 생성하므로 /finish(30s) 관례로 상향
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const timer = setTimeout(() => controller.abort(), 30000);
     try {
       const res = await fetch('/api/story/section', {
         method: 'POST',

@@ -34,27 +34,41 @@ export const WALLPAPER_PRESETS: WallpaperPreset[] = [
 const INK = '#1C1B19';
 const INK_SOFT = '#6E6962';
 
-// 이미지 로드 검증의 정본 — /scenes URL 게이트·콜라주 교체 패널이 재사용 (v8.1).
-// ⚠️ 검증기로 compressImage(lib/imageUtils)를 쓰면 안 된다: onerror가 원본을 그대로 resolve해 항상 통과한다.
-export function loadOne(src: string): Promise<HTMLImageElement> {
+// 단일 로드 시도 — 타임아웃 시 핸들러를 떼고 실패 처리해 미리보기가 영원히 "만드는 중"에 갇히지 않게 (v8.4)
+function tryLoad(url: string, crossOrigin: boolean, timeoutMs: number): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    // 성공적으로 로드된 cross-origin 이미지는 캔버스를 오염시키지 않도록 CORS 모드로
-    if (!src.startsWith('data:')) img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => {
-      if (src.startsWith('data:')) {
-        reject(new Error('image load failed'));
-        return;
-      }
-      // CORS 미지원 호스트면 동일 출처 프록시로 한 번 더 시도
-      const retry = new Image();
-      retry.onload = () => resolve(retry);
-      retry.onerror = () => reject(new Error('image load failed'));
-      retry.src = `/api/image/proxy?url=${encodeURIComponent(src)}`;
+    if (crossOrigin) img.crossOrigin = 'anonymous';
+    const timer = setTimeout(() => {
+      img.onload = null;
+      img.onerror = null;
+      img.src = '';
+      reject(new Error('image load timeout'));
+    }, timeoutMs);
+    img.onload = () => {
+      clearTimeout(timer);
+      resolve(img);
     };
-    img.src = src;
+    img.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error('image load failed'));
+    };
+    img.src = url;
   });
+}
+
+// 이미지 로드 검증의 정본 — /scenes URL 게이트·콜라주 교체 패널이 재사용 (v8.1).
+// ⚠️ 검증기로 compressImage(lib/imageUtils)를 쓰면 안 된다: onerror가 원본을 그대로 resolve해 항상 통과한다.
+export async function loadOne(src: string): Promise<HTMLImageElement> {
+  if (src.startsWith('data:')) return tryLoad(src, false, 10_000);
+  try {
+    // 성공적으로 로드된 cross-origin 이미지는 캔버스를 오염시키지 않도록 CORS 모드로
+    return await tryLoad(src, true, 10_000);
+  } catch {
+    // CORS 미지원·캐시 오염 호스트면 동일 출처 프록시로 한 번 더 시도
+    // (프록시 자체 업스트림 타임아웃 10s를 덮도록 여유 있게)
+    return tryLoad(`/api/image/proxy?url=${encodeURIComponent(src)}`, false, 15_000);
+  }
 }
 
 async function ensureFonts() {
@@ -348,6 +362,42 @@ export async function renderBoardLayout(
   }
 
   return { canvas, skipped };
+}
+
+// ── 저장 위치 선택 (v8.4) — 데스크톱 Chrome/Edge는 OS 저장 대화상자로 위치를 고른다 ──
+// ⚠️ showSaveFilePicker는 transient user activation이 필요 — 클릭 핸들러의 "첫 await"로 호출할 것.
+type SaveFilePickerFn = (opts: {
+  suggestedName?: string;
+  types?: { description?: string; accept: Record<string, string[]> }[];
+}) => Promise<FileSystemFileHandle>;
+
+export async function pickSaveHandle(
+  filename: string
+): Promise<FileSystemFileHandle | 'cancelled' | 'unsupported'> {
+  const picker = (window as { showSaveFilePicker?: SaveFilePickerFn }).showSaveFilePicker;
+  if (typeof picker !== 'function') return 'unsupported';
+  try {
+    return await picker({
+      suggestedName: filename,
+      types: [{ description: 'PNG 이미지', accept: { 'image/png': ['.png'] } }],
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
+    // SecurityError(iframe·헤드리스 등) 포함 그 외 실패는 공유/다운로드 폴백으로
+    return 'unsupported';
+  }
+}
+
+export async function writeCanvasToHandle(
+  canvas: HTMLCanvasElement,
+  handle: FileSystemFileHandle
+): Promise<void> {
+  const blob: Blob = await new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png')
+  );
+  const writable = await handle.createWritable();
+  await writable.write(blob);
+  await writable.close();
 }
 
 // 모바일은 공유 시트(사진 앱 저장), 미지원 환경은 파일 다운로드

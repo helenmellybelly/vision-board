@@ -9,6 +9,9 @@ const ok = (name, cond, extra = '') =>
 // lib/honorific.ts와 동일 패턴 (스모크는 서버 코드를 import할 수 없어 복제)
 const hasHonorific = (t) =>
   /(습니다|입니다|합니다|세요|어요|아요|에요|예요|해요|네요|지요|죠)(?=[\s.,!?…~)"'」』\]]|$)/m.test(t);
+// lib/honorific.ts hasCliche 복제 (v8.4) — 오글 클리셰 게이트
+const hasCliche = (t) =>
+  /(가슴이\s*벅|뭉클|이게\s*꿈(인지|이|만)|꿈만\s*같|내가\s*해냈|해냈다는\s*생각|감사한\s*하루|완벽한\s*하루|미소가\s*지어|입가에\s*미소|눈시울|벅찬\s*(마음|감정)|행복(이|감이)\s*밀려|가슴\s*한\s*켠|울컥)/.test(t);
 
 const payload = {
   userName: '지현',
@@ -59,6 +62,8 @@ ok('S5 볼드 1곳(soft)', boldCount === 1, `bold=${boldCount}`);
 ok('S6 영역 이름 직접 언급 부재', !/\[(나|건강|관계|일|돈|공간)\]|《/.test(story));
 // v8.3 — 짜깁기감 가드: 영역명이 소제목처럼 줄 머리에 등장하지 않아야 한다
 ok('S7 영역명 소제목 부재', !/^(나|건강|관계|일|돈|공간)\s*[:：—-]/m.test(story));
+// v8.4 — 클리셰 게이트: 프롬프트 금지 + 서버 1회 재생성 게이트를 통과한 결과여야 한다
+ok('S8 오글 클리셰 부재', !hasCliche(story));
 
 console.log('\n===== v8.0 최종 일기 스모크 =====');
 for (const r of results) console.log(r);
