@@ -1,5 +1,6 @@
 import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, ChatMessage, ExtractedSlots } from './types';
 import { STORY_PROMPT_VERSION } from './milestone';
+import { bumpBoardRev } from './syncStamp';
 
 const STORAGE_KEY = 'vision-board-data';
 
@@ -157,10 +158,12 @@ function migrateBoard(board: BoardData): void {
 }
 
 // 저장 성공 여부 반환 — base64 이미지 누적으로 localStorage 5MB 한도(QuotaExceededError)에 닿을 수 있다 (v6.17)
-export function trySaveBoard(data: BoardData): boolean {
+// skipRevBump: 방문 스탬프 등 휘발 필드만 바꾸는 저장 — 병합 판정의 "로컬 무변경" rev를 오염시키지 않게 (v8.6)
+export function trySaveBoard(data: BoardData, opts?: { skipRevBump?: boolean }): boolean {
   if (typeof window === 'undefined') return false;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (!opts?.skipRevBump) bumpBoardRev(); // 이벤트 리스너가 최신 rev를 읽도록 dispatch 전에 (v8.6)
     window.dispatchEvent(new Event('vb:board-saved')); // 로그인 시 디바운스 서버 동기화 트리거 (R2-1)
     return true;
   } catch {
@@ -277,11 +280,12 @@ export function dismissPhotoFirstNudge(sectionId: SectionId): void {
   saveBoard(board);
 }
 
-// 복귀 인사 갭 판정용 마지막 방문 시각
+// 복귀 인사 갭 판정용 마지막 방문 시각 — 매 대시보드 마운트마다 저장되는 휘발 필드라
+// rev를 올리면 "로컬 무변경" 병합 분기가 절대 성립하지 않는다 (v8.6)
 export function saveLastVisit(): void {
   const board = loadBoard();
   board.lastVisitAt = Date.now();
-  saveBoard(board);
+  trySaveBoard(board, { skipRevBump: true });
 }
 
 export function resetBoard(): void {

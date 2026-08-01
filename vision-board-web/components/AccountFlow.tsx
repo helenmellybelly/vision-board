@@ -6,6 +6,7 @@ import { track } from '@/lib/analytics';
 import { loadBoard, saveBoard } from '@/lib/storage';
 import { decideMerge } from '@/lib/merge';
 import { syncBoardNow } from '@/lib/sync';
+import { getBoardModifiedAt, getBoardRev, getSyncStamp, setSyncStamp } from '@/lib/syncStamp';
 import { BoardData } from '@/lib/types';
 import ConsentSheet from './ConsentSheet';
 import MergeSheet from './MergeSheet';
@@ -33,6 +34,8 @@ export default function AccountFlow() {
   } | null>(null);
   const syncEnabled = useRef(false);
   const syncing = useRef(false);
+  const pendingSync = useRef(false);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -55,6 +58,9 @@ export default function AccountFlow() {
   }, [status]);
 
   async function afterRegistered() {
+    // "나중에 정할게" 보류 중 — 리로드가 enableSync로 새어 서버를 조용히 덮지 않게 (v8.6).
+    // sessionStorage라 탭 세션이 끝나면 소멸 → 다음 세션엔 진짜 충돌일 때만 다시 묻는다.
+    if (sessionStorage.getItem('vb-merge-deferred')) return;
     // 병합 검사는 브라우저 세션당 1회 — 리로드마다 시트가 반복되지 않게
     if (!sessionStorage.getItem('vb-merge-checked')) {
       sessionStorage.setItem('vb-merge-checked', '1');
@@ -64,9 +70,15 @@ export default function AccountFlow() {
           board: BoardData | null;
           updatedAt: number | null;
         };
-        const decision = decideMerge(loadBoard(), server, updatedAt);
+        const decision = decideMerge(loadBoard(), server, updatedAt, {
+          ...getSyncStamp(),
+          currentRev: getBoardRev(),
+          modifiedAt: getBoardModifiedAt(),
+        });
         if (decision.action === 'useServer' && server) {
           saveBoard(server); // 리로드 후 loadBoard의 migrateBoard가 스키마를 맞춘다
+          // 채택 직후를 "동기화됨"으로 스탬프 — 다음 검사에서 다시 묻지 않게 (v8.6)
+          if (updatedAt !== null) setSyncStamp(updatedAt, getBoardRev());
           window.location.reload();
           return;
         }
@@ -85,13 +97,30 @@ export default function AccountFlow() {
     void runSync();
   }
 
-  async function runSync() {
-    if (syncing.current) return;
+  async function runSync(opts?: { keepalive?: boolean; isRetry?: boolean }) {
+    if (syncing.current) {
+      pendingSync.current = true; // 진행 중(이미지 변환 등) 발생한 저장 유실 방지 — 완료 후 1회 재실행 (v8.6)
+      return;
+    }
     syncing.current = true;
+    let ok = false;
     try {
-      await syncBoardNow();
+      ok = await syncBoardNow(opts);
     } finally {
       syncing.current = false;
+    }
+    if (pendingSync.current) {
+      pendingSync.current = false;
+      void runSync();
+      return;
+    }
+    // 무음 실패 1회 재시도 — 서버 미러가 조용히 뒤처지는 것 완화. 재시도의 재시도는 없음(과설계 금지),
+    // 이후 저장 이벤트가 어차피 새 동기화를 큐잉한다 (v8.6)
+    if (!ok && !opts?.isRetry && !retryTimer.current) {
+      retryTimer.current = setTimeout(() => {
+        retryTimer.current = null;
+        void runSync({ isRetry: true });
+      }, 5000);
     }
   }
 
@@ -101,12 +130,30 @@ export default function AccountFlow() {
     function onSaved() {
       if (!syncEnabled.current) return;
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => void runSync(), 2500);
+      timer = setTimeout(() => {
+        timer = null;
+        void runSync();
+      }, 2500);
+    }
+    // 디바운스 대기분을 탭 이탈 직전에 플러시 — 2.5초 내 이탈로 인한 마지막 저장 유실 방지 (v8.6)
+    function flush() {
+      if (!syncEnabled.current || !timer) return;
+      clearTimeout(timer);
+      timer = null;
+      void runSync({ keepalive: true });
+    }
+    function onVisibility() {
+      if (document.visibilityState === 'hidden') flush();
     }
     window.addEventListener('vb:board-saved', onSaved);
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       window.removeEventListener('vb:board-saved', onSaved);
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
       if (timer) clearTimeout(timer);
+      if (retryTimer.current) clearTimeout(retryTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -133,6 +180,7 @@ export default function AccountFlow() {
     track('login_merge_choice', { choice });
     if (choice === 'server') {
       saveBoard(mergeState.server);
+      if (mergeState.serverAt !== null) setSyncStamp(mergeState.serverAt, getBoardRev());
       setMergeState(null);
       window.location.reload();
       return;
@@ -153,12 +201,16 @@ export default function AccountFlow() {
       {mergeState && (
         <MergeSheet
           newer={mergeState.newer}
-          localAt={loadBoard().lastVisitAt ?? null}
+          localAt={getBoardModifiedAt() ?? loadBoard().lastVisitAt ?? null}
           serverAt={mergeState.serverAt}
           localBoard={loadBoard()}
           serverBoard={mergeState.server}
           onChoose={handleMergeChoice}
-          onDismiss={() => setMergeState(null)}
+          onDismiss={() => {
+            // 보류 — 이 탭 세션에선 검사도 푸시도 하지 않는다("두 보드 다 그대로" 카피의 계약, v8.6)
+            sessionStorage.setItem('vb-merge-deferred', '1');
+            setMergeState(null);
+          }}
         />
       )}
     </>

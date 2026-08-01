@@ -41,10 +41,15 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'invalid board' }, { status: 400 });
   }
   const sql = getSql();
-  await sql`
+  const rows = await sql`
     INSERT INTO boards (user_id, data, schema_version, updated_at)
     VALUES (${user.id}, ${JSON.stringify(data)}::jsonb, ${data.schemaVersion ?? 4}, now())
     ON CONFLICT (user_id) DO UPDATE
-    SET data = EXCLUDED.data, schema_version = EXCLUDED.schema_version, updated_at = now()`;
-  return NextResponse.json({ ok: true });
+    SET data = EXCLUDED.data, schema_version = EXCLUDED.schema_version, updated_at = now()
+    RETURNING updated_at`;
+  // 클라 동기화 스탬프용 — GET과 동일 변환식(epoch ms)이어야 병합 판정 비교가 성립 (v8.6)
+  return NextResponse.json({
+    ok: true,
+    updatedAt: rows[0] ? new Date(rows[0].updated_at as string).getTime() : null,
+  });
 }

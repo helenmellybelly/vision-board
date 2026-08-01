@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import useFocusTrap from './useFocusTrap';
 import { resetBoard } from '@/lib/storage';
+import { clearSyncStamp } from '@/lib/syncStamp';
+
+// 같은 탭 재로그인 시 병합 검사가 통째로 건너뛰어지지 않게 — 세션 스탬프 정리 (v8.6)
+function clearMergeSessionStamps() {
+  sessionStorage.removeItem('vb-merge-checked');
+  sessionStorage.removeItem('vb-merge-deferred');
+}
 
 // 도토리 아이콘 (v8.5) — 범용 사람 아이콘이 정원사 토리 세계관과 이질적이라는 피드백.
 // ⚠️ 버튼 aria-label('내 계정 — 로그인됨'/'계정')은 verify-r2a·v79 계약 — 아이콘만 교체
@@ -58,6 +65,8 @@ export default function AccountButton() {
     const res = await fetch('/api/account', { method: 'DELETE' });
     if (res.ok) {
       if (wipeLocal) resetBoard();
+      clearMergeSessionStamps();
+      clearSyncStamp(); // 서버 보드가 사라졌으므로 동기화 스탬프는 무의미 (v8.6)
       await signOut({ redirect: false });
       window.location.href = '/';
       return;
@@ -128,12 +137,15 @@ export default function AccountButton() {
                   />
                 </label>
                 <button
-                  onClick={() =>
-                    // 계정 삭제 경로와 동일 패턴 — 풀 리로드로 세션 잔상 없이 게스트 상태 재부트
-                    void signOut({ redirect: false }).then(() => {
-                      window.location.href = '/';
-                    })
-                  }
+                  onClick={() => {
+                    clearMergeSessionStamps();
+                    // 완료 화면으로 풀 리로드 이동 — 세션 잔상 없이 게스트 상태 재부트.
+                    // signOut 실패 시에도 이동한다(리로드가 세션을 재평가, v8.6)
+                    const go = () => {
+                      window.location.href = '/logged-out';
+                    };
+                    void signOut({ redirect: false }).then(go, go);
+                  }}
                   className="w-full py-3.5 rounded-2xl border border-[#E5E1DA] font-bold mb-2"
                 >
                   로그아웃
