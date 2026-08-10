@@ -31,7 +31,13 @@ export default function DevicePresetPicker({ groups, selectedId, onSelect }: Pro
   const presets = WALLPAPER_PRESETS.filter((p) => groups.includes(p.group));
   return (
     <div role="radiogroup" aria-label="기기 사이즈">
-      <ScrollRow className="flex gap-1.5 pb-1 -mx-1 px-1">
+      {/* lg+는 줄바꿈 (v8.7) — 칩이 템플릿 탭 아래 전폭으로 올라오면서, 가로 스크롤로 잘려
+          보이던 문제를 없앤다. scrollWidth === clientWidth가 되어 ScrollRow의 › 어포던스도
+          저절로 사라진다. 좁은 화면은 스크롤 행 유지 — 7칩을 wrap하면 3행이 되어 보드를 깎는다 */}
+      <ScrollRow
+        fadeColor="#FAF9F7"
+        className="flex gap-1.5 pb-1 -mx-1 px-1 lg:flex-wrap lg:overflow-x-visible lg:mx-0 lg:px-0"
+      >
         {presets.map((p) => {
           const selected = p.id === selectedId;
           return (

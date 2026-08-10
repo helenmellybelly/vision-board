@@ -5,6 +5,7 @@ import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionId, SectionStatus } from '@/lib/types';
 import { getTargetYear } from '@/lib/targetDate';
 import { FOREST } from '@/lib/colors';
+import { displaySrc } from '@/lib/imageSrc';
 
 // 미니 비전보드 (v7.0-r5) — 구 랜딩 HeroBoard를 진행 피드백으로 확장.
 // v7.7: 흰 폴라로이드 프레임 제거 — CollageBoard와 같은 프레임리스 숲 타일(FOREST.card placeholder).
@@ -161,7 +162,7 @@ function MiniPolaroid({
         {area.photo && !imgBroken ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={area.photo}
+            src={displaySrc(area.photo)}
             alt={area.label}
             className="w-full h-full object-cover"
             // 깨진 URL 사진은 빈 흰 칸 대신 이모지 타일로 (v8.1)

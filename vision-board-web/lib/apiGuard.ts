@@ -10,14 +10,18 @@ import { NextRequest, NextResponse } from 'next/server';
 const WINDOW_MS = 60_000;
 const hits = new Map<string, number[]>();
 
-/** true면 한도 초과 — 호출부에서 tooManyRequests()를 반환한다. */
-export function rateLimited(req: NextRequest, max = 20): boolean {
+/** true면 한도 초과 — 호출부에서 tooManyRequests()를 반환한다.
+ *  bucket (v8.7): 카운터를 용도별로 분리한다. 이전엔 키가 IP뿐이라 전 라우트가 한 통을 공유했고,
+ *  사진 18장을 이미지 프록시로 부르면 그것만으로 /api/story(max 20)가 즉시 429가 됐다.
+ *  기본값 'llm' — 기존 LLM 라우트 호출부는 무변경으로 의미가 보존된다. */
+export function rateLimited(req: NextRequest, max = 20, bucket = 'llm'): boolean {
   const fwd = req.headers.get('x-forwarded-for') ?? '';
   const ip = fwd.split(',')[0]?.trim() || 'unknown';
+  const key = `${bucket}:${ip}`;
   const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  const recent = (hits.get(key) ?? []).filter((t) => now - t < WINDOW_MS);
   recent.push(now);
-  hits.set(ip, recent);
+  hits.set(key, recent);
   // 맵이 무한정 커지지 않도록 가끔 만료 항목 정리
   if (hits.size > 10_000) {
     for (const [k, v] of hits) {

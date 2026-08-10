@@ -76,15 +76,18 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await ctx.close();
 }
 
-// ── V82-2) lg 폰 뷰 — 보드 확대(≥300px) + 우측 컨트롤 레일 ──
+// ── V82-2) lg 폰 뷰 — 보드 확대(≥300px) + 프리셋 칩 위치 ──
+// ⚠️ V82-2b는 v8.7에서 계약이 뒤집혔다. v8.2는 칩을 보드 우측 20rem 레일에 넣었는데,
+// 칩 7개가 그 폭에 안 들어가 화면 밖으로 잘렸다(오너 실사용 신고). 이제 칩은 템플릿 탭
+// 바로 아래 전폭에 있고 레일은 폐지 — 단언도 "보드 위"로 뒤집는다.
 {
   const { ctx, page } = await newPage(boardWithN(6), WIDE);
   await page.goto(`${BASE}/collage?view=phone`);
   await page.waitForTimeout(1800);
   const bd = await boardOf(page, 'phone').boundingBox();
   ok('V82-2a 폰 보드 확대(≥300px)', !!bd && bd.width >= 300, `w=${bd?.width}`);
-  const rail = await page.getByRole('radiogroup', { name: '기기 사이즈' }).boundingBox();
-  ok('V82-2b 프리셋 레일이 보드 우측', !!bd && !!rail && rail.x >= bd.x + bd.width - 4, `rail=${rail?.x} boardR=${bd ? bd.x + bd.width : '?'}`);
+  const chips = await page.getByRole('radiogroup', { name: '기기 사이즈' }).boundingBox();
+  ok('V82-2b 프리셋 칩이 보드 위(전폭)', !!bd && !!chips && chips.y + chips.height <= bd.y + 4, `chipsB=${chips ? chips.y + chips.height : '?'} boardT=${bd?.y}`);
   await ctx.close();
 }
 

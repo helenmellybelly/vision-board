@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import useFocusTrap from './useFocusTrap';
 import { resetBoard } from '@/lib/storage';
-import { clearSyncStamp } from '@/lib/syncStamp';
+import { clearSyncStamp, clearAllDeviceStamps } from '@/lib/syncStamp';
+import { syncBoardNow } from '@/lib/sync';
 
 // 같은 탭 재로그인 시 병합 검사가 통째로 건너뛰어지지 않게 — 세션 스탬프 정리 (v8.6)
 function clearMergeSessionStamps() {
@@ -137,8 +138,15 @@ export default function AccountButton() {
                   />
                 </label>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     clearMergeSessionStamps();
+                    // 로그아웃 전 마지막 편집까지 계정에 확실히 반영한 뒤에만 기기 로컬을 지운다.
+                    // 실패(오프라인 등)하면 로컬을 보존 — 다음 로그인 때 기존 병합 안전망이 지켜준다(v8.7).
+                    const ok = await syncBoardNow().catch(() => false);
+                    if (ok) {
+                      resetBoard();
+                      clearAllDeviceStamps();
+                    }
                     // 완료 화면으로 풀 리로드 이동 — 세션 잔상 없이 게스트 상태 재부트.
                     // signOut 실패 시에도 이동한다(리로드가 세션을 재평가, v8.6)
                     const go = () => {

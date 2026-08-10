@@ -17,7 +17,9 @@ import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, CollageLayout, CollageTemplate, SectionId } from '@/lib/types';
 import { ASPECT, CollageItem, DEFAULT_TEMPLATE, TEMPLATE_ORDER, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
-import { WALLPAPER_PRESETS, WallpaperPreset, loadOne } from '@/lib/wallpaper';
+import { WALLPAPER_PRESETS, WallpaperPreset } from '@/lib/wallpaper';
+import { IMPORT_NOTICES, importRemoteImage } from '@/lib/imagePick';
+import { findRemoteSlots, normalizeSlots } from '@/lib/imageNormalize';
 import { compressImage } from '@/lib/imageUtils';
 import { removeSlotImage } from '@/lib/photoSlots';
 import { FIRST_BOARD_THRESHOLD } from '@/lib/milestone';
@@ -95,6 +97,8 @@ export default function CollagePage() {
   // 로드 실패 사진 키 — 저장 전 경고 배너의 재료 (v8.1)
   const [brokenKeys, setBrokenKeys] = useState<string[]>([]);
   const [saveWarnView, setSaveWarnView] = useState<CollageView | null>(null);
+  const [importingBroken, setImportingBroken] = useState(false);
+  const [importBrokenNotice, setImportBrokenNotice] = useState('');
 
   useEffect(() => {
     const b = loadBoard();
@@ -242,6 +246,37 @@ export default function CollagePage() {
     return { sectionId: Number(m[1]) as SectionId, slot: Number(m[2]) };
   }
 
+  // 깨진 사진을 내 저장소로 수입한다 (v8.7) — 남의 호스트 URL이 원인일 때의 진짜 해결.
+  // 성공한 슬롯은 data URL이 되어 CORS·핫링크·만료와 무관해진다.
+  async function handleImportBroken() {
+    if (importingBroken) return;
+    setImportingBroken(true);
+    setImportBrokenNotice('');
+    try {
+      const slots = findRemoteSlots(brokenKeys);
+      if (slots.length === 0) {
+        setImportBrokenNotice('이 사진들은 다시 가져올 수 없어. 다른 사진으로 바꿔줄래?');
+        return;
+      }
+      const result = await normalizeSlots(slots);
+      if (result.converted > 0) {
+        setBrokenKeys([]);
+        setBoard(loadBoard());
+      }
+      if (result.quotaHit) {
+        setImportBrokenNotice(`${result.converted}장까지 가져왔어. 저장 공간이 부족해 나머지는 사진을 몇 장 지운 뒤 다시 해줘.`);
+      } else if (result.expired.length > 0) {
+        setImportBrokenNotice('일부 사진은 만료돼서 다시 가져올 수 없어. 다른 사진으로 바꿔줄래?');
+      } else if (result.converted === 0) {
+        setImportBrokenNotice('사진을 가져오지 못했어. 잠시 후 다시 시도해줘.');
+      } else {
+        setSaveWarnView(null);
+      }
+    } finally {
+      setImportingBroken(false);
+    }
+  }
+
   function handleRemovePhoto(key: string) {
     const parsed = parsePhotoKey(key);
     if (!parsed) return;
@@ -276,22 +311,16 @@ export default function CollagePage() {
   async function handleReplaceUrl() {
     const url = replaceUrl.trim();
     if (!url || replaceChecking) return;
-    // /scenes URL 게이트와 같은 규칙 (v8.1 T3) — 핀 페이지 주소 차단 + 실로드 프로브
-    if (/\/pin\//.test(url)) {
-      setReplaceNotice("그건 핀 페이지 주소야. 사진을 꾹 눌러서(PC는 우클릭) '이미지 주소 복사'로 가져와줘.");
-      return;
-    }
+    // /scenes URL 게이트와 같은 규칙 — 핀 차단·로드 검증·내 저장소 복사를 importRemoteImage가 일괄 (v8.7)
     setReplaceChecking(true);
     setReplaceNotice('');
-    try {
-      await loadOne(url);
-    } catch {
-      setReplaceNotice('이 주소에선 사진을 못 불러왔어. 이미지 자체 주소(…jpg 같은)를 붙여넣어줘.');
-      setReplaceChecking(false);
+    const imported = await importRemoteImage(url);
+    setReplaceChecking(false);
+    if (!imported.ok) {
+      setReplaceNotice(IMPORT_NOTICES[imported.reason]);
       return;
     }
-    setReplaceChecking(false);
-    applyReplacement(url);
+    applyReplacement(imported.dataUrl);
   }
 
   async function handleReplaceFile(file: File) {
@@ -326,7 +355,8 @@ export default function CollagePage() {
   }
 
   const templateSelector = (
-    <div className="flex gap-1.5 mb-4 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="콜라주 템플릿">
+    // mb-2 (v8.7) — 바로 아래 기기 사이즈 칩과 한 덩어리로 읽히게(템플릿 → 기기 순서)
+    <div className="flex gap-1.5 mb-2 lg:mb-1.5 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="콜라주 템플릿">
       {TEMPLATES.map((t) => (
         <button
           key={t.id}
@@ -344,28 +374,21 @@ export default function CollagePage() {
     </div>
   );
 
-  // 뷰 하나의 전체 패널 (v8.2) — 좁은 화면은 세로 스택, 폰 뷰 lg+는 좌 스테이지·우 컨트롤 레일.
-  // 세로형 보드는 lg에서 좌우가 비기 마련이라, 남는 폭을 컨트롤 레일로 쓰고 보드는 은은한 스테이지 위에 올린다.
-  function renderViewPanel(v: CollageView) {
-    const { preset, aspect, savedLayout } = forView(v);
-    const rail = v === 'phone';
-    const replaceSection =
-      replaceTarget?.view === v ? getSection(parsePhotoKey(replaceTarget.key)?.sectionId ?? (1 as SectionId)) : null;
+  // 기기 사이즈 칩 (v8.7) — 템플릿 탭 바로 아래 전폭. 구 v8.2는 폰 뷰 lg+에서 이걸 보드 우측
+  // 20rem 레일에 넣었는데, 칩 7개가 그 폭에 안 들어가 화면 밖으로 잘렸다. "모자이크·숲·미니멀
+  // 다음에 기기를 고른다"는 실제 순서와도 어긋났다. 레일은 폐지 — 칩이 빠지면 상주 콘텐츠가
+  // 없어 평소엔 빈 칸이 보드를 왼쪽으로 밀 뿐이었다.
+  function renderDevicePicker(v: CollageView) {
+    const { preset } = forView(v);
     return (
-      <div
-        className={`[--board-reserve:13rem] lg:[--board-reserve:10rem] ${
-          rail ? 'lg:grid lg:grid-cols-[1fr_20rem] lg:gap-8 lg:items-start' : ''
-        }`}
-      >
-        {/* 상단 컨트롤 — 사이즈 칩 + 리시드 확인 */}
-        <div className={rail ? 'lg:col-start-2 lg:row-start-1' : undefined}>
+      <div className="mb-3 lg:mb-1">
         <DevicePresetPicker
           groups={v === 'phone' ? ['휴대폰', '태블릿'] : ['PC']}
           selectedId={preset?.id}
           onSelect={(p) => handleSelectPreset(v, p)}
         />
         {confirmReseed && confirmReseed.view === v && (
-          <div className="mb-4 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
+          <div className="mt-2 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
             <p className="text-caption text-[#92400E] mb-2">
               비율이 달라져서 배치를 새로 짜야 해. 지금까지 꾸민 배치는 사라져. 계속할까?
             </p>
@@ -379,10 +402,26 @@ export default function CollagePage() {
             </div>
           </div>
         )}
-        </div>
-        {/* 스테이지 — 보드가 주인공. 폰 뷰 lg+는 은은한 프레임 위 중앙 배치 (v8.2) */}
+      </div>
+    );
+  }
+
+  // 뷰 하나의 보드 패널 — 보드가 주인공, 그 아래 일시적 컨트롤(교체 패널·경고)
+  function renderViewPanel(v: CollageView) {
+    const { preset, aspect, savedLayout } = forView(v);
+    const replaceSection =
+      replaceTarget?.view === v ? getSection(parsePhotoKey(replaceTarget.key)?.sectionId ?? (1 as SectionId)) : null;
+    return (
+      <div>
+        {/* 스테이지 — lg+는 은은한 프레임 위 중앙 배치 (v8.2).
+            세로 보드는 lg에서 프레임을 보드 폭에 맞춰 좁힌다 (v8.7) — 전폭 회색 판 위에 작은
+            보드가 떠 있으면 빈 공간이 실수처럼 보인다. 구 레일이 쓰던 자리이기도 하다 */}
         {preset && (
-          <div className={rail ? 'mt-1 lg:mt-0 lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:bg-[#F5F5F3] lg:rounded-3xl lg:p-4' : 'mt-1'}>
+          <div
+            className={`mt-1 lg:mt-0 lg:bg-[#F5F5F3] lg:rounded-3xl lg:px-2 lg:py-3 ${
+              v === 'phone' ? 'lg:max-w-md lg:mx-auto' : ''
+            }`}
+          >
             <CollageBoard
               key={`${v}-${preset.id}-${template}`}
               view={v}
@@ -397,16 +436,17 @@ export default function CollagePage() {
               onRequestRemove={handleRemovePhoto}
               onBrokenChange={setBrokenKeys}
             />
-            <p className="text-micro text-[#6E6962] text-center mt-2">
+            {/* lg에선 선택한 칩이 해상도를 이미 보여준다 — 세로 예산을 보드에 양보 (v8.7) */}
+            <p className="text-micro text-[#6E6962] text-center mt-2 lg:hidden">
               {v === 'phone'
                 ? '선택한 폰 화면 비율 그대로야. 배치를 다듬고 저장해봐.'
                 : '선택한 PC 화면 비율 그대로야. 배치를 다듬고 저장해봐.'}
             </p>
           </div>
         )}
-        {/* 하단 컨트롤 — 사진 교체 패널·깨진 사진 경고 (레일에선 우측 아래 칸) */}
+        {/* 하단 컨트롤 — 사진 교체 패널·깨진 사진 경고 */}
         {preset && (
-          <div className={rail ? 'lg:col-start-2 lg:row-start-2' : undefined}>
+          <div className="max-w-md mx-auto">
             {replaceTarget && replaceTarget.view === v && (
               <div className="mt-3 rounded-2xl border border-[#E5E3DF] bg-white px-4 py-3 animate-fadeIn">
                 <p className="text-caption font-semibold text-[#1C1B19] mb-0.5">
@@ -464,12 +504,25 @@ export default function CollagePage() {
                 <p className="text-caption text-[#92400E] mb-2">
                   몇 장은 못 불러와서 배경화면엔 안 들어가. ⚠️ 사진을 바꾸거나 지우고 저장해봐.
                 </p>
-                <button
-                  onClick={() => { setSaveWarnView(null); setSheetView(v); }}
-                  className="text-caption font-semibold text-[#92400E]"
-                >
-                  그래도 저장할래
-                </button>
+                <div className="flex gap-4">
+                  {/* 남의 호스트에 있는 사진이 원인일 때의 진짜 해결 — 내 저장소로 복사 (v8.7) */}
+                  <button
+                    onClick={() => void handleImportBroken()}
+                    disabled={importingBroken}
+                    className="text-caption font-semibold text-[#92400E] disabled:opacity-40"
+                  >
+                    {importingBroken ? '가져오는 중...' : '내 보드로 가져오기'}
+                  </button>
+                  <button
+                    onClick={() => { setSaveWarnView(null); setSheetView(v); }}
+                    className="text-caption font-semibold text-[#92400E]"
+                  >
+                    그래도 저장할래
+                  </button>
+                </div>
+                {importBrokenNotice && (
+                  <p className="text-caption text-[#92400E] mt-2">{importBrokenNotice}</p>
+                )}
               </div>
             )}
           </div>
@@ -481,25 +534,31 @@ export default function CollagePage() {
   const sheetData = sheetView ? forView(sheetView) : null;
 
   return (
-    <main className="min-h-screen flex flex-col max-w-md md:max-w-3xl lg:max-w-6xl mx-auto w-full pb-10">
-      {/* 헤더 — 상위는 대시보드 하나 (v7.2 한 화면 통합) */}
-      <div className="px-6 pt-4 pb-3">
-        <div className="flex items-center gap-3 mb-3">
-          <button
-            onClick={() => router.push('/dashboard')}
-            aria-label="대시보드로 돌아가기"
-            className="p-2 -ml-2 text-[#6B7280] active:opacity-60"
-          >
-            ←
-          </button>
-          <h1 className="text-title font-bold">내 비전보드</h1>
-          {/* 계정 진입점 (v7.9 P-1) — 대시보드 밖에서도 로그인·로그아웃 접근 */}
-          <div className="ml-auto">
-            <AccountButton />
-          </div>
+    // lg:pb-4 (v8.7) — 데스크톱 세로 예산 다이어트. sticky 저장 바 아래 여백은 크롬일 뿐이다
+    <main className="min-h-screen flex flex-col max-w-md md:max-w-3xl lg:max-w-6xl mx-auto w-full pb-10 lg:pb-1">
+      {/* 헤더 — 상위는 대시보드 하나 (v7.2 한 화면 통합).
+          v8.7: flex-wrap 한 컨테이너로 통합 — 좁은 화면은 [← 제목 … 도토리] / [뷰 탭] 2줄,
+          lg+는 한 줄([← 제목 … 뷰 탭 도토리])로 접어 세로 한 행(≈52px)을 보드에 돌려준다.
+          ⚠️ 계정 버튼·뷰 탭은 각각 DOM에 하나뿐이어야 한다(중복 렌더는 aria 이름 strict 매칭을 깬다) */}
+      <div className="px-6 pt-4 pb-3 lg:pt-2 lg:pb-1.5 flex flex-wrap items-center gap-x-3 gap-y-3 lg:flex-nowrap lg:gap-x-6">
+        <button
+          onClick={() => router.push('/dashboard')}
+          aria-label="대시보드로 돌아가기"
+          className="p-2 -ml-2 text-[#6B7280] active:opacity-60"
+        >
+          ←
+        </button>
+        <h1 className="text-title font-bold">내 비전보드</h1>
+        {/* 계정 진입점 (v7.9 P-1) — 대시보드 밖에서도 로그인·로그아웃 접근 */}
+        <div className="ml-auto lg:ml-0 lg:order-2">
+          <AccountButton />
         </div>
         {/* 뷰 토글 — 전 뷰포트 공통 2탭. 보드가 전폭을 쓰도록 한 번에 한 뷰만 렌더 (v8.2) */}
-        <div className="flex gap-1.5 bg-[#F5F5F3] rounded-xl p-1 max-w-md" role="radiogroup" aria-label="보기 방식">
+        <div
+          className="w-full lg:w-64 lg:ml-auto lg:order-1 flex gap-1.5 bg-[#F5F5F3] rounded-xl p-1 max-w-md"
+          role="radiogroup"
+          aria-label="보기 방식"
+        >
           {([
             { id: 'phone' as const, label: '📱 폰' },
             { id: 'desktop' as const, label: '🖥️ PC' },
@@ -519,7 +578,18 @@ export default function CollagePage() {
         </div>
       </div>
 
-      <div className="px-4 md:px-6 animate-fadeIn">
+      {/* --board-reserve (v8.7) — 보드 높이 예산의 소유자를 공용 래퍼로 올렸다(CSS 변수는 상속).
+          칩이 뷰 패널 밖으로 나오면서 예산의 주인도 바깥이어야 맞다. PC 뷰가 더 큰 이유:
+          16:9 보드는 폭 바운드라 예산을 키워야 헤더+탭+칩+저장 바가 한 화면에 들어온다.
+          ⚠️ Tailwind JIT 스캔을 위해 완성된 클래스 리터럴을 삼항으로 고를 것(문자열 조립 금지).
+          ⚠️ 이 수치의 진실 원천은 verify-v87r1 V87-4d(무스크롤)·V87-4e(보드 폭 ≥1000px)다. */}
+      <div
+        className={`px-4 md:px-6 animate-fadeIn ${
+          view === 'desktop'
+            ? '[--board-reserve:13rem] lg:[--board-reserve:17rem]'
+            : '[--board-reserve:13rem] lg:[--board-reserve:10rem]'
+        }`}
+      >
         {collageImages.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-body text-[#6E6962]">
@@ -536,8 +606,9 @@ export default function CollagePage() {
           </div>
         ) : (
           <>
-            {/* 템플릿은 뷰 공통 단일 값 — 셀렉터는 하나 */}
+            {/* 템플릿은 뷰 공통 단일 값 — 셀렉터는 하나. 그 바로 아래가 기기 사이즈 (v8.7) */}
             {templateSelector}
+            {renderDevicePicker(view)}
             {renderViewPanel(view)}
           </>
         )}
@@ -572,10 +643,10 @@ export default function CollagePage() {
       {/* 저장 — sticky 하단 바 (v8.2): 보드가 화면보다 길어도 저장 버튼은 항상 손닿는 곳에.
           z-40 — 시트(z-50)·코치마크(z-[60]) 아래 */}
       {collageImages.length > 0 && forView(view).preset && (
-        <div className="sticky bottom-0 z-40 px-4 md:px-6 pt-6 pb-4 bg-gradient-to-t from-[#FAF9F7] via-[#FAF9F7]/85 to-transparent pointer-events-none">
+        <div className="sticky bottom-0 z-40 px-4 md:px-6 pt-6 pb-4 lg:pt-3 lg:pb-2 bg-gradient-to-t from-[#FAF9F7] via-[#FAF9F7]/85 to-[#FAF9F7]/0 pointer-events-none">
           <button
             onClick={() => handleOpenSheet(view)}
-            className="pointer-events-auto block w-full max-w-md mx-auto py-3.5 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity shadow-[0_8px_24px_rgba(28,27,25,0.22)]"
+            className="pointer-events-auto block w-full max-w-md mx-auto py-3.5 lg:py-3 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity shadow-[0_8px_24px_rgba(28,27,25,0.22)]"
           >
             {view === 'phone' ? '폰 배경화면 저장' : 'PC 배경화면 저장'}
           </button>
@@ -645,6 +716,11 @@ export default function CollagePage() {
           preset={sheetData.preset}
           board={{ template, layout: sheetData.currentLayout, items: keyedItems }}
           onClose={() => setSheetView(null)}
+          // 시트에서 사진을 수입하면 보드도 갱신 — 배치는 key 기준이라 그대로 유지된다 (v8.7)
+          onPhotosNormalized={() => {
+            setBrokenKeys([]);
+            setBoard(loadBoard());
+          }}
         />
       )}
     </main>

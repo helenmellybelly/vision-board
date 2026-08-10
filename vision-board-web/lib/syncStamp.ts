@@ -57,3 +57,12 @@ export function clearSyncStamp(): void {
   localStorage.removeItem(SYNCED_SERVER_AT_KEY);
   localStorage.removeItem(SYNCED_LOCAL_REV_KEY);
 }
+
+/** 로그아웃 전체 초기화(v8.7) — 계정으로 이관 완료되어 기기 로컬 이력이 더 이상 필요 없을 때만 호출 */
+export function clearAllDeviceStamps(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(REV_KEY);
+  localStorage.removeItem(MODIFIED_AT_KEY);
+  localStorage.removeItem(SYNCED_SERVER_AT_KEY);
+  localStorage.removeItem(SYNCED_LOCAL_REV_KEY);
+}

@@ -19,9 +19,9 @@ import {
   saveUploadedImages,
 } from '@/lib/storage';
 import { compressImage } from '@/lib/imageUtils';
-import { loadOne } from '@/lib/wallpaper';
+import { displaySrc } from '@/lib/imageSrc';
 import { removeSlotImage } from '@/lib/photoSlots';
-import { getPickedPhotoIds } from '@/lib/imagePick';
+import { getPickedPhotoIds, importRemoteImage, IMPORT_NOTICES } from '@/lib/imagePick';
 import { SectionId } from '@/lib/types';
 import ProcessBar from '@/components/ProcessBar';
 import CuratedGallery from '@/components/CuratedGallery';
@@ -255,29 +255,24 @@ export default function ScenesPage() {
     if (!url || urlChecking) return;
     const emptyIdx = [0, 1, 2].find((i) => !getSlotUrl(i));
     if (emptyIdx === undefined) return;
-    // 핀터레스트 등 '핀 페이지' 주소 — 이미지가 아니라서 보드에 흰 칸으로 남는다 (v8.1)
-    if (/\/pin\//.test(url)) {
-      setSlotNotice("그건 핀 페이지 주소야. 사진을 꾹 눌러서(PC는 우클릭) '이미지 주소 복사'로 가져와줘.");
-      return;
-    }
-    // 실제 로드 프로브 — 렌더·내보내기와 같은 경로(loadOne: 프록시 폴백 포함)로 검증
+    // 붙여넣는 순간 내 저장소로 복사한다 (v8.7) — 남의 호스트 URL을 보드에 남기면 그 뒤로
+    // CORS·핫링크 차단·서명 만료에 인질이 되고 배경화면 저장에서 조용히 빠진다.
+    // 핀 페이지 주소 차단·로드 검증도 importRemoteImage가 함께 맡는다(서버가 실제로 받아본 결과).
     setUrlChecking(true);
     setSlotNotice('');
-    try {
-      await loadOne(url);
-    } catch {
-      setSlotNotice('이 주소에선 사진을 못 불러왔어. 이미지 자체 주소(…jpg 같은)를 붙여넣어줘.');
-      setUrlChecking(false);
+    const imported = await importRemoteImage(url);
+    setUrlChecking(false);
+    if (!imported.ok) {
+      setSlotNotice(IMPORT_NOTICES[imported.reason]);
       return;
     }
-    setUrlChecking(false);
-    const ok = saveUploadedImage(sectionId, emptyIdx, url);
+    const ok = saveUploadedImage(sectionId, emptyIdx, imported.dataUrl);
     if (!ok) {
       setSlotNotice('저장 공간이 부족해 담지 못했어. 사진을 지우고 다시 시도해줘.');
       return;
     }
     const updated = [...uploadedImages];
-    updated[emptyIdx] = url;
+    updated[emptyIdx] = imported.dataUrl;
     setUploadedImages(updated);
     setUrlInput('');
     setSlotNotice('');
@@ -362,7 +357,9 @@ export default function ScenesPage() {
               className="absolute inset-0 w-full h-full"
             >
               <Image
-                src={url}
+                // displaySrc (v8.7) — 보드·캔버스와 같은 URL. unoptimized 유지 필수
+                // (동일 출처가 되므로 제거하면 optimizer가 돌아 비용이 붙는다)
+                src={displaySrc(url)}
                 alt={`image ${i + 1}`}
                 fill
                 className="object-cover"

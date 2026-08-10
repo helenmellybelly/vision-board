@@ -52,8 +52,8 @@ export default function MergeSheet({
       <div ref={trapRef} className="bg-white w-full max-w-md rounded-t-3xl p-6 animate-slideUp">
         <h2 className="text-title font-bold mb-1">보드가 두 개 있어</h2>
         <p className="text-body text-[#6B7280] mb-5">
-          Google 계정에 저장해둔 보드랑, 지금 이 기기에서 만든 보드의 내용이 서로 달라서 물어보는
-          거야. 어느 쪽으로 이어갈지 골라줘 — 고른 쪽만 남고 다른 쪽은 덮어써져.
+          이 기기에서 로그아웃한 상태로 수정한 내용이 있어서, Google 계정에 마지막으로 저장해둔
+          보드랑 달라졌어. 어느 쪽으로 이어갈지 골라줘 — 고른 쪽만 남고 다른 쪽은 덮어써져.
         </p>
         <button
           onClick={() => onChoose('local')}

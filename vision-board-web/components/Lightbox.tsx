@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import useFocusTrap from '@/components/useFocusTrap';
+import { displaySrc } from '@/lib/imageSrc';
 
 interface Props {
   src: string | null;
@@ -15,6 +16,8 @@ interface Props {
 export default function Lightbox({ src, onClose, fit = 'square' }: Props) {
   const trapRef = useFocusTrap<HTMLDivElement>(!!src, onClose);
   if (!src) return null;
+  // 보드·슬롯이 이미 받아둔 것과 같은 URL로 — 확대에서 다시 받지 않는다 (v8.7)
+  const resolved = displaySrc(src);
   return (
     <div
       className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 animate-fadeIn"
@@ -33,11 +36,11 @@ export default function Lightbox({ src, onClose, fit = 'square' }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {fit === 'square' ? (
-          <Image src={src} alt="확대된 사진" fill className="object-cover" unoptimized />
+          <Image src={resolved} alt="확대된 사진" fill className="object-cover" unoptimized />
         ) : (
           // 원본 비율 그대로 — 크기를 모르는 외부 URL이라 fill 대신 natural 사이즈 + max 제한
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="확대된 사진" className="max-w-full max-h-[88dvh] object-contain rounded-2xl" />
+          <img src={resolved} alt="확대된 사진" className="max-w-full max-h-[88dvh] object-contain rounded-2xl" />
         )}
         <button
           onClick={onClose}

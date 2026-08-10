@@ -7,9 +7,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export default function ScrollRow({
   children,
   className = '',
+  fadeColor = '#FFFFFF',
 }: {
   children: React.ReactNode;
   className?: string;
+  /** 페이드가 녹아들 배경색 (6자리 hex) — 행이 흰 카드가 아닌 곳에 있으면 지정한다 (v8.7) */
+  fadeColor?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
@@ -43,7 +46,12 @@ export default function ScrollRow({
       </div>
       {more && (
         <>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white to-transparent" />
+          {/* ⚠️ 끝점을 `to-transparent`로 두면 안 된다 (v8.7) — 그건 '투명한 검정'이라
+              흰색→투명 검정 보간이 중간에서 회색 얼룩으로 보인다. 같은 색의 알파 0으로 끝낼 것 */}
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-10"
+            style={{ backgroundImage: `linear-gradient(to left, ${fadeColor}, ${fadeColor}00)` }}
+          />
           <button
             type="button"
             onClick={scrollNext}

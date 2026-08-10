@@ -4,6 +4,7 @@
 import { CollageLayout, CollageSticker, CollageTemplate } from './types';
 import { COLLAGE_THEMES, CollageItem, STICKER_FONT_RATIO, hasTopReserve } from './collageTemplates';
 import { FOREST } from './colors';
+import { bustedSrc, displaySrc } from './imageSrc';
 
 // ── 기기별 사이즈 프리셋 — 편집 진입 전에 고르고, 편집·내보내기 모두 이 비율을 쓴다 (v6.19) ──
 export interface WallpaperPreset {
@@ -42,7 +43,8 @@ function tryLoad(url: string, crossOrigin: boolean, timeoutMs: number): Promise<
     const timer = setTimeout(() => {
       img.onload = null;
       img.onerror = null;
-      img.src = '';
+      // 빈 문자열을 넣으면 브라우저가 현재 페이지 URL로 다시 요청한다 — 취소는 data:,로 (v8.7)
+      img.src = 'data:,';
       reject(new Error('image load timeout'));
     }, timeoutMs);
     img.onload = () => {
@@ -57,18 +59,40 @@ function tryLoad(url: string, crossOrigin: boolean, timeoutMs: number): Promise<
   });
 }
 
-// 이미지 로드 검증의 정본 — /scenes URL 게이트·콜라주 교체 패널이 재사용 (v8.1).
+// 이미지 로드의 정본 (v8.7 재작성).
+// ⚠️ 핵심 계약: 원격 사진은 DOM <img>와 **완전히 같은 조건**으로 로드한다 — 같은 URL(displaySrc),
+// 같은 CORS 모드(crossOrigin 미설정). 브라우저 HTTP 캐시 키에 CORS 모드가 들어가므로,
+// 조건이 어긋나면 보드가 이미 받아둔 응답을 캔버스가 재사용하지 못하고 전부 다시 받는다.
+// 그게 v8.6까지의 "사진 N장은 못 불러와서 빠졌어"의 직접 원인이었다(재요청 폭주 → 부분 타임아웃).
+// 동일 출처 응답은 캔버스를 오염시키지 않으므로 crossOrigin 없이도 toBlob/toDataURL이 안전하다.
 // ⚠️ 검증기로 compressImage(lib/imageUtils)를 쓰면 안 된다: onerror가 원본을 그대로 resolve해 항상 통과한다.
-export async function loadOne(src: string): Promise<HTMLImageElement> {
-  if (src.startsWith('data:')) return tryLoad(src, false, 10_000);
-  try {
-    // 성공적으로 로드된 cross-origin 이미지는 캔버스를 오염시키지 않도록 CORS 모드로
-    return await tryLoad(src, true, 10_000);
-  } catch {
-    // CORS 미지원·캐시 오염 호스트면 동일 출처 프록시로 한 번 더 시도
-    // (프록시 자체 업스트림 타임아웃 10s를 덮도록 여유 있게)
-    return tryLoad(`/api/image/proxy?url=${encodeURIComponent(src)}`, false, 15_000);
+export async function loadOne(src: string, opts?: { bust?: number }): Promise<HTMLImageElement> {
+  if (src.startsWith('data:') || src.startsWith('blob:')) return tryLoad(src, false, 10_000);
+  const resolved = displaySrc(src);
+  if (resolved !== src) {
+    try {
+      return await tryLoad(bustedSrc(resolved, opts?.bust ?? 0), false, 12_000);
+    } catch {
+      // 프록시 장애 시에만 원본 직행 — CORS를 지원하는 호스트는 여기서 살아난다
+      return tryLoad(src, true, 8_000);
+    }
   }
+  // 프록시 허용 밖(레거시 임의 호스트) — 직행이 유일한 길이고, 실패하면 그대로 실패다.
+  // lib/imageNormalize.ts의 복구 동선이 이런 사진을 내 저장소로 수입해 이 분기를 없앤다.
+  return tryLoad(src, true, 8_000);
+}
+
+/** 동시 실행 상한이 있는 map — 사진 18장이 한꺼번에 몰려 서로를 타임아웃시키는 걸 막는다 (v8.7) */
+async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
 }
 
 async function ensureFonts() {
@@ -242,13 +266,15 @@ function drawSticker(
 // 편집 배치를 선택한 해상도 그대로 캔버스에 옮긴다 — 사진 배치·회전·스티커 일치(무크롭 WYSIWYG, v6.19).
 // 좌표 공간이 캔버스와 동일(0..1 정규화)하므로 레터박스 없이 화면 전체를 쓴다.
 // skipped: 로드에 실패해 캔버스에서 빠진 사진 수 — 조용한 누락 대신 호출부가 알린다 (v8.1)
+// skippedKeys: 어떤 슬롯이 빠졌는지 (v8.7) — 호출부가 섹션 이름을 보여주고 복구 동선을 건다
 export async function renderBoardLayout(
   template: CollageTemplate,
   layout: CollageLayout,
   items: CollageItem[],
   year: string,
-  size: { w: number; h: number }
-): Promise<{ canvas: HTMLCanvasElement; skipped: number }> {
+  size: { w: number; h: number },
+  opts?: { bust?: number; deadlineMs?: number }
+): Promise<{ canvas: HTMLCanvasElement; skipped: number; skippedKeys: string[] }> {
   await ensureFonts();
   const theme = COLLAGE_THEMES[template];
   const { canvas, ctx, w, h } = newCanvas(theme.bg, size.w, size.h);
@@ -271,17 +297,30 @@ export async function renderBoardLayout(
   const minDim = Math.min(w, h); // DOM cqmin과 같은 기준 — 타이포·카드 치수는 짧은 변 비례
 
   const srcByKey = new Map(items.map((i) => [i.key, i.src]));
+  // src 기준 dedupe (v8.7) — 같은 사진이 여러 슬롯에 있어도 1회만 받는다
+  const uniqueSrcs = [...new Set(items.map((i) => i.src))];
+  const loadedBySrc = new Map<string, HTMLImageElement>();
+  const loadAll = mapLimit(uniqueSrcs, 6, async (src) => {
+    try {
+      loadedBySrc.set(src, await loadOne(src, { bust: opts?.bust }));
+    } catch {
+      // 깨진 이미지는 건너뛴다 — 수는 skipped로 집계해 반환
+    }
+  });
+  // 상위 데드라인 (v8.7) — 한 장이 stall해도 미리보기가 영원히 "만드는 중"에 갇히지 않는다.
+  // 시간이 다하면 그때까지 받은 사진만으로 그리고, 나머지는 skipped로 정직하게 보고한다.
+  await Promise.race([
+    loadAll,
+    new Promise<void>((resolve) => setTimeout(resolve, opts?.deadlineMs ?? 20_000)),
+  ]);
   const loadedByKey = new Map<string, HTMLImageElement>();
-  await Promise.all(
-    items.map(async (i) => {
-      try {
-        loadedByKey.set(i.key, await loadOne(i.src));
-      } catch {
-        // 깨진 이미지는 건너뛴다 — 수는 skipped로 집계해 반환
-      }
-    })
-  );
-  const skipped = items.length - loadedByKey.size;
+  const skippedKeys: string[] = [];
+  for (const i of items) {
+    const img = loadedBySrc.get(i.src);
+    if (img) loadedByKey.set(i.key, img);
+    else skippedKeys.push(i.key);
+  }
+  const skipped = skippedKeys.length;
 
   // 상단 타이틀 밴드 (mosaic·minimal) — 사진보다 먼저.
   // 세로로 긴 화면은 상단 시계 영역 아래로 내린다 — DOM(CollageBoard)의 padTop과 동일 기준
@@ -361,7 +400,7 @@ export async function renderBoardLayout(
     ctx.fillText(year, cx, cy + cardH * 0.16);
   }
 
-  return { canvas, skipped };
+  return { canvas, skipped, skippedKeys };
 }
 
 // ── 저장 위치 선택 (v8.4) — 데스크톱 Chrome/Edge는 OS 저장 대화상자로 위치를 고른다 ──

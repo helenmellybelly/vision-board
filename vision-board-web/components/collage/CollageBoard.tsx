@@ -22,6 +22,7 @@ import {
 import { FOREST } from '@/lib/colors';
 import { SECTIONS } from '@/lib/questions';
 import { SectionId } from '@/lib/types';
+import { displaySrc } from '@/lib/imageSrc';
 import EditableYear from './EditableYear';
 import StickerSheet from './StickerSheet';
 import Lightbox from '@/components/Lightbox';
@@ -615,7 +616,10 @@ export default function CollageBoard({
                         </div>
                       ) : (
                         <img
-                          src={src}
+                          // displaySrc (v8.7) — 캔버스 내보내기와 동일한 URL·동일한 CORS 모드.
+                          // 캐시 엔트리를 공유해야 저장 시 재로드가 없고, onError가 내보내기 실패와
+                          // 같은 조건에서 발화해 ⚠️ 타일·저장 경고가 비로소 진실해진다.
+                          src={displaySrc(src ?? '')}
                           alt=""
                           draggable={false}
                           className={`w-full object-cover pointer-events-none ${it.h !== undefined ? 'h-full' : 'aspect-square'}`}
