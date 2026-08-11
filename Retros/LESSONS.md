@@ -174,6 +174,9 @@ useSession status가 해소될 때까지 `return null`인 페이지(/onboarding/
 
 ## Design System
 
+### 그라디언트를 `to-transparent`로 끝내지 말 것 — 그건 '투명한 검정'이다 #coding #css
+Tailwind `to-transparent`는 `rgba(0,0,0,0)`이라, 밝은 색에서 시작하면 보간 중간이 반투명 검정이 되어 **회색 얼룩**으로 보인다(v8.2부터 콜라주 sticky 저장 바·ScrollRow 페이드에 있던 결함, v8.7에서 발견). 끝점은 같은 색의 알파 0으로 둘 것(`to-[#FAF9F7]/0`). 배경색이 호출부마다 다르면 `fadeColor` prop으로 받아 인라인 그라디언트를 만드는 게 정확하다 — 흰 카드용 페이드를 크림 배경에 그대로 쓰면 밝은 얼룩이 남는다.
+
 ### 1회성 파티클은 base opacity:0 + forwards 애니메이션으로 — reduced-motion에서 잔존물이 안 남는다 #coding #animation #accessibility
 v8.3 첫 완주 잎 파티클: 이 프로젝트의 reduced-motion 대응은 `.animate-*`에 `animation: none`을 거는 방식이라, 파티클 요소의 가시성이 애니메이션 키프레임에만 의존하면 모션 끔 환경에서 요소가 정지 상태로 화면에 남는다. 클래스 base에 `opacity: 0`을 두고 키프레임이 올렸다 내리게 하면 animation:none 시 자동으로 아무것도 안 보인다. 추가로 JS 트리거 쪽에서도 `matchMedia('(prefers-reduced-motion: reduce)')`로 시작 자체를 생략하고, 1회성 스탬프(finishCelebrated)는 연출 완료가 아니라 시작 시점에 즉시 기록해 중간 이탈에도 반복을 막는다.
 
@@ -199,6 +202,12 @@ Tailwind v4 유틸리티는 `@layer utilities` 안에 있어서, globals.css에 
 콘텐츠가 화면을 넘칠 때 폰트·패딩을 px 단위로 깎는 방식은 뷰포트마다 다시 깨진다(667px 잡으면 720px이 깨지는 식). 텍스트·CTA는 고정하고 이미지에 `flex-1 min-h-[하한] max-h-[상한]`을 줘서 남는 공간을 흡수시키면 한 번의 구조 변경으로 모든 뷰포트가 맞는다 — 온보딩 Act 3·Act 4 공통 패턴.
 
 ## Next.js / React
+
+### 같은 리소스를 두 소비자가 다른 조건으로 요청하면 캐시가 갈라지고, 실패가 한쪽에서만 보인다 #coding #browser #caching
+v8.7 배경화면 사진 누락: 표시용 DOM `<img>`(crossOrigin 없음)와 캔버스 로더(`crossOrigin='anonymous'`)가 같은 사진을 요청했는데, 브라우저 HTTP 캐시 키에 **요청 모드(CORS)가 포함**돼 별개 엔트리가 됐다 → 저장할 때 18장을 전부 다시 받고 → 동시 폭주로 일부만 타임아웃(부분 실패). 더 나쁜 건 비대칭이다: DOM은 no-cors라 성공하므로 "깨진 사진" 감지 장치 3개가 이 실패 모드에서 **구조적으로 하나도 발화하지 못했다**(보드엔 멀쩡, 시트에서만 "N장 빠졌어"). 같은 리소스를 쓰는 소비자가 둘 이상이면 URL뿐 아니라 **요청 모드까지 한 관문 함수로 통일**할 것. 그래야 캐시를 공유하고, 한쪽의 에러 핸들러가 다른 쪽의 실패를 대변할 수 있다.
+
+### 서로 반대 방향인 기하 계약이 있으면 매직 넘버를 테스트로 역산하라 #coding #css #testing
+"PC 뷰 무스크롤"과 "보드 폭 ≥1000px"·"18장 최소 셀 ≥100px"는 한쪽을 키우면 다른 쪽이 깨지는 관계다(높이 예산을 늘리면 보드가 좁아짐). 눈대중으로 rem을 고르면 반드시 한 계약이 1px 차이로 깨진다(실제로 min=99로 FAIL). 양방향 단언을 먼저 작성하고 **둘 다 통과할 때까지 값을 조정**하는 순서로 갈 것 — 수치의 진실 원천은 상수가 아니라 테스트다. 덤으로 병목이 높이인지 폭인지도 실측으로 드러난다(reserve를 키워도 폭 바운드면 소용없다).
 
 ### 모드 state 리셋을 객체 prop 동기화 effect에 묶지 말 것 #coding #react
 CollageBoard의 `setEditing(false)`를 `[template, layout]` 의존 effect에 함께 넣었더니, 자동 저장(onLayoutChange)→부모 reload→새 `layout` 객체 identity로 effect가 매 저장마다 발화해 편집 모드가 즉시 풀렸다. 모드 전환 리셋은 의미 있는 키(template 등 primitive)만 의존하는 별도 effect로 분리해야 한다 — 객체 prop은 내용이 같아도 매번 새 참조다.
