@@ -2,8 +2,8 @@
 // 외부 라이브러리 없이 Canvas API로 직접 그린다.
 // 사이즈를 먼저 고르고 그 비율 그대로 편집하므로, 선택한 해상도로 직접 그린다(무크롭 WYSIWYG, v6.19).
 import { CollageLayout, CollageSticker, CollageTemplate } from './types';
-import { COLLAGE_THEMES, CollageItem, STICKER_FONT_RATIO, hasTopReserve } from './collageTemplates';
-import { FOREST } from './colors';
+import { CollageItem, STICKER_FONT_RATIO, themeFor } from './collageTemplates';
+import { MATTE_MAT_RATIO, PHOTO_RADIUS_RATIO, titleTokensFor } from './collageTokens';
 import { bustedSrc, displaySrc } from './imageSrc';
 
 // ── 기기별 사이즈 프리셋 — 편집 진입 전에 고르고, 편집·내보내기 모두 이 비율을 쓴다 (v6.19) ──
@@ -32,8 +32,6 @@ export const WALLPAPER_PRESETS: WallpaperPreset[] = [
   { id: 'ultrawide', label: '울트라와이드 (21:9)', shortLabel: '울트라와이드', w: 3440, h: 1440, group: 'PC', note: '좌우로 아주 넓은 비율이야.' },
 ];
 
-const INK = '#1C1B19';
-const INK_SOFT = '#6E6962';
 
 // 단일 로드 시도 — 타임아웃 시 핸들러를 떼고 실패 처리해 미리보기가 영원히 "만드는 중"에 갇히지 않게 (v8.4)
 function tryLoad(url: string, crossOrigin: boolean, timeoutMs: number): Promise<HTMLImageElement> {
@@ -175,6 +173,48 @@ function drawRoundedPhoto(
   ctx.restore();
 }
 
+// 매트 갤러리 — 흰 매트 카드 안에 사진을 **자르지 않고**(contain) 앉힌다 (v9.0).
+// 세로 스크린샷이 정사각 셀에서 위아래가 잘려 글자가 안 보이던 문제(오너 v8.7 팟캐스트 사례)의
+// 완전 해소책이자, 이 템플릿의 컨셉 그 자체다 — 남는 자리는 결함이 아니라 액자의 매트다.
+function drawMattePhoto(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  onWhiteBg: boolean
+) {
+  const r = Math.min(w, h) * 0.04;
+  ctx.save();
+  ctx.shadowColor = 'rgba(28,27,25,0.10)';
+  ctx.shadowBlur = Math.min(w, h) * 0.06;
+  ctx.shadowOffsetY = Math.min(w, h) * 0.015;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  // 배경이 흰색이면 그림자만으로는 카드가 배경에 녹는다 — 이때만 실선 테두리를 더한다
+  if (onWhiteBg) {
+    ctx.strokeStyle = '#E5E3DF';
+    ctx.lineWidth = Math.max(1, Math.min(w, h) * 0.004);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  const mat = Math.min(w, h) * MATTE_MAT_RATIO;
+  const iw = w - mat * 2;
+  const ih = h - mat * 2;
+  if (iw <= 0 || ih <= 0) return;
+  const scale = Math.min(iw / img.width, ih / img.height);
+  const dw = img.width * scale;
+  const dh = img.height * scale;
+  ctx.drawImage(img, x + mat + (iw - dw) / 2, y + mat + (ih - dh) / 2, dw, dh);
+}
+
 // ── 보드 그대로 내보내기 — /collage 화면의 편집 배치·스티커를 1:1로 캔버스에 그린다 ──
 
 // 단어 단위 줄바꿈 — 공백 없는 긴 한국어/영문은 글자 단위로 쪼갠다
@@ -273,20 +313,12 @@ export async function renderBoardLayout(
   items: CollageItem[],
   year: string,
   size: { w: number; h: number },
-  opts?: { bust?: number; deadlineMs?: number }
+  opts?: { bust?: number; deadlineMs?: number; bgColor?: string }
 ): Promise<{ canvas: HTMLCanvasElement; skipped: number; skippedKeys: string[] }> {
   await ensureFonts();
-  const theme = COLLAGE_THEMES[template];
+  // 배경색은 세 템플릿 공통 — DOM(CollageBoard)도 같은 themeFor()를 호출해 락스텝을 지킨다 (v9.0)
+  const theme = themeFor(template, opts?.bgColor);
   const { canvas, ctx, w, h } = newCanvas(theme.bg, size.w, size.h);
-
-  // 숲 테마 — 세로 그라디언트 덧칠 (DOM CollageBoard와 동일 수치)
-  if (theme.bgGradient) {
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, theme.bgGradient[0]);
-    grad.addColorStop(1, theme.bgGradient[1]);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
-  }
 
   // 풀블리드 — 편집 보드가 곧 캔버스
   const bx = 0;
@@ -322,18 +354,18 @@ export async function renderBoardLayout(
   }
   const skipped = skippedKeys.length;
 
-  // 상단 타이틀 밴드 (mosaic·minimal) — 사진보다 먼저.
-  // 세로로 긴 화면은 상단 시계 영역 아래로 내린다 — DOM(CollageBoard)의 padTop과 동일 기준
-  if (theme.titlePos === 'top') {
-    const padCq = hasTopReserve(w / h) ? 0.32 : 0.04; // cqmin 단위(minDim 비례)
+  // 상단 타이틀 밴드 — 사진보다 먼저. 수치는 lib/collageTokens가 단일 소스라
+  // DOM(CollageBoard)의 padTop·폰트 비율과 자동으로 락스텝이다 (v9.0)
+  {
+    const t = titleTokensFor(template, aspect);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = theme.dark ? '#C4C2BE' : INK_SOFT;
-    ctx.font = `600 ${Math.round(minDim * 0.026)}px "Pretendard Variable", Pretendard, sans-serif`;
-    ctx.fillText('V I S I O N   B O A R D', bx + bw / 2, by + minDim * (padCq + 0.01));
-    ctx.fillStyle = theme.dark ? '#FFFFFF' : INK;
-    ctx.font = `700 ${Math.round(minDim * 0.07)}px ${SCRIPT_FONT}`;
-    ctx.fillText(year, bx + bw / 2, by + minDim * (padCq + 0.075));
+    ctx.fillStyle = theme.labelInk;
+    ctx.font = `600 ${Math.round(minDim * t.labelRatio)}px "Pretendard Variable", Pretendard, sans-serif`;
+    ctx.fillText('V I S I O N   B O A R D', bx + bw / 2, by + minDim * t.labelY);
+    ctx.fillStyle = theme.titleInk;
+    ctx.font = `700 ${Math.round(minDim * t.yearRatio)}px ${SCRIPT_FONT}`;
+    ctx.fillText(year, bx + bw / 2, by + minDim * t.yearY);
   }
 
   // 사진 + 스티커 — z 순서대로
@@ -356,48 +388,23 @@ export async function renderBoardLayout(
     const px = bx + it.x * bw;
     const py = by + it.y * bh;
     const pw = it.w * bw;
-    // v7.6 프레임리스 — 전 템플릿 라운드 사진 단일 경로 (구 폴라로이드 흰 프레임 제거)
     const ph = (it.h ?? it.w * aspect) * bh;
+    // 매트 갤러리는 무크롭(contain) 매트 카드, 나머지는 라운드 사진(cover) — DOM과 락스텝
+    const onWhite = theme.bg.toUpperCase() === '#FFFFFF';
+    const draw = (dx: number, dy: number) =>
+      theme.frame === 'matte'
+        ? drawMattePhoto(ctx, img, dx, dy, pw, ph, onWhite)
+        : drawRoundedPhoto(ctx, img, dx, dy, pw, ph, pw * PHOTO_RADIUS_RATIO, theme.dark);
+    // 회전은 자유 배치 모드에서만 남는다 (v9.0) — 그리드 배치는 rot을 쓰지 않는다
     if (it.rot) {
       ctx.save();
       ctx.translate(px + pw / 2, py + ph / 2);
       ctx.rotate((it.rot * Math.PI) / 180);
-      drawRoundedPhoto(ctx, img, -pw / 2, -ph / 2, pw, ph, pw * 0.06, theme.dark);
+      draw(-pw / 2, -ph / 2);
       ctx.restore();
     } else {
-      drawRoundedPhoto(ctx, img, px, py, pw, ph, pw * 0.06, theme.dark);
+      draw(px, py);
     }
-  }
-
-  // 중앙 연도 카드 (polaroid) — 사진 위, 화면과 동일. 치수는 짧은 변(minDim) 비례
-  if (theme.titlePos === 'center') {
-    const cardW = minDim * 0.46;
-    const cardH = minDim * 0.27;
-    const cx = bx + bw / 2;
-    const cy = by + bh / 2;
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 30;
-    ctx.shadowOffsetY = 10;
-    ctx.fillStyle = FOREST.card;
-    ctx.beginPath();
-    ctx.roundRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, minDim * 0.03);
-    ctx.fill();
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#C4C2BE';
-    ctx.font = `600 ${Math.round(minDim * 0.026)}px "Pretendard Variable", Pretendard, sans-serif`;
-    ctx.fillText('V I S I O N   B O A R D', cx, cy - cardH * 0.22);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `700 ${Math.round(minDim * 0.09)}px ${SCRIPT_FONT}`;
-    ctx.fillText(year, cx, cy + cardH * 0.16);
   }
 
   return { canvas, skipped, skippedKeys };

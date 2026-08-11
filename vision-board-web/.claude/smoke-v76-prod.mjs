@@ -55,7 +55,7 @@ await page2.addInitScript((d) => {
 }, photoSeed);
 await page2.goto(`${BASE}/collage`);
 await page2.waitForTimeout(2500);
-ok('콜라주: 숲 템플릿 라벨', await page2.getByText('숲', { exact: true }).first().isVisible().catch(() => false));
+ok('콜라주: 매트 갤러리 템플릿 라벨', await page2.getByText('매트 갤러리', { exact: true }).first().isVisible().catch(() => false));
 const body = await page2.locator('body').innerText();
 ok('콜라주: 구 라벨(폴라로이드) 부재', !body.includes('폴라로이드'));
 

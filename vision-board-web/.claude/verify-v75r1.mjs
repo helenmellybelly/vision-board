@@ -187,7 +187,7 @@ async function newPage(seed) {
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
   ok('V5-12b 이야기 블록 부재', (await page.getByText('미래의 하루 읽기').count()) === 0);
-  ok('V5-12c 일기 링크 노출', await page.getByText('📖 미래 일기 읽기 →').isVisible().catch(() => false));
+  ok('V5-12c 콜라주 일기 링크 부재(v9.0)', (await page.getByText('📖 미래 일기 읽기 →').count()) === 0);
   await ctx.close();
 }
 

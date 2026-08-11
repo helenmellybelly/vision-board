@@ -4,22 +4,26 @@ import { useEffect, useRef, useState } from 'react';
 import { CollageLayout, CollageLayoutItem, CollageSticker, CollageTemplate } from '@/lib/types';
 import {
   ASPECT,
-  COLLAGE_THEMES,
   CollageItem,
-  GridSpans,
   MAX_W,
   MIN_W,
   STICKER_FONT_RATIO,
   STICKER_MIN_W,
-  hasTopReserve,
-  inferGridSpans,
+  applyGrid,
+  chooseGrid,
   newStickerLayoutItem,
-  reflowLayout,
   resolveLayout,
   seedLayout,
   stickerKey,
+  themeFor,
 } from '@/lib/collageTemplates';
-import { FOREST } from '@/lib/colors';
+import {
+  MATTE_MAT_RATIO,
+  SPAN_CAP,
+  spacingFor,
+  titleTokensFor,
+} from '@/lib/collageTokens';
+import { GridSpec, gridMetrics, layoutCells, materialize, resizeInGrid, swapInGrid } from '@/lib/collageGrid';
 import { SECTIONS } from '@/lib/questions';
 import { SectionId } from '@/lib/types';
 import { displaySrc } from '@/lib/imageSrc';
@@ -46,6 +50,8 @@ interface Props {
   onRequestRemove?: (key: string) => void;
   /** 로드 실패 사진 키 통지 (v8.1) — 부모가 저장 전 경고 배너에 사용 */
   onBrokenChange?: (keys: string[]) => void;
+  /** 보드 배경색 (v9.0) — 세 템플릿 공통. 없으면 템플릿 기본색 */
+  bgColor?: string;
 }
 
 // 사진 키 `${sectionId}-${slotIdx}` → 출처 섹션 배지 (v8.1 편집 모드)
@@ -84,9 +90,9 @@ interface DragState {
   centerX?: number;
   centerY?: number;
   startAngle?: number;
-  /** resize 모드 (v8.5) — 드래그 시작 시점 그리드 정합 캐시(undefined=미계산, null=자유 배치) */
-  gridInfo?: GridSpans | null;
-  /** resize 모드 (v8.5) — 마지막 프리뷰 스팬. 정수 스팬이 바뀔 때만 프리뷰 리플로우 재계산 */
+  /** 드래그 시작 시점의 배치 스냅샷 (v9.0) — 스왑 대상 히트테스트는 움직이기 전 좌표로 해야 한다 */
+  baseItems: Record<string, CollageLayoutItem>;
+  /** resize 모드 — 마지막 프리뷰 스팬. 정수 스팬이 바뀔 때만 프리뷰를 다시 계산 */
   previewSpan?: [number, number];
 }
 
@@ -144,12 +150,15 @@ function StickerView({
 // 보드를 탭하면 편집 모드: 사진·스티커 이동/리사이즈, + 문구 추가, 변경 즉시 저장.
 export default function CollageBoard({
   template, items, layout, onLayoutChange, year, onYearChange, aspect = ASPECT,
-  view, active, onEditingChange, onRequestReplace, onRequestRemove, onBrokenChange,
+  view, active, onEditingChange, onRequestReplace, onRequestRemove, onBrokenChange, bgColor,
 }: Props) {
-  const theme = COLLAGE_THEMES[template];
+  // 배경색은 세 템플릿 공통 — canvas(lib/wallpaper.ts)도 같은 themeFor()를 호출한다 (v9.0 락스텝)
+  const theme = themeFor(template, bgColor);
   const boardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const tapRef = useRef<{ x: number; y: number } | null>(null);
+  // pointer-up 이벤트에는 좌표가 없을 수 있어(pointercancel) 마지막 move 좌표를 들고 있는다
+  const lastPointer = useRef<{ x: number; y: number } | null>(null);
   const [editing, setEditing] = useState(false);
   // 탭한 사진의 구제 액션(맨 뒤로·바로 세우기) — 묻힌 사진을 꺼내는 유일한 동선 (v8.0)
   const [photoAction, setPhotoAction] = useState<string | null>(null);
@@ -167,17 +176,13 @@ export default function CollageBoard({
   // 반자동 리사이즈 고스트 프리뷰 (v8.5) — 드래그 중 "놓으면 이렇게 정렬돼"를 점선으로 미리 보여준다.
   // 실사진은 pointer-up에만 이동(커밋 경로 불변)
   const [previewLayout, setPreviewLayout] = useState<Record<string, CollageLayoutItem> | null>(null);
-  // 자유 배치 안내 (v8.5) — 그리드가 깨져 자동 정렬이 침묵 무시되던 것을 1회 안내로 대체
-  const [freeformHint, setFreeformHint] = useState(false);
-  const freeformHintShown = useRef(false);
-  const hintTimer = useRef<number | null>(null);
-  useEffect(() => () => { if (hintTimer.current) window.clearTimeout(hintTimer.current); }, []);
+  // 드래그 중 자리를 맞바꿀 대상 (v9.0) — 그리드 모드의 이동은 좌표 이동이 아니라 스왑이다
+  const [swapTarget, setSwapTarget] = useState<string | null>(null);
 
   // 편집 상태 전환은 이 함수로만 — 부모(나란히 배타 편집)에 항상 통지 (v8.1)
   function switchEditing(next: boolean) {
     setEditing(next);
     if (!next) setPhotoAction(null);
-    if (next) freeformHintShown.current = false; // 자유 배치 안내는 편집 세션당 1회 (v8.5)
     onEditingChange?.(next);
   }
 
@@ -232,6 +237,8 @@ export default function CollageBoard({
   if (items.length === 0) return null;
 
   const maxZ = Math.max(0, ...Object.values(live.items).map((it) => it.z));
+  // 그리드 모드인가 (v9.0) — 자유 배치를 켰거나 백필에 실패한 레거시 배치면 null(구 자유 편집 그대로)
+  const gridSpec: GridSpec | null = live.freeform ? null : live.grid ?? null;
 
   function save(next: CollageLayout) {
     commitLive(() => next);
@@ -259,7 +266,11 @@ export default function CollageBoard({
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     // 회전은 z를 건드리지 않는다 — '맨 뒤로' 보낸 항목이 회전만으로 다시 앞으로 오지 않게
     const next = mode === 'rotate' ? liveRef.current : bringToFront(key);
-    const drag: DragState = { key, mode, startX: e.clientX, startY: e.clientY, maxDist: 0, item: next.items[key] };
+    const drag: DragState = {
+      key, mode, startX: e.clientX, startY: e.clientY, maxDist: 0,
+      item: next.items[key],
+      baseItems: liveRef.current.items,
+    };
     if (mode === 'rotate') {
       const rect = boardRef.current?.getBoundingClientRect();
       if (rect) {
@@ -276,6 +287,7 @@ export default function CollageBoard({
   function onPointerMove(e: React.PointerEvent) {
     const drag = dragRef.current;
     const rect = boardRef.current?.getBoundingClientRect();
+    lastPointer.current = { x: e.clientX, y: e.clientY };
     if (!drag || !rect) return;
     const dxPx = e.clientX - drag.startX;
     const dyPx = e.clientY - drag.startY;
@@ -325,68 +337,39 @@ export default function CollageBoard({
     }
     commitLive((prev) => ({ ...prev, items: { ...prev.items, [drag.key]: next } }));
 
-    // 고스트 프리뷰 (v8.5) — 그리드 적격 리사이즈에서 정수 스팬이 바뀔 때만 리플로우를 미리 계산
-    if (drag.mode === 'resize' && !isSticker && template !== 'polaroid') {
-      if (drag.gridInfo === undefined) {
-        // 정합 판정은 리사이즈 전 상태 기준 — 드래그된 항목을 원래 rect로 되돌려 역산 (드래그당 1회 캐시)
-        drag.gridInfo = inferGridSpans({ ...liveRef.current.items, [drag.key]: drag.item }, aspect);
+    if (isSticker || !gridSpec) return;
+
+    // 고스트 프리뷰 — 정수 스팬이 바뀔 때만 다시 계산해 프레임당 재계산을 피한다
+    if (drag.mode === 'resize') {
+      const [tw, th] = snapSpan(next.w, next.h ?? next.w * aspect);
+      if (!drag.previewSpan || drag.previewSpan[0] !== tw || drag.previewSpan[1] !== th) {
+        drag.previewSpan = [tw, th];
+        const nextGrid = resizeInGrid(gridSpec, drag.key, [tw, th]);
+        setPreviewLayout(nextGrid ? materialize(nextGrid, template, aspect) : null);
       }
-      const info = drag.gridInfo;
-      if (info) {
-        const [tw, th] = snapSpan(info, next.w, next.h ?? next.w * aspect);
-        if (!drag.previewSpan || drag.previewSpan[0] !== tw || drag.previewSpan[1] !== th) {
-          drag.previewSpan = [tw, th];
-          setPreviewLayout(computeReflow(drag, info, next.w, next.h ?? next.w * aspect));
-        }
-      }
+    } else if (drag.mode === 'move') {
+      // 이동은 좌표 이동이 아니라 자리 맞바꾸기 — 어디에 놓을지 실시간으로 보여준다
+      setSwapTarget(photoAtPoint(e.clientX, e.clientY, drag.baseItems, drag.key));
     }
   }
 
-  // 스팬 스냅 (v8.5) — 가로·세로를 각각 반올림한 비정사각 스팬. 캡 1..4는 inferGridSpans와 락스텝
-  // (구 v8.2는 정사각 [t,t]·캡 3이라 2×1 같은 시드 스팬을 드래그로 만들 수 없었다)
-  function snapSpan(info: GridSpans, w: number, h: number): [number, number] {
-    const gx = 0.015;
-    const gy = gx * aspect;
-    const cellH = info.cellW * aspect;
+  /** 픽셀 크기를 스팬 등급(1..4)으로 스냅. 그리드 셀 크기가 기준이라 역산이 필요 없다 (v9.0) */
+  function snapSpan(w: number, h: number): [number, number] {
+    if (!gridSpec) return [1, 1];
+    const sp = spacingFor(template, aspect);
+    const m = gridMetrics(gridSpec, template, aspect);
     return [
-      clamp(Math.round((w + gx) / (info.cellW + gx)), 1, 4),
-      clamp(Math.round((h + gy) / (cellH + gy)), 1, 4),
+      clamp(Math.round((w + sp.gutterX) / (m.unitW + sp.gutterX)), 1, SPAN_CAP),
+      clamp(Math.round((h + sp.gutterY) / (m.unitH + sp.gutterY)), 1, SPAN_CAP),
     ];
   }
 
-  // 리플로우 계산 (v8.5) — 프리뷰(드래그 중)와 커밋(pointer-up)이 같은 계산을 공유.
-  // 다른 항목들은 리사이즈 중 변하지 않으므로 드래그 항목만 원래 rect로 되돌린 스냅샷 기준
-  function computeReflow(
-    drag: DragState,
-    info: GridSpans,
-    finalW: number,
-    finalH: number
-  ): Record<string, CollageLayoutItem> | null {
-    const [tw, th] = snapSpan(info, finalW, finalH);
-    const ordered = Object.entries({ ...liveRef.current.items, [drag.key]: drag.item })
-      .filter(([k]) => !k.startsWith('sticker:'))
-      .sort(([, a], [, b]) => a.y - b.y || a.x - b.x)
-      .map(([k, it]) => ({
-        key: k,
-        span: k === drag.key ? ([tw, th] as [number, number]) : info.spans[k],
-        z: it.z,
-      }));
-    return reflowLayout(template, ordered, aspect);
-  }
-
-  // 리사이즈 종료 시 전체 리플로우 (v8.2 → v8.5 비정사각 스냅) — 그리드 정합 배치에서만.
-  // 커진 스팬에 맞춰 나머지가 자리를 내주고, 드래그한 사진도 깔끔한 스팬 크기로 스냅된다.
-  function tryReflow(drag: DragState): CollageLayout | null {
-    const cur = liveRef.current;
-    const info =
-      drag.gridInfo !== undefined
-        ? drag.gridInfo
-        : inferGridSpans({ ...cur.items, [drag.key]: drag.item }, aspect);
-    if (!info) return null;
-    const finalIt = cur.items[drag.key];
-    const placed = computeReflow(drag, info, finalIt.w, finalIt.h ?? finalIt.w * aspect);
-    if (!placed) return null;
-    return { ...cur, items: { ...cur.items, ...placed } };
+  /** 그리드를 갈아끼우고 좌표를 다시 만든다 — grid와 items의 일관성은 applyGrid가 보장한다 */
+  function commitGrid(nextGrid: GridSpec) {
+    setSettling(true);
+    if (settleTimer.current) window.clearTimeout(settleTimer.current);
+    settleTimer.current = window.setTimeout(() => setSettling(false), 300);
+    saveEdited(applyGrid({ ...liveRef.current, grid: nextGrid }, template, aspect));
   }
 
   function onPointerUp() {
@@ -394,35 +377,62 @@ export default function CollageBoard({
     if (!drag) return;
     dragRef.current = null;
     setPreviewLayout(null);
-    if (drag.mode === 'resize' && !drag.key.startsWith('sticker:') && template !== 'polaroid' && drag.maxDist >= TAP_THRESHOLD) {
-      const reflowed = tryReflow(drag);
-      if (reflowed) {
-        setSettling(true);
-        if (settleTimer.current) window.clearTimeout(settleTimer.current);
-        settleTimer.current = window.setTimeout(() => setSettling(false), 300);
-        saveEdited(reflowed);
+    setSwapTarget(null);
+    const isSticker = drag.key.startsWith('sticker:');
+    const moved = drag.maxDist >= TAP_THRESHOLD;
+
+    // ── 그리드 모드 (v9.0) ──
+    // 이동=스왑, 리사이즈=스팬 스냅. 좌표를 자유롭게 바꾸는 경로가 없으므로 그리드는 깨질 수 없다 —
+    // v8.x에서 "한 번 자유롭게 옮겼더니 그 뒤로 자동 정렬이 영영 안 되던" 지점이 구조적으로 사라졌다.
+    if (gridSpec && !isSticker && moved) {
+      if (drag.mode === 'resize') {
+        const finalIt = liveRef.current.items[drag.key];
+        const span = snapSpan(finalIt.w, finalIt.h ?? finalIt.w * aspect);
+        // 실패해도 원래 그리드를 다시 적용하면 제자리로 미끄러진다(스냅백)
+        commitGrid(resizeInGrid(gridSpec, drag.key, span) ?? gridSpec);
         return;
       }
-      // 자유 배치 폴백 (v8.5) — 침묵 무시 대신 왜 자동 정렬이 안 되는지 1회 안내.
-      // 사진 1장은 inferGridSpans 정의상 부적격이라 안내 대상이 아니다
-      const photoCount = Object.keys(liveRef.current.items).filter((k) => !k.startsWith('sticker:')).length;
-      if (photoCount >= 2 && !freeformHintShown.current) {
-        freeformHintShown.current = true;
-        setFreeformHint(true);
-        if (hintTimer.current) window.clearTimeout(hintTimer.current);
-        hintTimer.current = window.setTimeout(() => setFreeformHint(false), 2500);
+      if (drag.mode === 'move') {
+        const p = lastPointer.current;
+        const hit = p ? photoAtPoint(p.x, p.y, drag.baseItems, drag.key) : null;
+        // 빈 곳에 놓으면 제자리로 — 그리드 모드에 "아무 데나 두기"는 없다
+        commitGrid(hit ? swapInGrid(gridSpec, drag.key, hit) : gridSpec);
+        return;
       }
     }
+
     saveEdited(liveRef.current);
-    if (drag.maxDist < TAP_THRESHOLD && drag.mode === 'move') {
-      if (drag.key.startsWith('sticker:')) {
+    if (!moved && drag.mode === 'move') {
+      if (isSticker) {
         // 스티커를 움직이지 않고 탭하면 수정 시트 열기
         setSheet({ open: true, editId: drag.key.slice('sticker:'.length) });
       } else {
-        // 사진 탭 → 구제 액션 (맨 뒤로·바로 세우기) — 묻힌 사진을 꺼내는 동선 (v8.0)
+        // 사진 탭 → 액션 칩 (크게·작게·맨 뒤로·교체·삭제)
         setPhotoAction((cur) => (cur === drag.key ? null : drag.key));
       }
     }
+  }
+
+  /** 탭 액션 '크게'·'작게' (v9.0) — 핸들 정밀 드래그 없이 스팬 등급을 한 단계씩 바꾼다.
+   *  등급 점프(1→2는 폭 2배)를 손가락으로 맞추기 어려운 모바일의 주 동선 */
+  function bumpSpan(key: string, delta: number) {
+    if (!gridSpec) return;
+    const cell = layoutCells(gridSpec).cells.find((c) => c.key === key);
+    if (!cell) return;
+    const next = resizeInGrid(gridSpec, key, [clamp(cell.sc + delta, 1, SPAN_CAP), cell.sr]);
+    if (next) commitGrid(next);
+  }
+
+  /** 자유 배치 토글 — 그리드를 벗어나 원하는 곳에 두고 회전까지 하고 싶을 때의 명시적 탈출구.
+   *  되돌리면 지금 장수의 표준 그리드로 다시 정렬된다 */
+  function toggleFreeform() {
+    const prev = liveRef.current;
+    if (prev.freeform) {
+      const g = chooseGrid(template, items, aspect);
+      if (g) saveEdited(applyGrid({ ...prev, grid: g, freeform: false }, template, aspect));
+      return;
+    }
+    saveEdited({ ...prev, freeform: true });
   }
 
   // 보기 모드에서 보드 탭 → 편집 진입 (8px 임계값으로 페이지 스크롤과 구분)
@@ -433,13 +443,18 @@ export default function CollageBoard({
 
   // 탭 지점의 최상단 사진 키 (v8.2 라이트박스 히트테스트) — img가 pointer-events-none이라
   // DOM 타깃 대신 좌표로 판정한다. 회전 항목은 픽셀 공간에서 역회전 후 rect 검사(rotatedPad와 같은 삼각법)
-  function photoAtPoint(clientX: number, clientY: number): string | null {
+  function photoAtPoint(
+    clientX: number,
+    clientY: number,
+    source: Record<string, CollageLayoutItem> = live.items,
+    excludeKey?: string
+  ): string | null {
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect || rect.width === 0 || rect.height === 0) return null;
     const px = (clientX - rect.left) / rect.width;
     const py = (clientY - rect.top) / rect.height;
-    const photos = Object.entries(live.items)
-      .filter(([k]) => !k.startsWith('sticker:') && !brokenKeys.has(k))
+    const photos = Object.entries(source)
+      .filter(([k]) => !k.startsWith('sticker:') && k !== excludeKey && !brokenKeys.has(k))
       .sort(([, a], [, b]) => b.z - a.z);
     for (const [key, it] of photos) {
       const hNorm = it.h ?? it.w * aspect;
@@ -518,11 +533,28 @@ export default function CollageBoard({
     setSheet({ open: false });
   }
 
-  const titleColor = theme.dark ? '#FFFFFF' : '#1C1B19';
-  const labelColor = theme.dark ? '#C4C2BE' : '#6E6962';
+  const titleTokens = titleTokensFor(template, aspect);
+  const isMatte = theme.frame === 'matte';
+  // 흰 배경에서는 흰 매트 카드가 배경에 녹는다 — 그때만 실선 테두리 (canvas drawMattePhoto와 락스텝)
+  const matteOnWhite = isMatte && theme.bg.toUpperCase() === '#FFFFFF';
 
   return (
     <div>
+      {/* 사용법 안내 (v9.0) — 보드 아래 회색 잔글씨는 "안 보인다"는 오너 피드백.
+          보드 바로 위 알약으로 올리고 대비·크기를 키워 여백 텍스트가 아니라 UI로 읽히게 했다.
+          PC 뷰는 보드가 넓어 하단 중앙이 시야 밖이라 상단 앵커가 특히 유효하다 */}
+      <p
+        data-testid="board-hint"
+        // lg에서 세로 예산을 아낀다 — PC 무스크롤(V87-4d)과 보드 폭 ≥1000px(V87-4e)이 서로 반대
+        // 방향이라, 예산을 더 키우는 대신 크롬을 줄이는 쪽이 보드 폭에 유리하다
+        className="mx-auto mb-2 lg:mb-1 w-fit max-w-full rounded-full bg-[#F1EFEA] px-3.5 py-1.5 lg:py-1 text-caption text-[#4A463F] text-center"
+      >
+        {editing
+          ? gridSpec
+            ? '사진을 끌어 자리를 바꾸고, 탭하면 크게·작게 할 수 있어. 빈틈은 알아서 채워져.'
+            : '자유 배치야 — 원하는 곳에 두고 ⤡ 크기·↻ 각도까지 바꿀 수 있어.'
+          : '사진을 탭하면 크게 보여. 빈 곳을 탭하면 직접 꾸밀 수 있어.'}
+      </p>
       <div
         ref={boardRef}
         data-testid="collage-board"
@@ -530,10 +562,8 @@ export default function CollageBoard({
         className="relative w-full mx-auto rounded-3xl overflow-hidden select-none"
         style={{
           aspectRatio: String(aspect),
-          // 숲 테마 — bgGradient 있으면 세로 그라디언트 (canvas renderBoardLayout과 동일 수치)
-          background: theme.bgGradient
-            ? `linear-gradient(180deg, ${theme.bgGradient[0]} 0%, ${theme.bgGradient[1]} 100%)`
-            : theme.bg,
+          // 배경색은 사용자가 고른 단색 (v9.0) — canvas renderBoardLayout과 같은 themeFor() 결과
+          background: theme.bg,
           border: theme.dark ? 'none' : '1px solid #E5E3DF',
           containerType: 'size',
           // 높이 예산 (v8.2) — 저장 버튼이 sticky 바로 내려가 "보드+버튼 한 화면" 제약이 풀렸다.
@@ -547,26 +577,27 @@ export default function CollageBoard({
         onPointerMove={onPointerMove}
         onPointerCancel={onPointerUp}
       >
-        {/* 상단 타이틀 밴드 — mosaic·minimal */}
-        {theme.titlePos === 'top' && (
-          <div
-            className="absolute inset-x-0 top-0 flex flex-col items-center text-center pointer-events-none z-30"
-            // 세로로 긴 화면은 상단 시계·위젯 영역(~15%) 아래로 — lib/wallpaper.ts padCq와 동일 수치
-            style={{ paddingTop: hasTopReserve(aspect) ? '32cqmin' : '4cqmin' }}
+        {/* 상단 타이틀 밴드 — 전 템플릿 공통. 수치는 lib/collageTokens가 단일 소스라
+            canvas(lib/wallpaper.ts)의 titleTokensFor와 자동 락스텝 (v9.0) */}
+        <div
+          className="absolute inset-x-0 top-0 flex flex-col items-center text-center pointer-events-none z-30"
+          style={{ paddingTop: `${titleTokens.padTop * 100}cqmin` }}
+        >
+          <p
+            className="font-semibold tracking-[0.3em] uppercase"
+            style={{ color: theme.labelInk, fontSize: `${titleTokens.labelRatio * 100}cqmin` }}
           >
-            <p className="font-semibold tracking-[0.3em] uppercase" style={{ color: labelColor, fontSize: '2.6cqmin' }}>
-              Vision Board
-            </p>
-            <div className="pointer-events-auto" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
-              <EditableYear
-                year={year}
-                onYearChange={onYearChange}
-                className="font-script font-bold tracking-widest"
-                style={{ color: titleColor, fontSize: '7cqmin' }}
-              />
-            </div>
+            Vision Board
+          </p>
+          <div className="pointer-events-auto" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
+            <EditableYear
+              year={year}
+              onYearChange={onYearChange}
+              className="font-script font-bold tracking-widest"
+              style={{ color: theme.titleInk, fontSize: `${titleTokens.yearRatio * 100}cqmin` }}
+            />
           </div>
-        )}
+        </div>
 
         {/* 사진 + 스티커 — z 순서대로 */}
         {Object.entries(live.items)
@@ -601,8 +632,25 @@ export default function CollageBoard({
                     // v7.6 프레임리스 — 흰 폴라로이드 프레임 제거, 전 템플릿 사진만 + 라운드·그림자.
                     // 편집 모드의 링은 출처 섹션 색 2px — 어느 칸의 사진인지 보드 위에서 바로 보인다 (v8.1)
                     <div
-                      className={`w-full h-full rounded-xl overflow-hidden ${theme.dark ? 'shadow-lg' : 'shadow-sm'} ${editing && !badge ? (theme.dark ? 'ring-1 ring-white/30' : 'ring-1 ring-black/15') : ''}`}
-                      style={editing && badge ? { boxShadow: `0 0 0 2px ${badge.color}` } : undefined}
+                      className={`w-full h-full ${isMatte ? 'rounded-lg bg-white' : 'rounded-xl'} overflow-hidden ${
+                        // 어두운 배경에서는 그림자가 안 보인다 — 밝은 링으로 바꿔야 사진 경계가 산다 (v9.0)
+                        theme.dark ? 'shadow-none ring-1 ring-white/15' : 'shadow-sm'
+                      } ${matteOnWhite ? 'ring-1 ring-[#E5E3DF]' : ''} ${
+                        editing && !badge ? (theme.dark ? 'ring-1 ring-white/40' : 'ring-1 ring-black/15') : ''
+                      }`}
+                      style={{
+                        ...(editing && badge ? { boxShadow: `0 0 0 2px ${badge.color}` } : {}),
+                        // 매트 갤러리 — 셀 짧은 변 기준 매트 여백.
+                        // ⚠️ cqmin(보드 기준)이나 %(컨테이닝 블록 폭 기준)로는 canvas와 어긋난다.
+                        // canvas는 min(셀폭px, 셀높이px)×비율이므로, 보드 폭 대비 cqw로 환산해야 일치한다
+                        ...(isMatte
+                          ? {
+                              padding: `${
+                                Math.min(it.w, (it.h ?? it.w * aspect) / aspect) * MATTE_MAT_RATIO * 100
+                              }cqw`,
+                            }
+                          : {}),
+                      }}
                     >
                       {brokenKeys.has(key) ? (
                         <div
@@ -622,7 +670,11 @@ export default function CollageBoard({
                           src={displaySrc(src ?? '')}
                           alt=""
                           draggable={false}
-                          className={`w-full object-cover pointer-events-none ${it.h !== undefined ? 'h-full' : 'aspect-square'}`}
+                          // 매트 갤러리만 무크롭(contain) — 세로 스크린샷이 잘려 글자가 안 보이던 문제의
+                          // 완전 해소책이자 이 템플릿의 컨셉. 나머지는 cover (canvas drawCover와 락스텝)
+                          className={`w-full ${isMatte ? 'object-contain' : 'object-cover'} pointer-events-none ${
+                            it.h !== undefined ? 'h-full' : 'aspect-square'
+                          }`}
                           onError={() => markBroken(key)}
                         />
                       )}
@@ -647,7 +699,9 @@ export default function CollageBoard({
                     <span className="text-micro text-[#6E6962] leading-none">⤡</span>
                   </div>
                 )}
-                {editing && (
+                {/* 회전은 자유 배치·스티커에서만 (v9.0) — 회전 bbox가 이웃 셀을 침범해
+                    "빈틈 0"과 논리적으로 모순이고, 핸들 난립도 함께 해소된다 */}
+                {editing && (!gridSpec || isSticker) && (
                   <div
                     onPointerDown={(e) => onItemPointerDown(e, key, 'rotate')}
                     className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-white shadow-md border border-[#E5E3DF] flex items-center justify-center cursor-grab z-10"
@@ -655,6 +709,14 @@ export default function CollageBoard({
                   >
                     <span className="text-micro text-[#6E6962] leading-none">↻</span>
                   </div>
+                )}
+                {/* 스왑 대상 하이라이트 — 여기에 놓으면 자리가 바뀐다 */}
+                {swapTarget === key && (
+                  <div
+                    data-testid="swap-target"
+                    aria-hidden="true"
+                    className="absolute -inset-1 rounded-xl border-2 border-dashed border-[#6366F1] pointer-events-none z-20"
+                  />
                 )}
                 {editing && isSticker && (
                   <button
@@ -693,40 +755,6 @@ export default function CollageBoard({
           </div>
         )}
 
-        {/* 자유 배치 안내 (v8.5) — 그리드가 깨진 배치에서 리사이즈해도 자동 정렬이 없는 이유, 2.5s */}
-        {freeformHint && (
-          <div className="absolute bottom-[3cqmin] inset-x-[3cqmin] z-50 flex justify-center pointer-events-none">
-            <p
-              className="rounded-full bg-black/60 text-white px-[3cqmin] py-[1.5cqmin] text-center backdrop-blur-sm animate-fadeIn"
-              style={{ fontSize: '2.8cqmin' }}
-            >
-              자유 배치라 자동 정렬은 쉬어 갈게 — &lsquo;기본 배치로&rsquo;로 되돌릴 수 있어
-            </p>
-          </div>
-        )}
-
-        {/* 중앙 연도 카드 — polaroid. 사진 위에 항상 보이는 보드의 시그니처 */}
-        {theme.titlePos === 'center' && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
-            <div
-              className="rounded-xl px-[6cqmin] py-[4cqmin] text-center border border-white/10 shadow-xl"
-              style={{ backgroundColor: FOREST.card }}
-            >
-              <p className="font-semibold tracking-[0.3em] text-[#C4C2BE] uppercase" style={{ fontSize: '2.6cqmin' }}>
-                Vision Board
-              </p>
-              <div className="pointer-events-auto" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
-                <EditableYear
-                  year={year}
-                  onYearChange={onYearChange}
-                  className="font-script font-bold text-white tracking-widest"
-                  style={{ fontSize: '9cqmin' }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* 상시 어포던스 칩 (v6.17) → 실제 버튼 (v8.2) — 사진 탭이 확대로 바뀌어도
             어느 템플릿에서든 결정적인 편집 진입점이 하나는 남는다 */}
         {!editing && (
@@ -760,6 +788,17 @@ export default function CollageBoard({
                 className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
               >
                 + 문구
+              </button>
+              {/* 자유 배치 토글 (v9.0) — 그리드를 벗어나 아무 데나 두고 회전까지 하고 싶을 때의
+                  명시적 탈출구. 자동 정렬이 조용히 죽는 대신 사용자가 켜고 끈다 */}
+              <button
+                onClick={toggleFreeform}
+                aria-pressed={!gridSpec}
+                className={`px-3 py-1.5 rounded-full text-caption font-medium active:opacity-70 ${
+                  gridSpec ? 'bg-black/60 text-white' : 'bg-white text-[#1C1B19] shadow'
+                }`}
+              >
+                자유 배치
               </button>
             </div>
             <button
@@ -796,13 +835,34 @@ export default function CollageBoard({
                 지우기
               </button>
             )}
-            <button
-              onClick={() => sendToBack(photoAction)}
-              className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
-              aria-label="맨 뒤로"
-            >
-              맨 뒤로
-            </button>
+            {/* 크게·작게 (v9.0) — 핸들 정밀 드래그 없이 스팬 등급을 한 단계씩. 모바일 주 동선 */}
+            {gridSpec && (
+              <>
+                <button
+                  onClick={() => bumpSpan(photoAction, 1)}
+                  className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
+                  aria-label="크게"
+                >
+                  크게
+                </button>
+                <button
+                  onClick={() => bumpSpan(photoAction, -1)}
+                  className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
+                  aria-label="작게"
+                >
+                  작게
+                </button>
+              </>
+            )}
+            {!gridSpec && (
+              <button
+                onClick={() => sendToBack(photoAction)}
+                className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
+                aria-label="맨 뒤로"
+              >
+                맨 뒤로
+              </button>
+            )}
             {!!live.items[photoAction].rot && (
               <button
                 onClick={() => straighten(photoAction)}
@@ -822,12 +882,6 @@ export default function CollageBoard({
           </div>
         )}
       </div>
-
-      <p className="text-micro text-[#6E6962] text-center mt-2">
-        {editing
-          ? '끌어서 옮기고, ⤡로 크기·↻로 각도를 바꿔봐. 사진을 탭하면 바꾸거나 지울 수도 있어.'
-          : '사진을 탭하면 크게 보여. 빈 곳을 탭하면 직접 꾸밀 수 있어.'}
-      </p>
 
       {sheet.open && (
         <StickerSheet

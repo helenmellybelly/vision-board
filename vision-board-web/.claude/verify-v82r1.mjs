@@ -147,10 +147,15 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await page.mouse.up();
   await page.waitForTimeout(800);
   const after = await imgs.evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width }; }));
-  // 리사이즈 시작 시 bringToFront로 z(=DOM 순서)가 바뀌므로 인덱스 비교 불가 — 넓은 사진(≥1.5×최소)
-  // 개수가 1 늘었는지로 판정 (시드 n=6엔 히어로 [2,2]와 [2,1]이 이미 있다)
-  const bigCount = (arr) => { const m = Math.min(...arr.map((r) => r.w)); return arr.filter((r) => r.w > m * 1.5).length; };
-  ok('V82-6a 타깃 사진 확대(스팬 스냅)', bigCount(after) === bigCount(before) + 1, `before=${bigCount(before)} after=${bigCount(after)}`);
+  // v9.0 계약 갱신 — 구 단언은 "넓은 사진 개수가 1 늘어남"이었다. 이제 행의 열 수가 고정이라
+  // 한 장이 커지면 같은 행의 다른 장이 그만큼 줄어든다(총량 보존) → 개수는 늘지 않을 수 있다.
+  // 대신 스냅이 실제로 일어났는지를 단언한다: 자유 픽셀 드래그가 셀의 정수배로 되돌려졌는가
+  const unitOf = (arr) => Math.min(...arr.map((r) => r.w));
+  const snapped = (arr) => {
+    const u = unitOf(arr);
+    return arr.every((r) => Math.abs(r.w / u - Math.round(r.w / u)) < 0.12);
+  };
+  ok('V82-6a 리사이즈 후 스팬 스냅 정합', snapped(after), after.map((r) => Math.round(r.w)).join(','));
   const othersMoved = before.some((b, i) => Math.abs(b.x - after[i].x) > 2 || Math.abs(b.y - after[i].y) > 2);
   ok('V82-6b 나머지 사진 자동 재배치', othersMoved);
   const layout = await page.evaluate(() => JSON.parse(localStorage.getItem('vision-board-data')).collageDeviceLayouts?.desktop?.mosaic);

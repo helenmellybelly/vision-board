@@ -146,7 +146,7 @@ async function newPage(seed, { suppressCoach = true } = {}) {
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1200);
   // v8.5 — 콜라주 이야기 블록(넛지 라벨 포함) 삭제: 일기 링크로 대체
-  ok('V8-6b 콜라주 넛지 블록 부재·일기 링크', (await page.getByText('보드가 자랐네').count()) === 0 && await page.getByText('📖 미래 일기 읽기 →').isVisible().catch(() => false));
+  ok('V8-6b 콜라주 넛지 블록·일기 링크 모두 부재(v9.0)', (await page.getByText('보드가 자랐네').count()) === 0 && (await page.getByText('📖 미래 일기 읽기 →').count()) === 0);
   await ctx.close();
 }
 
@@ -161,7 +161,7 @@ async function newPage(seed, { suppressCoach = true } = {}) {
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1200);
   // v8.5 — '다시 쓰러 가기' 라벨 삭제(블록 제거): 일기 링크가 상시 진입점
-  ok('V8-7b 콜라주 일기 링크(구 라벨 대체)', await page.getByText('📖 미래 일기 읽기 →').isVisible().catch(() => false));
+  ok('V8-7b 콜라주 일기 링크 부재(v9.0 — 읽기 단일 홈은 /diary)', (await page.getByText('📖 미래 일기 읽기 →').count()) === 0);
   await ctx.close();
 }
 

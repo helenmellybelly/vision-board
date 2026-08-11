@@ -57,18 +57,54 @@ export function loadBoard(): BoardData {
   }
 }
 
-// v6.15 마이그레이션: '내 배치' 탭 제거 — custom 템플릿 선택값과 그 배치를 polaroid로 이관 (1회, 멱등)
+/** 숲 → 매트 갤러리 전환 안내 1회 노출 플래그 (v9.0). BoardData 스키마와 분리 — 안내는 기기 사정이다 */
+export const MATTE_NOTICE_KEY = 'vb-collage-matte-notice';
+
+/** 안내를 띄워야 하는가. 읽는 즉시 소비(1회 노출) */
+export function consumeMatteNotice(): boolean {
+  try {
+    if (localStorage.getItem(MATTE_NOTICE_KEY) !== '1') return false;
+    localStorage.removeItem(MATTE_NOTICE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// 콜라주 필드 가드형 마이그레이션 (멱등) — schemaVersion 체인과 달리 매 로드 시 돌아도 안전하다.
+// v6.15: '내 배치'(custom) 탭 제거 / v9.0: 숲(polaroid) 템플릿 삭제 → 매트 갤러리(matte)
 function migrateCollage(board: BoardData): void {
   let dirty = false;
-  if ((board.collageTemplate as string) === 'custom') {
-    board.collageTemplate = 'polaroid';
+
+  // v9.0 — 숲 삭제. 배치 좌표는 회전·지터 산포라 매트 갤러리의 균일 그리드로 재해석할 수 없다.
+  // 버리면 seedLayout이 새로 깔아준다(사진 자체는 섹션 데이터에 있어 무손실).
+  const LEGACY_TEMPLATES = ['polaroid', 'custom'];
+  if (LEGACY_TEMPLATES.includes(board.collageTemplate as string)) {
+    board.collageTemplate = 'matte';
     dirty = true;
+    // 왜 템플릿이 바뀌었는지 1회 알린다 — 조용히 바뀌면 "내 보드가 망가졌다"로 읽힌다
+    try {
+      localStorage.setItem(MATTE_NOTICE_KEY, '1');
+    } catch {
+      // 프라이빗 모드 등 저장 불가 — 안내를 못 띄울 뿐 마이그레이션은 계속
+    }
   }
-  if (board.collageLayout && !board.collageLayouts) {
-    board.collageLayouts = { polaroid: board.collageLayout };
+  if (board.collageLayout) {
     board.collageLayout = undefined;
     dirty = true;
   }
+  const dropLegacy = (bucket: Partial<Record<CollageTemplate, CollageLayout>> | undefined) => {
+    if (!bucket) return;
+    for (const t of LEGACY_TEMPLATES) {
+      if (t in bucket) {
+        delete (bucket as Record<string, unknown>)[t];
+        dirty = true;
+      }
+    }
+  };
+  dropLegacy(board.collageLayouts);
+  dropLegacy(board.collageDeviceLayouts?.phone);
+  dropLegacy(board.collageDeviceLayouts?.desktop);
 
   // v6.19: 기존 배치에 제작 당시 비율 스탬프 — v6.18 배치는 보드 4:5 / 폰 1170×2532 / PC 1920×1080 고정이었다
   const stampAspect = (
@@ -330,6 +366,13 @@ export function saveTargetDate(iso: string): void {
 export function saveCollageTemplate(template: CollageTemplate): void {
   const board = loadBoard();
   board.collageTemplate = template;
+  saveBoard(board);
+}
+
+// 보드 배경색 (v9.0) — 세 템플릿 공통 전역 1개. 템플릿을 바꿔도 고른 색이 따라온다
+export function saveCollageBgColor(hex: string): void {
+  const board = loadBoard();
+  board.collageBgColor = hex;
   saveBoard(board);
 }
 

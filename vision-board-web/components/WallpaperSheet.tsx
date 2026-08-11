@@ -21,7 +21,7 @@ interface Props {
   /** 편집 진입 전에 선택한 기기 사이즈 — 이 해상도 그대로 내보낸다(무크롭 WYSIWYG, v6.19) */
   preset: WallpaperPreset;
   /** 화면 보드 그대로 내보내기용 — 현재 템플릿·배치·사진 */
-  board: { template: CollageTemplate; layout: CollageLayout; items: CollageItem[] };
+  board: { template: CollageTemplate; layout: CollageLayout; items: CollageItem[]; bgColor?: string };
   onClose: () => void;
   /** 빠진 사진을 내 저장소로 수입해 보드가 바뀌었을 때 — 호출부가 보드를 다시 읽는다 (v8.7) */
   onPhotosNormalized?: () => void;
@@ -70,7 +70,7 @@ export default function WallpaperSheet({ year, preset, board, onClose, onPhotosN
       board.items,
       year,
       { w: preset.w, h: preset.h },
-      { bust: bustRef.current }
+      { bust: bustRef.current, bgColor: board.bgColor }
     );
   }
 

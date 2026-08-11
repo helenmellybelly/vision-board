@@ -68,7 +68,7 @@ const withPhoto = (extra = {}) =>
   await page.waitForTimeout(1500);
   // v8.1: 좁은 화면 기본 뷰가 폰
   ok('R5-1a 진입 즉시 폰 탭 활성 (v8.1 기본)', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
-  ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('숲').first().isVisible().catch(() => false));
+  ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('매트 갤러리').first().isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r5-collage-unified.png`, fullPage: true });
   // v7.3: 빈 피커 대신 표준 프리셋 자동 선택 + 상시 칩 행
   ok('R5-1e 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
@@ -164,12 +164,12 @@ const withPhoto = (extra = {}) =>
   const layout = { items: { '1-0': { x: 0.1, y: 0.1, w: 0.4, z: 1 } }, aspect: 1170 / 2532 };
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }, {
     collageDevicePresets: { phone: 'phone' },
-    collageDeviceLayouts: { phone: { polaroid: layout } },
+    collageDeviceLayouts: { phone: { matte: layout } },
   }));
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
   const board = await page.evaluate(() => JSON.parse(localStorage.getItem('vision-board-data') ?? 'null'));
-  const saved = board?.collageDeviceLayouts?.phone?.polaroid?.items?.['1-0'];
+  const saved = board?.collageDeviceLayouts?.phone?.matte?.items?.['1-0'];
   ok('R5-8 기존 기기 배치 무손실', saved?.x === 0.1 && saved?.w === 0.4);
   await ctx.close();
 }

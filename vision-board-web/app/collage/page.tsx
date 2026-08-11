@@ -6,9 +6,11 @@ import { track } from '@/lib/analytics';
 import AccountButton from '@/components/AccountButton';
 import {
   clearCollageDeviceLayouts,
+  consumeMatteNotice,
   loadBoard,
   saveTargetDate,
   saveCollageDeviceLayout,
+  saveCollageBgColor,
   saveCollageDevicePreset,
   saveCollageTemplate,
   saveUploadedImage,
@@ -17,6 +19,8 @@ import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
 import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, CollageLayout, CollageTemplate, SectionId } from '@/lib/types';
 import { ASPECT, CollageItem, DEFAULT_TEMPLATE, TEMPLATE_ORDER, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
+import { BG_PALETTE, normalizeBgColor, titleInkFor } from '@/lib/collageTokens';
+import { displaySrc } from '@/lib/imageSrc';
 import { WALLPAPER_PRESETS, WallpaperPreset } from '@/lib/wallpaper';
 import { IMPORT_NOTICES, importRemoteImage } from '@/lib/imagePick';
 import { findRemoteSlots, normalizeSlots } from '@/lib/imageNormalize';
@@ -35,12 +39,12 @@ import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 //        전 뷰포트 2탭 + 보드 전폭, 저장 버튼은 sticky 하단 바, 폰 뷰 lg+는 우측 컨트롤 레일
 type CollageView = 'phone' | 'desktop';
 
-// id 'polaroid'는 localStorage 키 계약이라 유지 — v7.6에서 UI 라벨만 '숲'으로.
-// v8.0 — 순서·기본값은 lib/collageTemplates.ts의 TEMPLATE_ORDER/DEFAULT_TEMPLATE 단일 소스
+// 순서·기본값은 lib/collageTemplates.ts의 TEMPLATE_ORDER/DEFAULT_TEMPLATE 단일 소스.
+// v9.0 — '숲'(polaroid) 삭제 → '매트 갤러리'(matte). 구 선택값은 storage.ts migrateCollage가 이관한다
 const TEMPLATE_LABELS: Record<CollageTemplate, string> = {
-  polaroid: '숲',
   mosaic: '모자이크',
   minimal: '미니멀',
+  matte: '매트 갤러리',
 };
 const TEMPLATES: { id: CollageTemplate; label: string }[] = TEMPLATE_ORDER.map((id) => ({
   id,
@@ -50,12 +54,26 @@ const TEMPLATES: { id: CollageTemplate; label: string }[] = TEMPLATE_ORDER.map((
 // 첫 진입 코치마크 1회 노출 여부 — BoardData 스키마와 분리해 별도 키로 관리
 const COACH_KEY = 'vb-collage-coach-v1';
 
+/** 보드의 첫 사진 src — 히어로 후보라 이 장의 비율만 측정하면 된다 (v9.0) */
+function firstPhotoSrc(b: BoardData | null): string | null {
+  if (!b) return null;
+  for (const section of SECTIONS) {
+    const sec = b.sections[section.id];
+    for (let i = 0; i < 3; i++) {
+      const src = sec.uploadedImages?.[i] || sec.generatedImages?.[i];
+      if (src) return src;
+    }
+  }
+  return null;
+}
+
 // 템플릿 탭 미니 스와치 — 글자만으로는 모드 차이가 안 보인다는 피드백(v6.17)
 function TemplateSwatch({ id }: { id: CollageTemplate }) {
-  if (id === 'polaroid') {
+  if (id === 'matte') {
+    // 넓은 매트 여백 안에 작은 사진 하나 — 이 템플릿의 정체성(액자)을 그대로 축약
     return (
-      <span className="inline-block w-4 h-4 rounded-[3px] bg-[#1F2E22] relative flex-shrink-0" aria-hidden="true">
-        <span className="absolute left-[3px] top-[3px] w-2 h-2 bg-white/90 rounded-[2px] rotate-[-8deg]" />
+      <span className="inline-block w-4 h-4 rounded-[3px] bg-white border border-[#C4C2BE] relative flex-shrink-0" aria-hidden="true">
+        <span className="absolute left-[4.5px] top-[4.5px] right-[4.5px] bottom-[4.5px] bg-[#8A8784] rounded-[1px]" />
       </span>
     );
   }
@@ -88,6 +106,9 @@ export default function CollagePage() {
   const [sheetView, setSheetView] = useState<CollageView | null>(null);
   const [confirmReseed, setConfirmReseed] = useState<{ view: CollageView; preset: WallpaperPreset } | null>(null);
   const [showCoach, setShowCoach] = useState(false);
+  const [showMatteNotice, setShowMatteNotice] = useState(false);
+  // 첫 사진의 실제 가로세로비 — 세로 사진이 정사각 히어로에 들어가 잘리는 걸 막는다 (v9.0)
+  const [heroRatio, setHeroRatio] = useState<number | null>(null);
   // 사진 교체 인라인 패널 대상 — key는 `${sectionId}-${slotIdx}` (v8.1)
   const [replaceTarget, setReplaceTarget] = useState<{ view: CollageView; key: string } | null>(null);
   const [replaceUrl, setReplaceUrl] = useState('');
@@ -108,6 +129,8 @@ export default function CollagePage() {
       return;
     }
     setBoard(b);
+    // 숲 → 매트 갤러리 전환 안내 (v9.0) — loadBoard가 마이그레이션하며 세운 플래그를 1회 소비
+    if (consumeMatteNotice()) setShowMatteNotice(true);
     try {
       if (!localStorage.getItem(COACH_KEY)) setShowCoach(true);
     } catch {
@@ -139,6 +162,22 @@ export default function CollagePage() {
     setBoard(loadBoard());
   }, [board]);
 
+  // 첫 사진 비율 측정 (v9.0) — DOM <img>와 같은 URL(displaySrc)이라 HTTP 캐시를 공유해
+  // 실질 추가 요청이 없다. ⚠️ 캐시 키를 갈라놓지 않으려면 crossOrigin을 설정하지 말 것 (v8.7 교훈)
+  const heroSrc = firstPhotoSrc(board);
+  useEffect(() => {
+    if (!heroSrc) return;
+    let alive = true;
+    const im = new Image();
+    im.onload = () => {
+      if (alive && im.naturalWidth > 0 && im.naturalHeight > 0) {
+        setHeroRatio(im.naturalWidth / im.naturalHeight);
+      }
+    };
+    im.src = displaySrc(heroSrc);
+    return () => { alive = false; };
+  }, [heroSrc]);
+
   function dismissCoach() {
     // iOS 프라이빗 모드에서 setItem이 throw해도 오버레이는 닫히게 (v7.4 감사 M6)
     try {
@@ -152,6 +191,8 @@ export default function CollagePage() {
   if (!board) return null;
 
   const template: CollageTemplate = board.collageTemplate ?? DEFAULT_TEMPLATE;
+  // 미설정이면 템플릿 기본색 — 기존 사용자는 지금 화면 그대로 보인다(무회귀) (v9.0)
+  const bgColor = normalizeBgColor(board.collageBgColor, template);
 
   const completedCount = Object.values(board.sections).filter(
     (s) => s.status === 'completed'
@@ -167,7 +208,10 @@ export default function CollagePage() {
       .filter((img): img is string => !!img);
   });
 
-  // 보드 배치용 — 섹션·슬롯 키와 함께 (사진 교체·삭제에도 배치가 안정적)
+  // 보드 배치용 — 섹션·슬롯 키와 함께 (사진 교체·삭제에도 배치가 안정적).
+  // heroRatio: 첫 사진의 실제 가로세로비 (v9.0) — 세로 사진을 2×2 정사각 히어로에 넣으면
+  // 위아래가 잘려 글자가 안 보인다(오너 v8.7 팟캐스트 사례). chooseGrid가 이 값만 참조하므로
+  // 첫 장만 측정한다. 측정 전이거나 실패하면 undefined → 1로 간주해 결정성을 지킨다
   const keyedItems: CollageItem[] = SECTIONS.flatMap((section) => {
     const sec = board.sections[section.id];
     const uploaded = sec.uploadedImages ?? [];
@@ -175,7 +219,7 @@ export default function CollagePage() {
     return [0, 1, 2]
       .map((i) => ({ key: `${section.id}-${i}`, src: uploaded[i] || generated[i] || '' }))
       .filter((item) => !!item.src);
-  });
+  }).map((item, i) => (i === 0 && heroRatio ? { ...item, ratio: heroRatio } : item));
 
   // 중앙 연도의 소스는 targetDate(일기 날짜)로 통일 (v7.0-r3) — 연도 편집도 targetDate의 연도만 교체
   const boardYear = getTargetYear(board);
@@ -193,6 +237,11 @@ export default function CollagePage() {
 
   function selectTemplate(id: CollageTemplate) {
     saveCollageTemplate(id);
+    setBoard(loadBoard());
+  }
+
+  function selectBgColor(hex: string) {
+    saveCollageBgColor(hex);
     setBoard(loadBoard());
   }
 
@@ -374,6 +423,53 @@ export default function CollagePage() {
     </div>
   );
 
+  // 배경색 팔레트 (v9.0) — 세 템플릿 공통. 매트 갤러리 전용이 아닌 이유:
+  // 배경색은 템플릿의 특권이 아니라 세 템플릿을 가로지르는 축이고, 매트의 정체성은
+  // "색을 고를 수 있다"가 아니라 넓은 매트 여백·균일 배치·무크롭이다.
+  const bgPalette = (
+    <div className="mb-2 lg:mb-1.5">
+      <div
+        className="flex gap-2 overflow-x-auto scroll-soft lg:flex-wrap lg:overflow-visible pb-0.5"
+        role="radiogroup"
+        aria-label="보드 배경색"
+      >
+        {BG_PALETTE.map((s) => {
+          const on = bgColor.toUpperCase() === s.hex.toUpperCase();
+          return (
+            <button
+              key={s.id}
+              role="radio"
+              aria-checked={on}
+              aria-label={s.label}
+              onClick={() => selectBgColor(s.hex)}
+              className={`flex-shrink-0 flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-1 transition-colors ${
+                on ? 'border-[#1C1B19] bg-white' : 'border-[#E5E3DF] bg-[#F5F5F3]'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className="w-5 h-5 rounded-full border border-black/10 flex items-center justify-center"
+                style={{ backgroundColor: s.hex }}
+              >
+                {on && (
+                  <span
+                    className="text-[10px] leading-none font-bold"
+                    style={{ color: titleInkFor(s.hex).title }}
+                  >
+                    ✓
+                  </span>
+                )}
+              </span>
+              <span className={`text-micro font-medium ${on ? 'text-[#1C1B19]' : 'text-[#6E6962]'}`}>
+                {s.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   // 기기 사이즈 칩 (v8.7) — 템플릿 탭 바로 아래 전폭. 구 v8.2는 폰 뷰 lg+에서 이걸 보드 우측
   // 20rem 레일에 넣었는데, 칩 7개가 그 폭에 안 들어가 화면 밖으로 잘렸다. "모자이크·숲·미니멀
   // 다음에 기기를 고른다"는 실제 순서와도 어긋났다. 레일은 폐지 — 칩이 빠지면 상주 콘텐츠가
@@ -426,6 +522,7 @@ export default function CollagePage() {
               key={`${v}-${preset.id}-${template}`}
               view={v}
               template={template}
+              bgColor={bgColor}
               items={keyedItems}
               layout={savedLayout}
               aspect={preset.w / preset.h}
@@ -582,11 +679,14 @@ export default function CollagePage() {
           칩이 뷰 패널 밖으로 나오면서 예산의 주인도 바깥이어야 맞다. PC 뷰가 더 큰 이유:
           16:9 보드는 폭 바운드라 예산을 키워야 헤더+탭+칩+저장 바가 한 화면에 들어온다.
           ⚠️ Tailwind JIT 스캔을 위해 완성된 클래스 리터럴을 삼항으로 고를 것(문자열 조립 금지).
-          ⚠️ 이 수치의 진실 원천은 verify-v87r1 V87-4d(무스크롤)·V87-4e(보드 폭 ≥1000px)다. */}
+          ⚠️ 이 수치의 진실 원천은 verify-v87r1 V87-4d(무스크롤)·V87-4e(보드 폭 ≥1000px)다.
+          두 계약은 서로 반대 방향이라 눈대중으로 정하면 안 되고 테스트로 역산해야 한다.
+          v9.0에서 배경색 팔레트 행과 보드 위 가이드 알약이 추가돼 PC 예산을 17→20rem으로 올렸다
+          (900px 뷰포트에서 보드 폭 약 1031px — V87-4e의 1000px 하한을 그대로 만족). */}
       <div
         className={`px-4 md:px-6 animate-fadeIn ${
           view === 'desktop'
-            ? '[--board-reserve:13rem] lg:[--board-reserve:17rem]'
+            ? '[--board-reserve:13rem] lg:[--board-reserve:20rem]'
             : '[--board-reserve:13rem] lg:[--board-reserve:10rem]'
         }`}
       >
@@ -606,23 +706,32 @@ export default function CollagePage() {
           </div>
         ) : (
           <>
-            {/* 템플릿은 뷰 공통 단일 값 — 셀렉터는 하나. 그 바로 아래가 기기 사이즈 (v8.7) */}
+            {/* 숲 → 매트 갤러리 전환 안내 (v9.0) — 템플릿이 조용히 바뀌면 "망가졌다"로 읽힌다 */}
+            {showMatteNotice && (
+              <div className="mb-2 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
+                <p className="text-caption text-[#92400E]">
+                  &lsquo;숲&rsquo;은 &lsquo;매트 갤러리&rsquo;로 바뀌었어. 사진은 그대로고 배치만 새로 깔렸어 — 배경색도 골라봐.
+                </p>
+                <button
+                  onClick={() => setShowMatteNotice(false)}
+                  className="text-caption font-semibold text-[#92400E] underline mt-1.5 active:opacity-70"
+                >
+                  알겠어
+                </button>
+              </div>
+            )}
+            {/* 템플릿 → 배경색 → 기기 사이즈 순 (v9.0). 뷰 공통 단일 값이라 셀렉터는 각각 하나 */}
             {templateSelector}
+            {bgPalette}
             {renderDevicePicker(view)}
             {renderViewPanel(view)}
           </>
         )}
 
-        {/* 하단 동선 (v8.5) — 구 '미래의 하루 이야기' 블록 삭제: /diary와 완전 중복이라
-            자리만 차지한다는 오너 피드백. 읽기·다듬기는 /diary가 단일 홈, 여기선 조용한 링크 1줄 */}
-        {collageImages.length > 0 && board.futureDayStory ? (
-          <button
-            onClick={() => router.push('/diary')}
-            className="mt-8 block mx-auto py-2 text-caption text-[#6E6962] underline active:opacity-70"
-          >
-            📖 미래 일기 읽기 →
-          </button>
-        ) : collageImages.length > 0 && completedCount >= FIRST_BOARD_THRESHOLD ? (
+        {/* 하단 동선 — v9.0: '📖 미래 일기 읽기' 링크 삭제. 보드를 꾸미는 맥락에 읽기 동선이
+            섞여 있을 이유가 없다는 오너 피드백. 일기 진입점은 대시보드(app/dashboard/page.tsx)에
+            그대로 있고 /diary가 읽기의 단일 홈이다. 여기 남는 건 완성 CTA뿐 */}
+        {collageImages.length > 0 && !board.futureDayStory && completedCount >= FIRST_BOARD_THRESHOLD ? (
           // 첫 보드 조기 개방 (v7.8) — 임계값부터 최종 스토리로 초대. 6/6 라벨은 불변(v75r1 계약)
           <div className="mt-8 space-y-2">
             <button
@@ -714,7 +823,7 @@ export default function CollagePage() {
         <WallpaperSheet
           year={boardYear}
           preset={sheetData.preset}
-          board={{ template, layout: sheetData.currentLayout, items: keyedItems }}
+          board={{ template, layout: sheetData.currentLayout, items: keyedItems, bgColor }}
           onClose={() => setSheetView(null)}
           // 시트에서 사진을 수입하면 보드도 갱신 — 배치는 key 기준이라 그대로 유지된다 (v8.7)
           onPhotosNormalized={() => {

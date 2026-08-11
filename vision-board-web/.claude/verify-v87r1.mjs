@@ -415,9 +415,15 @@ const openSheet = async (page, name = '폰 배경화면 저장') => {
   const group = page.getByRole('radiogroup', { name: '기기 사이즈' });
   const gb = await group.boundingBox();
   ok('V87-4a 칩이 보드 위', !!bd && !!gb && gb.y + gb.height <= bd.y + 4, `chipsB=${gb ? Math.round(gb.y + gb.height) : '?'} boardT=${bd ? Math.round(bd.y) : '?'}`);
+  // v9.0 — 템플릿 탭과 기기 칩 사이에 배경색 팔레트가 들어왔다. 순서는 템플릿 → 배경색 → 기기.
+  // 계약의 뜻("한 덩어리로 읽힌다")은 각 단계가 바로 앞 것에 붙어 있는지로 유지한다
   const tb = await page.getByRole('radiogroup', { name: '콜라주 템플릿' }).boundingBox();
-  const gap = gb && tb ? gb.y - (tb.y + tb.height) : 999;
-  ok('V87-4c 템플릿 탭 바로 아래', gap >= 0 && gap < 40, `gap=${Math.round(gap)}`);
+  const pb = await page.getByRole('radiogroup', { name: '보드 배경색' }).boundingBox();
+  const gapTP = pb && tb ? pb.y - (tb.y + tb.height) : 999;
+  const gapPG = gb && pb ? gb.y - (pb.y + pb.height) : 999;
+  ok('V87-4c 템플릿 → 배경색 → 기기 한 덩어리',
+    gapTP >= 0 && gapTP < 40 && gapPG >= 0 && gapPG < 40,
+    `템플릿→배경 ${Math.round(gapTP)} / 배경→기기 ${Math.round(gapPG)}`);
   const chips = await group.getByRole('radio').evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
   const clipped = gb ? chips.filter((c) => c.right > gb.x + gb.width + 1 || c.left < gb.x - 1).length : -1;
   ok('V87-4b 칩 잘림 0', chips.length >= 7 && clipped === 0, `n=${chips.length} clipped=${clipped}`);

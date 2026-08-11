@@ -74,7 +74,7 @@ async function newPage(seed, ctxOpts = {}) {
     if (raw) {
       const b = JSON.parse(raw);
       if (!b.collageTemplate) {
-        b.collageTemplate = 'polaroid';
+        b.collageTemplate = 'matte';
         localStorage.setItem('vision-board-data', JSON.stringify(b));
       }
     }
@@ -82,17 +82,15 @@ async function newPage(seed, ctxOpts = {}) {
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(1500);
   const board = page.locator('[data-testid="collage-board"]');
+  // v9.0 계약 반전 — 숲 테마(그라디언트 배경·중앙 연도 카드)는 매트 갤러리로 대체되며 삭제됐다.
+  // 그라디언트 배경은 이제 어떤 템플릿에도 없다(배경은 사용자가 고른 단색), 연도는 상단 밴드로 통일
   const boardBg = await board.evaluate((el) => getComputedStyle(el).backgroundImage).catch(() => '');
-  ok('V6-2a 콜라주 보드 그라디언트', boardBg.includes('linear-gradient') && boardBg.includes('rgb(31, 46, 34)'), boardBg.slice(0, 80));
-  const cardCount = await board
-    .evaluate((el) =>
-      [...el.querySelectorAll('div')].filter((d) => getComputedStyle(d).backgroundColor === 'rgb(51, 71, 58)').length
-    )
-    .catch(() => 0);
-  ok('V6-2b 연도 카드 숲 컬러(#33473A)', cardCount >= 1, `count=${cardCount}`);
+  ok('V6-2a 보드 배경은 단색(그라디언트 폐기)', !boardBg.includes('linear-gradient'), boardBg.slice(0, 40));
+  const boardColor = await board.evaluate((el) => getComputedStyle(el).backgroundColor).catch(() => '');
+  ok('V6-2b 매트 갤러리 기본 배경 흰색', boardColor === 'rgb(255, 255, 255)', boardColor);
   ok('V6-2c 흰 폴라로이드 프레임 부재', (await board.locator('.bg-white.p-1').count()) === 0);
-  ok('V6-2d 사진 라운드 래퍼', (await board.locator('.rounded-xl img').count()) >= 1);
-  ok('V6-2e 템플릿 라벨 숲', await page.getByText('숲', { exact: true }).first().isVisible().catch(() => false));
+  ok('V6-2d 매트 카드 래퍼', (await board.locator('.rounded-lg.bg-white img').count()) >= 1);
+  ok('V6-2e 템플릿 라벨 매트 갤러리', await page.getByText('매트 갤러리', { exact: true }).first().isVisible().catch(() => false));
   await ctx.close();
 }
 

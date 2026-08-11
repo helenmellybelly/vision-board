@@ -256,7 +256,9 @@ const loadStored = (page) =>
   await ctx.close();
 }
 {
-  // 자유 배치 시드 — 셀 배수가 아닌 폭들(그리드 역산 불가) → 리사이즈 시 1회 안내
+  // v9.0 계약 반전 — 구 V85-8c/8d는 "그리드 역산 실패 시 자유 배치 안내"를 단언했다.
+  // 이제 배치의 진실 원천이 명시적 grid라 역산 실패 자체가 없어졌고, 안내 토스트도 삭제됐다.
+  // 대신 단언할 것: 레거시 자유 좌표 배치에서도 리사이즈가 자동 정렬로 살아난다(불사 계약).
   const overrides = { 1: { ...withPhoto('일기1'), uploadedImages: [PIXEL, PIXEL, PIXEL, null, null] } };
   const phoneAspect = 9 / 19.5;
   const freeform = {
@@ -278,6 +280,9 @@ const loadStored = (page) =>
   await page.goto(`${BASE}/collage?view=phone`);
   await page.waitForTimeout(2000);
   const bd = page.locator('[data-testid="collage-board"][data-view="phone"]');
+  const rectsOf = () =>
+    bd.locator('img').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top.toFixed(1)).join('|'));
+  const before = await rectsOf();
   await bd.click({ position: { x: 12, y: 12 } });
   await page.waitForTimeout(600);
   const handle = bd.locator('div[aria-label="크기 조절"]').first();
@@ -286,10 +291,9 @@ const loadStored = (page) =>
   await page.mouse.down();
   await page.mouse.move(hb.x + hb.width / 2 + 40, hb.y + hb.height / 2 + 40, { steps: 4 });
   await page.mouse.up();
-  await page.waitForTimeout(400);
-  ok('V85-8c 자유 배치 안내 노출', await page.getByText('자동 정렬은 쉬어 갈게').isVisible().catch(() => false));
-  await page.waitForTimeout(2600);
-  ok('V85-8d 안내 2.5s 후 제거', (await page.getByText('자동 정렬은 쉬어 갈게').count()) === 0);
+  await page.waitForTimeout(600);
+  ok('V85-8c 자유 배치 안내 폐기', (await page.getByText('자동 정렬은 쉬어 갈게').count()) === 0);
+  ok('V85-8d 레거시 배치도 자동 정렬', (await rectsOf()) !== before);
   await ctx.close();
 }
 

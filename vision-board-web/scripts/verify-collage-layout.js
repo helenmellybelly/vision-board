@@ -1,25 +1,50 @@
-// v8.0 콜라주 자동 배치 기하 검증 — 시드 알고리즘을 직접 호출해(브라우저 불필요) 계약을 검사한다.
-//   1) 사진끼리 겹침 ≤ 20% (작은 쪽 기준) — 숲 포함 전 템플릿
-//   2) 숲: 연도 카드 rect ∩ 사진 = 0, 시드 스티커 ∩ 사진 = 0
-//   3) 모자이크·미니멀: 콘텐츠 수직 센터링 (상하 여백 차 ≤ 보드 높이의 6%)
-//   4) reconcile: edited 배치에 사진 추가 → 기존 rect 불변 + 새 rect 겹침 ≤ 20%
-//   5) edited:false 배치에 사진 추가 → 신선한 시드로 재배치
-//   8) 미니멀 혼합 그리드 (v8.5): n=2..18 전 비율 — 무겹침(≤0.1%)·경계·크기 위계(n≥3 최대 면적
-//      ≥ 2×최소)·고아 금지(같은 y밴드 이웃 없는 사진은 넓은 배너여야)·전체 가로 센터링
-//   9) 미니멀 reflow 라운드트립 (v8.5): 혼합 시드가 그리드 정합(스팬 ≤4) → 리플로우 무겹침·z 보존
-//  10) 숲 레거시 가시성 가드 (v8.4): 손상+플래그無 → 리시드, edited:true·무손상은 보존
-// 실행: node scripts/verify-collage-layout.js  (tsx 없이 돌도록 esbuild-register 대신 정규식 트랜스파일)
-const { execSync } = require('child_process');
-const path = require('path');
-
-// TS 모듈을 그대로 부르기 위해 next 번들 대신 tsx 사용 시도 → 없으면 안내
-const inline = `
-import { seedLayout, resolveLayout, polaroidReserveRect, ASPECT, stickerKey, inferGridSpans, reflowLayout, isLayoutBroken } from '../lib/collageTemplates';
+// 콜라주 기하 계약 검증 (v9.0 그리드 재설계) — npx tsx scripts/verify-collage-layout.js
+//
+// 계약:
+//  1) 사진끼리 겹치지 않는다 (그리드는 원천 무겹침 — 임계 0.1%)
+//  2) 모든 사진이 보드 경계 안
+//  3) 타일링 정리: 모든 밴드가 cols를 정확히 채운다(매트의 마지막 짧은 행만 예외) → 빈틈 0
+//  4) 가드레일: 사진 박스가 photoBounds를 넘지 않는다 → "왁! 큰 느낌" 회귀 방지
+//  5) 여백:갭 ≥ 2 — 갤러리 조판의 숨 쉬는 여백
+//  6) 자동정렬 불사: 어떤 리사이즈를 해도 그리드가 죽지 않는다 (v8.x의 null 사망 지점 회귀 테스트)
+//  7) 스왑은 자리만 바꾼다 — 키 집합·타일링 불변
+//  8) 매트 갤러리는 완전 균일(면적 동일·전 스팬 1×1), 모자이크는 크기 위계가 있다
+//  9) reconcile: edited:false는 리시드, 그리드 모드는 상대 순서 보존 + 타일링 유지
+// 10) 배경색: 팔레트 × 자동 반전 글자색 대비 ≥ 4.5:1
+import {
+  ASPECT,
+  DEFAULT_TEMPLATE,
+  TEMPLATE_ORDER,
+  chooseGrid,
+  normalizeBgColor,
+  normalizeTemplate,
+  resolveLayout,
+  seedLayout,
+  stickerKey,
+  themeFor,
+} from '../lib/collageTemplates';
+import {
+  assertTiling,
+  gridKeys,
+  gridMetrics,
+  layoutCells,
+  resizeInGrid,
+  swapInGrid,
+} from '../lib/collageGrid';
+import {
+  BG_PALETTE,
+  GUARDRAIL_MIN_ITEMS,
+  SPAN_CAP,
+  boxRatioOk,
+  contrastRatio,
+  photoBounds,
+  spacingFor,
+} from '../lib/collageTokens';
 
 const results = [];
-const ok = (name, cond, extra = '') => results.push(\`\${cond ? 'PASS' : 'FAIL'} \${name}\${extra ? ' — ' + extra : ''}\`);
+const ok = (name, cond, extra = '') => results.push(`${cond ? 'PASS' : 'FAIL'} ${name}${extra ? ' — ' + extra : ''}`);
 
-const mkItems = (n) => Array.from({ length: n }, (_, i) => ({ key: \`\${(i % 6) + 1}-\${Math.floor(i / 6)}\`, src: 'x' }));
+const mkItems = (n) => Array.from({ length: n }, (_, i) => ({ key: `${(i % 6) + 1}-${Math.floor(i / 6)}`, src: 'x' }));
 const rectOf = (it, aspect) => ({ x: it.x, y: it.y, w: it.w, h: it.h ?? it.w * aspect });
 const overlap = (a, b) => {
   const ox = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
@@ -29,253 +54,269 @@ const overlap = (a, b) => {
 const ratio = (a, b) => overlap(a, b) / Math.min(a.w * a.h, b.w * b.h);
 
 const ASPECTS = { phone: 9 / 19.5, desktop: 16 / 9, board: ASPECT };
-const COUNTS = [1, 3, 6, 12, 18];
-const TEMPLATES = ['polaroid', 'mosaic', 'minimal'];
+const COUNTS = Array.from({ length: 18 }, (_, i) => i + 1);
+const TEMPLATES = TEMPLATE_ORDER;
+const photoEntries = (layout) => Object.entries(layout.items).filter(([k]) => !k.startsWith('sticker:'));
 
+// ── 1~5) 시드 기하: 무겹침·경계·타일링·가드레일 ──
 for (const [aName, aspect] of Object.entries(ASPECTS)) {
-  for (const t of TEMPLATES) {
+  for (const template of TEMPLATES) {
+    const sp = spacingFor(template, aspect);
+    ok(
+      `${template}/${aName} 여백:갭 ≥ 2`,
+      sp.marginX / sp.gutterX >= 2 - 1e-9 && sp.marginY / sp.gutterY >= 2 - 1e-9,
+      `${(sp.marginX / sp.gutterX).toFixed(2)}:1`
+    );
+
     for (const n of COUNTS) {
       const items = mkItems(n);
-      const layout = seedLayout(t, items, aspect);
-      const photoRects = items.map((it) => rectOf(layout.items[it.key], aspect));
-      // 1) 사진 쌍 겹침
-      let worst = 0;
-      for (let i = 0; i < photoRects.length; i++)
-        for (let j = i + 1; j < photoRects.length; j++)
-          worst = Math.max(worst, ratio(photoRects[i], photoRects[j]));
-      ok(\`\${aName}/\${t}/n=\${n} 사진 겹침 ≤20%\`, worst <= 0.2, \`worst=\${(worst * 100).toFixed(1)}%\`);
-      // 경계 내부
-      const inBounds = photoRects.every((r) => r.x >= -0.001 && r.y >= -0.001 && r.x + r.w <= 1.001 && r.y + r.h <= 1.001);
-      ok(\`\${aName}/\${t}/n=\${n} 경계 내부\`, inBounds);
-      if (t === 'polaroid') {
-        // 2) 연도 카드·스티커 무가림
-        const card = polaroidReserveRect(aspect);
-        const cardHit = Math.max(0, ...photoRects.map((r) => ratio(r, card)));
-        ok(\`\${aName}/숲/n=\${n} 연도카드 무가림\`, cardHit <= 0.05, \`hit=\${(cardHit * 100).toFixed(1)}%\`);
-        const sRects = ['seed-script', 'seed-chip']
-          .map((id) => layout.items[stickerKey(id)])
-          .filter(Boolean)
-          .map((it) => ({ x: it.x, y: it.y, w: it.w, h: it.w * 0.3 })); // 텍스트 실높이 근사
-        const sHit = Math.max(0, ...sRects.flatMap((s) => photoRects.map((r) => ratio(s, r))));
-        ok(\`\${aName}/숲/n=\${n} 시드 스티커 무가림\`, sHit <= 0.25, \`hit=\${(sHit * 100).toFixed(1)}%\`);
-      } else if (n >= 3) {
-        // 3) 수직 센터링 — 타이틀 밴드 아래 가용 영역에서 상하 여백 대칭
-        const titleBottom = aspect < 0.75 ? 0.22 : aspect > 1 ? 0.16 : t === 'mosaic' ? 0.15 : 0.17;
-        const availB = t === 'mosaic' ? 0.97 : 0.95;
-        const top = Math.min(...photoRects.map((r) => r.y));
-        const bottom = Math.max(...photoRects.map((r) => r.y + r.h));
-        const diff = Math.abs((top - titleBottom) - (availB - bottom));
-        ok(\`\${aName}/\${t}/n=\${n} 수직 센터링\`, diff <= 0.06, \`diff=\${(diff * 100).toFixed(1)}%\`);
+      const layout = seedLayout(template, items, aspect);
+      const rects = photoEntries(layout).map(([, it]) => rectOf(it, aspect));
+
+      let maxOv = 0;
+      for (let i = 0; i < rects.length; i++)
+        for (let j = i + 1; j < rects.length; j++) maxOv = Math.max(maxOv, ratio(rects[i], rects[j]));
+      ok(`${template}/${aName}/n=${n} 무겹침`, maxOv <= 0.001, `최대 ${(maxOv * 100).toFixed(2)}%`);
+
+      const outside = rects.filter((r) => r.x < -1e-6 || r.y < -1e-6 || r.x + r.w > 1 + 1e-6 || r.y + r.h > 1 + 1e-6);
+      ok(`${template}/${aName}/n=${n} 경계 내부`, outside.length === 0, `${outside.length}개 이탈`);
+
+      const grid = layout.grid;
+      ok(`${template}/${aName}/n=${n} 그리드 존재`, !!grid);
+      if (!grid) continue;
+
+      ok(`${template}/${aName}/n=${n} 타일링 정리`, assertTiling(grid));
+
+      // 빈틈 0 — center 밴드(매트 마지막 짧은 행)가 없으면 셀이 cols×행을 정확히 덮는다
+      const { cells, totalRows } = layoutCells(grid);
+      const hasCenter = grid.bands.some((b) => b.kind === 'row' && b.center);
+      const covered = cells.reduce((s, c) => s + c.sc * c.sr, 0);
+      if (!hasCenter) {
+        ok(
+          `${template}/${aName}/n=${n} 빈틈 0`,
+          covered === grid.cols * totalRows,
+          `${covered}/${grid.cols * totalRows}`
+        );
+      }
+      ok(`${template}/${aName}/n=${n} 전 사진 배치`, cells.length === n, `${cells.length}/${n}`);
+
+      // 가드레일 — k-축소 이후 최종 박스 기준 (v8.7의 720px 히어로 같은 병리 회귀 방지)
+      if (n >= GUARDRAIL_MIN_ITEMS) {
+        const b = photoBounds(aspect);
+        const m = gridMetrics(grid, template, aspect);
+        let bad = null;
+        for (const c of cells) {
+          const w = c.sc * m.unitW + (c.sc - 1) * sp.gutterX;
+          const h = c.sr * m.unitH + (c.sr - 1) * sp.gutterY;
+          if (h > b.maxH + 1e-9) bad = `높이 ${(h * 100).toFixed(1)}% > ${(b.maxH * 100).toFixed(0)}%`;
+          else if (h < b.minH - 1e-9) bad = `높이 ${(h * 100).toFixed(1)}% < ${(b.minH * 100).toFixed(0)}%`;
+          else if (!boxRatioOk(w, h, aspect, b)) bad = `박스비 이탈`;
+          if (bad) break;
+        }
+        ok(`${template}/${aName}/n=${n} 가드레일`, bad === null, bad ?? '');
+        ok(`${template}/${aName}/n=${n} 스팬 캡`, cells.every((c) => c.sc <= SPAN_CAP && c.sr <= SPAN_CAP));
+      }
+
+      // 가로·세로 센터링 — 남은 여백이 위아래(좌우) 균등
+      if (n >= GUARDRAIL_MIN_ITEMS) {
+        const m = gridMetrics(grid, template, aspect);
+        const leftGap = m.left - sp.marginX;
+        const rightGap = sp.availWidth + sp.marginX - (m.left + m.contentW);
+        ok(`${template}/${aName}/n=${n} 가로 센터링`, Math.abs(leftGap - rightGap) < 0.01, `${leftGap.toFixed(3)}/${rightGap.toFixed(3)}`);
+        const topGap = m.top - sp.titleBottom;
+        const botGap = sp.availBottom - (m.top + m.contentH);
+        ok(`${template}/${aName}/n=${n} 세로 센터링`, Math.abs(topGap - botGap) < 0.01, `${topGap.toFixed(3)}/${botGap.toFixed(3)}`);
       }
     }
   }
 }
 
-// 4) reconcile — edited 배치에 사진 추가: 기존 보존 + 새 키 최소 겹침
-{
-  const aspect = ASPECTS.phone;
-  const items = mkItems(6);
-  const saved = { ...seedLayout('polaroid', items, aspect), edited: true };
-  const more = [...items, { key: '1-1', src: 'x' }, { key: '2-1', src: 'x' }];
-  const next = resolveLayout('polaroid', more, saved, aspect);
-  const unchanged = items.every((it) => {
-    const a = saved.items[it.key]; const b = next.items[it.key];
-    return b && a.x === b.x && a.y === b.y && a.w === b.w && a.z === b.z;
-  });
-  ok('reconcile(edited) 기존 rect 불변', unchanged);
-  const newRects = ['1-1', '2-1'].map((k) => rectOf(next.items[k], aspect));
-  const oldRects = items.map((it) => rectOf(next.items[it.key], aspect));
-  const worst = Math.max(0, ...newRects.flatMap((nr) => oldRects.map((or) => ratio(nr, or))));
-  ok('reconcile(edited) 새 사진 겹침 ≤20%', worst <= 0.2, \`worst=\${(worst * 100).toFixed(1)}%\`);
-  const card = polaroidReserveRect(aspect);
-  const cardHit = Math.max(0, ...newRects.map((r) => ratio(r, card)));
-  ok('reconcile(edited) 새 사진 연도카드 회피', cardHit <= 0.05, \`hit=\${(cardHit * 100).toFixed(1)}%\`);
-}
-
-// 5) edited:false(기본 배치로 직후) — 사진 추가 시 신선한 시드
-{
-  const aspect = ASPECTS.phone;
-  const items = mkItems(6);
-  const saved = seedLayout('mosaic', items, aspect); // edited: false
-  const more = mkItems(7);
-  const next = resolveLayout('mosaic', more, saved, aspect);
-  const fresh = seedLayout('mosaic', more, aspect);
-  const same = more.every((it) => {
-    const a = next.items[it.key]; const b = fresh.items[it.key];
-    return a && b && a.x === b.x && a.y === b.y && a.w === b.w;
-  });
-  ok('reconcile(edited:false) 신선한 시드 재배치', same);
-}
-
-// 6) 고아 스티커 — 연도 카드 밑 고정 폴백이 아니라 빈 공간 배치
-{
-  const aspect = ASPECTS.phone;
-  const items = mkItems(6);
-  const saved = { ...seedLayout('polaroid', items, aspect), edited: true };
-  delete saved.items[stickerKey('seed-chip')]; // 배치만 유실된 고아 스티커
-  const next = resolveLayout('polaroid', items, saved, aspect);
-  const st = next.items[stickerKey('seed-chip')];
-  const card = polaroidReserveRect(aspect);
-  ok('고아 스티커 복원', !!st);
-  ok('고아 스티커 연도카드 회피', st ? ratio({ x: st.x, y: st.y, w: st.w, h: st.w * 0.3 }, card) <= 0.05 : false);
-}
-
-// 7) 리플로우 (v8.2) — 시드는 그리드 정합, 스팬 확대 후 무겹침·경계·z 보존
-for (const t of ['mosaic', 'minimal']) {
-  for (const [aName, aspect] of Object.entries(ASPECTS)) {
-    const items = mkItems(8);
-    const layout = seedLayout(t, items, aspect);
-    const info = inferGridSpans(layout.items, aspect);
-    ok(\`reflow(\${aName}/\${t}) 시드 그리드 정합\`, !!info);
-    if (!info) continue;
-    const ordered = Object.entries(layout.items)
-      .filter(([k]) => !k.startsWith('sticker:'))
-      .sort(([, a], [, b]) => a.y - b.y || a.x - b.x)
-      .map(([k, it], i) => ({ key: k, span: i === 1 ? [2, 2] : info.spans[k], z: it.z }));
-    const placed = reflowLayout(t, ordered, aspect);
-    ok(\`reflow(\${aName}/\${t}) 결과 존재\`, !!placed);
-    if (!placed) continue;
-    const rects = Object.values(placed).map((it) => ({ x: it.x, y: it.y, w: it.w, h: it.h }));
-    let worst = 0;
-    for (let i = 0; i < rects.length; i++)
-      for (let j = i + 1; j < rects.length; j++) worst = Math.max(worst, ratio(rects[i], rects[j]));
-    ok(\`reflow(\${aName}/\${t}) 무겹침\`, worst <= 0.001, \`worst=\${(worst * 100).toFixed(1)}%\`);
-    const inB = rects.every((r) => r.x >= -0.001 && r.y >= -0.001 && r.x + r.w <= 1.001 && r.y + r.h <= 1.001);
-    ok(\`reflow(\${aName}/\${t}) 경계 내부\`, inB);
-    const grew = placed[ordered[1].key].w > Math.min(...Object.values(placed).map((it) => it.w)) * 1.5;
-    ok(\`reflow(\${aName}/\${t}) 타깃 사진 확대\`, grew);
-    ok(\`reflow(\${aName}/\${t}) z 보존\`, ordered.every((e) => placed[e.key].z === e.z));
-  }
-}
-
-// 8) 미니멀 혼합 그리드 (v8.5) — 밴드 타일링 계약:
-//    무겹침(≤0.1%)·경계 내부·크기 위계(n≥3: 최대 면적 ≥ 2×최소)·고아 금지(같은 y밴드에
-//    이웃이 없는 사진은 가용 폭의 절반 이상인 배너여야)·전체 콘텐츠 가로 센터링
+// ── 6) 자동정렬 불사 — 어떤 리사이즈를 해도 그리드가 죽지 않는다 ──
+// v8.x는 inferGridSpans가 null이면 리플로우가 통째로 죽어 "자동 정렬이 영영 안 됨"이 됐다.
 for (const [aName, aspect] of Object.entries(ASPECTS)) {
-  for (let n = 2; n <= 18; n++) {
-    const items = mkItems(n);
-    const layout = seedLayout('minimal', items, aspect);
-    const rects = items.map((it) => rectOf(layout.items[it.key], aspect));
-    let worst = 0;
-    for (let i = 0; i < rects.length; i++)
-      for (let j = i + 1; j < rects.length; j++) worst = Math.max(worst, ratio(rects[i], rects[j]));
-    ok(\`혼합그리드(\${aName}/n=\${n}) 무겹침\`, worst <= 0.001, \`worst=\${(worst * 100).toFixed(2)}%\`);
-    const inB = rects.every((r) => r.x >= -0.001 && r.y >= -0.001 && r.x + r.w <= 1.001 && r.y + r.h <= 1.001);
-    ok(\`혼합그리드(\${aName}/n=\${n}) 경계 내부\`, inB);
-    if (n >= 3) {
-      const areas = rects.map((r) => r.w * r.h);
-      ok(\`혼합그리드(\${aName}/n=\${n}) 크기 위계\`, Math.max(...areas) >= Math.min(...areas) * 2,
-        \`max/min=\${(Math.max(...areas) / Math.min(...areas)).toFixed(2)}\`);
-    }
-    // 고아 금지 — y구간이 50% 이상 겹치는 이웃이 하나도 없는 사진은 넓은 배너여야.
-    // 기준은 보드 폭이 아니라 콘텐츠 폭(k-축소 시 그리드 전체가 좁아져도 배너=그리드 전폭)
-    const minX = Math.min(...rects.map((r) => r.x));
-    const maxR = Math.max(...rects.map((r) => r.x + r.w));
-    const contentW = maxR - minX;
-    const noOrphan = rects.every((r, i) => {
-      const hasNeighbor = rects.some((o, j) => {
-        if (i === j) return false;
-        const oy = Math.min(r.y + r.h, o.y + o.h) - Math.max(r.y, o.y);
-        return oy >= Math.min(r.h, o.h) * 0.5;
-      });
-      return hasNeighbor || r.w >= contentW * 0.5;
-    });
-    ok(\`혼합그리드(\${aName}/n=\${n}) 고아 없음\`, noOrphan);
-    ok(\`혼합그리드(\${aName}/n=\${n}) 가로 센터링\`, Math.abs(minX - (1 - maxR)) <= 0.005);
-  }
-}
-
-// 9) 미니멀 reflow 라운드트립 (v8.5) — 혼합 시드가 그리드 정합(스팬 ≤4, 반자동 리사이즈 참여 조건)
-//    → 리플로우 결과 무겹침·경계·h·z 보존
-{
-  const aspect = ASPECTS.phone;
-  const items = mkItems(13);
-  const layout = seedLayout('minimal', items, aspect);
-  const info = inferGridSpans(layout.items, aspect);
-  ok('혼합그리드 reflow(n=13) 시드 그리드 정합', !!info);
-  if (info) {
-    ok('혼합그리드 reflow(n=13) 스팬 ≤4', Object.values(info.spans).every(([sc, sr]) => sc <= 4 && sr <= 4));
-    const ordered = Object.entries(layout.items)
-      .sort(([, a], [, b]) => a.y - b.y || a.x - b.x)
-      .map(([k, it]) => ({ key: k, span: info.spans[k], z: it.z }));
-    const placed = reflowLayout('minimal', ordered, aspect);
-    ok('혼합그리드 reflow(n=13) 결과 존재', !!placed);
-    if (placed) {
-      const rects2 = Object.values(placed).map((it) => ({ x: it.x, y: it.y, w: it.w, h: it.h }));
-      let worst = 0;
-      for (let i = 0; i < rects2.length; i++)
-        for (let j = i + 1; j < rects2.length; j++) worst = Math.max(worst, ratio(rects2[i], rects2[j]));
-      ok('혼합그리드 reflow(n=13) 무겹침', worst <= 0.001, \`worst=\${(worst * 100).toFixed(2)}%\`);
-      const inB = rects2.every((r) => r.x >= -0.001 && r.y >= -0.001 && r.x + r.w <= 1.001 && r.y + r.h <= 1.001);
-      ok('혼합그리드 reflow(n=13) 경계 내부', inB);
-      ok('혼합그리드 reflow(n=13) h 존재', Object.values(placed).every((it) => typeof it.h === 'number'));
-      ok('혼합그리드 reflow(n=13) z 보존', ordered.every((e) => placed[e.key].z === e.z));
+  for (const template of TEMPLATES) {
+    for (const n of [2, 5, 9, 13, 18]) {
+      const items = mkItems(n);
+      const grid = seedLayout(template, items, aspect).grid;
+      if (!grid) continue;
+      const keys = gridKeys(grid);
+      let allOk = true;
+      let firstBad = '';
+      for (const span of [[1, 1], [2, 1], [1, 2], [2, 2], [3, 1], [4, 2]]) {
+        for (const key of [keys[0], keys[Math.floor(keys.length / 2)], keys[keys.length - 1]]) {
+          const next = resizeInGrid(grid, key, span);
+          if (!next || !assertTiling(next)) {
+            allOk = false;
+            firstBad = `${key} → ${span.join('×')}`;
+            break;
+          }
+          // 키 집합 불변 — 리사이즈로 사진이 사라지면 안 된다
+          const before = [...keys].sort();
+          const after = [...gridKeys(next)].sort();
+          if (before.join('|') !== after.join('|')) {
+            allOk = false;
+            firstBad = `${key} 키 집합 변화`;
+            break;
+          }
+        }
+        if (!allOk) break;
+      }
+      ok(`${template}/${aName}/n=${n} 자동정렬 불사`, allOk, firstBad);
     }
   }
 }
 
-// 10) 숲 레거시 가시성 가드 (v8.4) — pre-v8.0 겹침 배치(edited 플래그 없음)만 리시드
+// ── 7) 스왑 — 자리만 바꾼다 ──
+for (const template of TEMPLATES) {
+  for (const n of [3, 9, 18]) {
+    const aspect = ASPECTS.desktop;
+    const grid = seedLayout(template, mkItems(n), aspect).grid;
+    if (!grid) continue;
+    const keys = gridKeys(grid);
+    const a = keys[0];
+    const b = keys[keys.length - 1];
+    const swapped = swapInGrid(grid, a, b);
+    const before = layoutCells(grid).cells;
+    const after = layoutCells(swapped).cells;
+    ok(`${template}/n=${n} 스왑 타일링 유지`, assertTiling(swapped));
+    ok(
+      `${template}/n=${n} 스왑 키 집합 불변`,
+      [...gridKeys(swapped)].sort().join('|') === [...keys].sort().join('|')
+    );
+    const posOfA = before.findIndex((c) => c.key === a);
+    const posOfB = before.findIndex((c) => c.key === b);
+    ok(
+      `${template}/n=${n} 스왑은 자리 교환`,
+      after[posOfA]?.key === b && after[posOfB]?.key === a
+    );
+  }
+}
+
+// ── 8) 템플릿 성격 차이 ──
+for (const [aName, aspect] of Object.entries(ASPECTS)) {
+  for (const n of [6, 12, 18]) {
+    const sp = spacingFor('matte', aspect);
+    const grid = seedLayout('matte', mkItems(n), aspect).grid;
+    if (grid) {
+      const { cells } = layoutCells(grid);
+      ok(`matte/${aName}/n=${n} 전 스팬 1×1`, cells.every((c) => c.sc === 1 && c.sr === 1));
+      const m = gridMetrics(grid, 'matte', aspect);
+      const areas = cells.map((c) => (c.sc * m.unitW + (c.sc - 1) * sp.gutterX) * (c.sr * m.unitH + (c.sr - 1) * sp.gutterY));
+      const spread = Math.max(...areas) / Math.min(...areas);
+      ok(`matte/${aName}/n=${n} 면적 균일`, spread <= 1.01, `${spread.toFixed(3)}×`);
+    }
+  }
+}
+// 모자이크는 여백이 가장 좁고(밀도), 매트가 가장 넓다 — 세 템플릿의 성격 차이를 수치로 고정
+for (const aspect of Object.values(ASPECTS)) {
+  const g = (t) => spacingFor(t, aspect);
+  ok(
+    '템플릿 밀도 위계 (모자이크 < 미니멀 < 매트)',
+    g('mosaic').gutterX < g('minimal').gutterX && g('minimal').gutterX < g('matte').gutterX
+  );
+}
+// 모자이크는 적어도 한 조합에서 2×2 히어로를 쓴다 — 매거진 리듬이 살아있는지의 최소 보증
 {
-  const aspect = ASPECTS.phone;
-  const items = mkItems(6);
-  const good = seedLayout('polaroid', items, aspect);
-  // 손상 레거시 — 두 사진을 완전히 겹치고 edited 플래그 제거
-  const corrupt = JSON.parse(JSON.stringify(good));
-  corrupt.items['2-0'] = { ...corrupt.items['1-0'], z: corrupt.items['2-0'].z };
-  delete corrupt.edited;
-  ok('숲가드 판정: 손상 레거시 broken', isLayoutBroken(corrupt, items, aspect));
-  const reseeded = resolveLayout('polaroid', items, corrupt, aspect);
-  const fresh = seedLayout('polaroid', items, aspect);
-  const same = items.every((it) => {
-    const a = reseeded.items[it.key]; const b = fresh.items[it.key];
-    return a && b && a.x === b.x && a.y === b.y && a.w === b.w;
-  });
-  ok('숲가드: 손상+플래그無 → 리시드', same);
-  // 사용자가 손댄 배치(edited:true)는 겹쳐도 보존
-  const editedCorrupt = JSON.parse(JSON.stringify(corrupt));
-  editedCorrupt.edited = true;
-  const kept = resolveLayout('polaroid', items, editedCorrupt, aspect);
-  const preservedEdited = items.every((it) => {
-    const a = editedCorrupt.items[it.key]; const b = kept.items[it.key];
-    return b && a.x === b.x && a.y === b.y;
-  });
-  ok('숲가드: 손상+edited:true → 보존', preservedEdited);
-  // 무손상 레거시 — 과발동 없음
-  const legacyOk = JSON.parse(JSON.stringify(good));
-  delete legacyOk.edited;
-  ok('숲가드 판정: 무손상 레거시 정상', !isLayoutBroken(legacyOk, items, aspect));
-  const kept2 = resolveLayout('polaroid', items, legacyOk, aspect);
-  const preservedLegacy = items.every((it) => {
-    const a = legacyOk.items[it.key]; const b = kept2.items[it.key];
-    return b && a.x === b.x && a.y === b.y;
-  });
-  ok('숲가드: 무손상 레거시 → 보존', preservedLegacy);
-  // 단위 판정 — 경계 밖 broken / 40% 겹침 정상 / 스티커 겹침 무시(사진 키만 검사)
-  const oob = { items: { '1-0': { x: 1.1, y: 0.2, w: 0.3, z: 1 } } };
-  ok('숲가드 판정: 경계 밖 broken', isLayoutBroken(oob, [{ key: '1-0', src: 'x' }], aspect));
-  const partial = { items: {
-    '1-0': { x: 0.1, y: 0.1, w: 0.3, z: 1 },
-    '2-0': { x: 0.28, y: 0.1, w: 0.3, z: 2 },
-  } };
-  ok('숲가드 판정: 40% 겹침 정상', !isLayoutBroken(partial, [{ key: '1-0', src: 'x' }, { key: '2-0', src: 'x' }], aspect));
-  const stickerOnly = JSON.parse(JSON.stringify(good));
-  delete stickerOnly.edited;
-  stickerOnly.items[stickerKey('seed-chip')] = { ...stickerOnly.items['1-0'], z: 99 };
-  ok('숲가드 판정: 스티커 겹침 무시', !isLayoutBroken(stickerOnly, items, aspect));
+  const heroSeen = Object.values(ASPECTS).some((aspect) =>
+    [6, 9, 12, 15].some((n) => seedLayout('mosaic', mkItems(n), aspect).grid?.bands.some((b) => b.kind === 'hero'))
+  );
+  ok('모자이크 히어로 밴드 존재', heroSeen);
+  const minimalHero = Object.values(ASPECTS).some((aspect) =>
+    COUNTS.some((n) => seedLayout('minimal', mkItems(n), aspect).grid?.bands.some((b) => b.kind === 'hero'))
+  );
+  ok('미니멀은 히어로를 쓰지 않는다', !minimalHero);
 }
 
-console.log('\\n===== v8.0 콜라주 배치 기하 검증 =====');
-for (const r of results) console.log(r);
-const fail = results.filter((r) => r.startsWith('FAIL')).length;
-console.log(\`\\n\${results.length - fail}/\${results.length} PASS\`);
-process.exit(fail ? 1 : 0);
-`;
+// ── 9) reconcile ──
+for (const template of TEMPLATES) {
+  const aspect = ASPECTS.board;
 
-const fs = require('fs');
-const tmp = path.join(__dirname, '.collage-layout-check.mts');
-fs.writeFileSync(tmp, inline, 'utf8');
-try {
-  execSync(`npx tsx "${tmp}"`, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-} finally {
-  fs.unlinkSync(tmp);
+  // edited:false → 사진이 늘면 신선한 시드
+  {
+    const seeded = seedLayout(template, mkItems(6), aspect);
+    const grown = resolveLayout(template, mkItems(9), seeded, aspect);
+    ok(`${template} edited:false 리시드`, Object.keys(grown.items).length === 9 && grown.grid !== undefined);
+    const fresh = seedLayout(template, mkItems(9), aspect);
+    const same = Object.keys(fresh.items).every(
+      (k) => Math.abs(fresh.items[k].x - grown.items[k].x) < 1e-9 && Math.abs(fresh.items[k].y - grown.items[k].y) < 1e-9
+    );
+    ok(`${template} edited:false는 시드와 동일`, same);
+  }
+
+  // 그리드 모드에서 사진 추가/삭제 — 상대 순서 보존 + 타일링 유지
+  // ⚠️ v9.0 계약 변경: 기존 사진 "좌표"는 움직인다. 보존되는 것은 읽기 순서다
+  {
+    const base = { ...seedLayout(template, mkItems(9), aspect), edited: true };
+    const orderBefore = gridKeys(base.grid).filter((k) => !k.startsWith('sticker:'));
+
+    const added = resolveLayout(template, mkItems(12), base, aspect);
+    ok(`${template} 추가 후 타일링`, !!added.grid && assertTiling(added.grid));
+    const orderAfter = gridKeys(added.grid).filter((k) => !k.startsWith('sticker:'));
+    const keptOrder = orderBefore.filter((k) => orderAfter.includes(k));
+    const projected = orderAfter.filter((k) => orderBefore.includes(k));
+    ok(`${template} 추가 후 상대 순서 보존`, keptOrder.join('|') === projected.join('|'));
+    ok(`${template} 추가 후 전 사진 존재`, Object.keys(added.items).filter((k) => !k.startsWith('sticker:')).length === 12);
+
+    const removed = resolveLayout(template, mkItems(5), base, aspect);
+    ok(`${template} 삭제 후 타일링`, !!removed.grid && assertTiling(removed.grid));
+    ok(`${template} 삭제 후 사진 수`, Object.keys(removed.items).filter((k) => !k.startsWith('sticker:')).length === 5);
+  }
+
+  // 고아 스티커 복원 — 위치 정보가 유실돼도 사라지지 않고 빈 자리에 놓인다
+  {
+    const base = { ...seedLayout(template, mkItems(6), aspect), edited: true };
+    base.stickers = { s1: { id: 's1', text: '잘 될 거야', style: 'chip' } };
+    const out = resolveLayout(template, mkItems(6), base, aspect);
+    ok(`${template} 고아 스티커 복원`, !!out.items[stickerKey('s1')]);
+  }
+
+  // 비율이 바뀌면 리시드
+  {
+    const base = { ...seedLayout(template, mkItems(9), ASPECTS.phone), edited: true };
+    const out = resolveLayout(template, mkItems(9), base, ASPECTS.desktop);
+    ok(`${template} 비율 변경 리시드`, out.aspect === ASPECTS.desktop && !!out.grid);
+  }
+
+  // 자유 배치는 좌표를 보존한다 (v8.x 동작 유지)
+  {
+    const base = { ...seedLayout(template, mkItems(6), aspect), edited: true, freeform: true };
+    const keep = base.items['1-0'];
+    const out = resolveLayout(template, mkItems(6), base, aspect);
+    ok(
+      `${template} 자유 배치 좌표 보존`,
+      Math.abs(out.items['1-0'].x - keep.x) < 1e-9 && Math.abs(out.items['1-0'].y - keep.y) < 1e-9
+    );
+  }
 }
+
+// ── 10) 배경색 ──
+for (const template of TEMPLATES) {
+  for (const s of BG_PALETTE) {
+    const theme = themeFor(template, s.hex);
+    ok(
+      `배경 ${s.label}/${template} 연도 대비 ≥ 4.5`,
+      contrastRatio(theme.bg, theme.titleInk) >= 4.5,
+      contrastRatio(theme.bg, theme.titleInk).toFixed(1)
+    );
+    ok(
+      `배경 ${s.label}/${template} 라벨 대비 ≥ 3`,
+      contrastRatio(theme.bg, theme.labelInk) >= 3,
+      contrastRatio(theme.bg, theme.labelInk).toFixed(1)
+    );
+  }
+  ok(`${template} 배경색 미설정 폴백`, normalizeBgColor(undefined, template) === (template === 'mosaic' ? '#FAF9F7' : '#FFFFFF'));
+  ok(`${template} 손상 배경색 폴백`, normalizeBgColor('#NOPE!!', template) === (template === 'mosaic' ? '#FAF9F7' : '#FFFFFF'));
+}
+
+// ── 11) 레거시 템플릿 정규화 (숲 삭제) ──
+ok("normalizeTemplate('polaroid') → 기본값", normalizeTemplate('polaroid') === DEFAULT_TEMPLATE);
+ok("normalizeTemplate('custom') → 기본값", normalizeTemplate('custom') === DEFAULT_TEMPLATE);
+ok("normalizeTemplate('matte') 유지", normalizeTemplate('matte') === 'matte');
+ok('TEMPLATE_ORDER에 polaroid 없음', !TEMPLATE_ORDER.includes('polaroid'));
+ok('chooseGrid(0장) → null', chooseGrid('mosaic', [], ASPECT) === null);
+
+const pass = results.filter((r) => r.startsWith('PASS')).length;
+const fail = results.filter((r) => r.startsWith('FAIL'));
+for (const f of fail) console.log(f);
+console.log(`\n${pass} PASS / ${fail.length} FAIL (총 ${results.length})`);
+process.exit(fail.length ? 1 : 0);

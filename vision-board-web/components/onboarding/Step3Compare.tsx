@@ -16,6 +16,14 @@ const VIVID = {
 const IMG =
   'https://images.unsplash.com/photo-1486218119243-13883505764c?auto=format&fit=crop&w=800&q=60';
 
+// 과정 3컷 (v9.0) — "차근차근 쉽게 되겠구나"를 세 칸으로. 마지막 칸이 곧 결과물이다
+const PROCESS = [
+  // ⚠️ '막연한 바람'은 슬라이더 라벨(VAGUE.label)과 겹쳐 테스트 strict 매칭을 깬다 — 다르게 쓴다
+  { icon: '💬', label: '답하면', sub: '막연하던 게\n장면이 돼' },
+  { icon: '📷', label: '담으면', sub: '그 장면이\n눈에 보여' },
+  { icon: '🖼️', label: '저장하면', sub: '매일 아침\n그 장면을 봐' },
+];
+
 export default function Step3Compare({ onComplete }: { onComplete: () => void }) {
   const [clarity, setClarity] = useState(0); // 0(막연) ~ 100(선명)
   const [revealed, setRevealed] = useState(false); // 끝까지 밀었을 때 핵심 메시지 공개 (되돌려도 유지)
@@ -110,14 +118,39 @@ export default function Step3Compare({ onComplete }: { onComplete: () => void })
           )}
         </div>
 
-        {/* 비전보드 정의 — 구 Act3 정의 박스를 한 줄로 압축 흡수 */}
+        {/* 비전보드 정의 + 과정 3컷 (v9.0) — 구 정의 박스만으로는 "여기서 만들면 뭐가 다른지,
+            어떤 과정으로 어떤 결과를 얻는지"가 없었다. 스텝을 늘리지 않고 이 자리에 흡수한다.
+            슬라이더로 '막연함→선명함'을 손으로 겪은 직후라 "그래서 여기선 이렇게 해"가 가장 잘 꽂힌다 */}
         <div
-          className="rounded-2xl px-5 py-4 border flex-shrink-0 mt-3 [@media(min-height:700px)]:mt-5"
+          className="rounded-2xl px-4 py-3.5 border flex-shrink-0 mt-3 [@media(min-height:700px)]:mt-5"
           style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E3DF' }}
         >
           <p className="text-caption font-semibold text-[#6E6962] mb-1 tracking-wide uppercase">비전보드란?</p>
           <p className="text-body text-[#1C1B19] leading-relaxed">
             네가 원하는 삶을 이미지와 글로 시각화한, 너만의 지도야.
+            <br />
+            <span className="text-[#6E6962]">혼자 오려 붙이지 않아도 돼 — 질문에 답하면 토리가 같이 만들어.</span>
+          </p>
+
+          <div className="grid grid-cols-3 gap-1.5 mt-3">
+            {PROCESS.map((p, i) => (
+              <div key={p.label} className="relative rounded-xl bg-white border border-[#EFEDE8] px-1.5 py-2 text-center">
+                <span aria-hidden="true" className="text-body leading-none">{p.icon}</span>
+                <p className="text-caption font-bold text-[#1C1B19] mt-1 leading-tight">{p.label}</p>
+                <p className="text-micro text-[#6E6962] mt-0.5 leading-tight whitespace-pre-line">{p.sub}</p>
+                {i < PROCESS.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-1/2 -right-[7px] -translate-y-1/2 text-micro text-[#C9C5BE] leading-none"
+                  >
+                    ›
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-micro text-[#6E6962] text-center mt-2 leading-snug">
+            6개 질문 스테이션 · 사진 최대 18장 · 폰·PC 배경화면으로 저장
           </p>
         </div>
 

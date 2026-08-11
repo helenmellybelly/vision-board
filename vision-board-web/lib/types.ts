@@ -85,7 +85,10 @@ export interface SectionData {
 }
 
 // 콜라주(한눈에 보기) 템플릿 — v6.15: '내 배치' 탭 제거, 모든 템플릿이 자유 편집 가능
-export type CollageTemplate = 'polaroid' | 'mosaic' | 'minimal';
+// v9.0: 숲('polaroid') 삭제 → 매트 갤러리('matte'). 구 id는 storage.ts migrateCollage가 이관한다.
+// ⚠️ 세 템플릿은 성격이 갈려야 한다 — 모자이크=매거진 리듬(크기 섞임) / 미니멀=균일·정적 /
+//    매트=넓은 액자 여백 + 균일 + 무크롭. lib/collageTemplates.ts의 VARIETY_WEIGHT가 이 계약을 만든다.
+export type CollageTemplate = 'mosaic' | 'minimal' | 'matte';
 
 // 편집 타깃 — board = 한눈에 보기(4:5), phone = 폰 배경(9:19.5), desktop = PC 배경(16:9).
 // 타깃마다 좌표 공간(가로세로비)이 달라 배치를 따로 저장한다 (v6.18)
@@ -121,6 +124,23 @@ export interface CollageLayout {
    *  true(드래그·리사이즈·회전·스티커 조작)면 기존 위치 보존 + 새 키만 빈 공간 배치.
    *  없음(레거시) = 상호작용으로만 저장됐으므로 true 취급 */
   edited?: boolean;
+  /** v9.0 — 배치의 진실 원천. 있으면 items는 이것으로부터 파생된 결과다.
+   *  좌표에서 그리드를 역산(inferGridSpans)하던 v8.2 방식은 역산 실패 시 자동 정렬이 통째로 죽었다.
+   *  ⚠️ grid를 바꿨으면 반드시 materialize()로 items를 다시 만들어 둘을 일치시킬 것 —
+   *  이 일관성 덕분에 grid를 모르는 구 코드가 읽어도 정상 렌더된다(스키마 v4 유지) */
+  grid?: GridSpec;
+  /** v9.0 — 사용자가 '자유 배치'를 명시적으로 켠 배치. 자동 정렬·스냅 대상이 아니며 회전이 살아난다 */
+  freeform?: boolean;
+}
+
+/** 그리드 배치 명세 — 실체는 lib/collageGrid.ts. 구조적 타입으로만 두어 types.ts의 무의존을 지킨다 */
+export interface GridSpec {
+  v: 1;
+  cols: number;
+  bands: (
+    | { kind: 'hero'; heroKey: string; heroRight: boolean; stackKeys: string[] }
+    | { kind: 'row'; keys: string[]; spans: number[]; rows: number; center?: boolean }
+  )[];
 }
 
 export interface BoardData {
@@ -147,6 +167,10 @@ export interface BoardData {
   /** @deprecated v7.0-r3 — targetDate로 통일. 마이그레이션 v3가 흡수, R6에서 제거 예정 */
   boardYear?: string;
   collageTemplate?: CollageTemplate;     // 한눈에 보기 템플릿 선택값
+  /** 보드 배경색 (v9.0) — 세 템플릿 공통·전역 1개. lib/collageTokens BG_PALETTE의 hex.
+   *  ⚠️ 템플릿별/타깃별로 두지 않는 게 계약 — 템플릿을 바꿔도 고른 색이 따라와야 "내 보드 색"이 성립한다.
+   *  없으면(기존 사용자) TEMPLATE_DEFAULT_BG를 써서 지금 화면 그대로 보인다(무회귀) */
+  collageBgColor?: string;
   /** @deprecated v6.14 '내 배치' 레이아웃 — loadBoard()가 collageLayouts.polaroid로 이관 */
   collageLayout?: CollageLayout;
   collageLayouts?: Partial<Record<CollageTemplate, CollageLayout>>; // 템플릿별 편집 배치 (board 타깃)
