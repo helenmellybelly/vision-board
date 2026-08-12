@@ -241,9 +241,11 @@ const loadStored = (page) =>
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(2000);
   const bd = page.locator('[data-testid="collage-board"][data-view="desktop"]');
-  await bd.click({ position: { x: 12, y: 12 } });
+  // v10 에디토리얼은 풀블리드라 '빈 곳 탭'이 성립하지 않는다(12,12가 사진 위다) —
+  // 상시 어포던스 버튼이 결정적 진입점이다
+  await page.getByRole('button', { name: /탭해서 편집/ }).first().click();
   await page.waitForTimeout(600);
-  const handle = bd.locator('div[aria-label="크기 조절"]').nth(1);
+  const handle = bd.locator('div[data-resize-for]:not([data-resize-for^="sticker:"])').nth(1);
   const hb = await handle.boundingBox();
   await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
   await page.mouse.down();
@@ -287,11 +289,12 @@ const loadStored = (page) =>
   // v10 에디토리얼은 풀블리드라 '빈 곳 탭'이 없다 — 상시 어포던스 버튼이 결정적 진입점
   await page.getByRole('button', { name: /탭해서 편집/ }).first().click();
   await page.waitForTimeout(600);
-  const handle = bd.locator('div[aria-label="크기 조절"]').first();
+  // 첫 사진이 '혼자 쓰는 행'이면 크게가 무반응이다(칩도 비활성) — 여러 장인 행의 사진을 집는다
+  const handle = bd.locator('div[data-resize-for]:not([data-resize-for^="sticker:"])').last();
   const hb = await handle.boundingBox();
   await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
   await page.mouse.down();
-  await page.mouse.move(hb.x + hb.width / 2 + 40, hb.y + hb.height / 2 + 40, { steps: 4 });
+  await page.mouse.move(hb.x + hb.width / 2 + 60, hb.y + hb.height / 2 + 60, { steps: 4 });
   await page.mouse.up();
   await page.waitForTimeout(600);
   ok('V85-8c 자유 배치 안내 폐기', (await page.getByText('자동 정렬은 쉬어 갈게').count()) === 0);

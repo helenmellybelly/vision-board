@@ -104,14 +104,26 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await ctx.close();
 }
 
-// ── V82-4) 18장 PC 모자이크 — 최소 셀 실측 ≥100px ──
+// ── V82-4) 18장 PC — 최소 사진 실측 ──
+// ⚠️ 계약 재정의 (v10): 구 단언은 "최소 **폭** ≥100px"이었다. 정사각 격자에서는 폭이 곧
+//    크기였지만, 저스티파이드에서는 세로 사진이 원본 비율대로 **좁고 길게** 들어가는 게 정상이라
+//    폭만 재면 정상 배치를 결함으로 잡는다. 크기의 대리 지표는 **면적**이다 —
+//    18장이 균등하다면 한 장당 보드의 1/18 ≈ 5.6%다. 하한은 희망이 아니라 실측에서 잡는다:
+//    현재 최악이 2.7%(1017×572 기준 ≈125×125px)이므로 2.5%로 고정한다.
+//    ⚠️ 이 수치는 히어로 폭 상한(collageTokens heroMaxWFor)과 직결된다 — 상한을 0.6으로 두면
+//    한 장이 보드의 53%를 먹고 나머지가 0.6%까지 잘아진다(실측). 이 단언이 그 회귀를 잡는다.
 {
   const { ctx, page } = await newPage(boardWithN(18), WIDE);
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(2000);
-  const widths = await boardOf(page, 'desktop').locator('img').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
-  const minW = Math.min(...widths);
-  ok('V82-4 18장 최소 셀 ≥100px', widths.length === 18 && minW >= 100, `n=${widths.length} min=${minW.toFixed(0)}`);
+  const bd = boardOf(page, 'desktop');
+  const bb = await bd.boundingBox();
+  const areas = await bd
+    .locator('img[data-photo]')
+    .evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return r.width * r.height; }));
+  const minShare = Math.min(...areas) / (bb.width * bb.height);
+  ok('V82-4 18장 최소 사진 면적 ≥ 보드의 2.5%', areas.length === 18 && minShare >= 0.025,
+    `n=${areas.length} min=${(minShare * 100).toFixed(1)}%`);
   await ctx.close();
 }
 
@@ -133,12 +145,14 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(2000);
   const bd = boardOf(page, 'desktop');
-  await bd.click({ position: { x: 12, y: 12 } });
+  // v10 에디토리얼은 풀블리드라 '빈 곳 탭'이 성립하지 않는다(12,12가 사진 위다) —
+  // 상시 어포던스 버튼이 결정적 진입점이다
+  await page.getByRole('button', { name: /탭해서 편집/ }).first().click();
   await page.waitForTimeout(600);
-  const imgs = bd.locator('img');
+  const imgs = bd.locator('img[data-photo]');
   const before = await imgs.evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width }; }));
   // 두 번째 사진(1×1)의 ⤡ 핸들을 셀 하나만큼 끌어 2×2로
-  const handle = bd.locator('div[aria-label="크기 조절"]').nth(1);
+  const handle = bd.locator('div[data-resize-for]:not([data-resize-for^="sticker:"])').nth(1);
   const hb = await handle.boundingBox();
   // v10 — 사진이 커져(타이틀 밴드 예약 폐지) 예전 거리로 끌면 포인터가 보드 밖으로 나가
   // pointerup이 보드에 도달하지 않는다. 보드 안에 머무는 거리로 줄인다
@@ -149,15 +163,11 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await page.mouse.up();
   await page.waitForTimeout(800);
   const after = await imgs.evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width }; }));
-  // v9.0 계약 갱신 — 구 단언은 "넓은 사진 개수가 1 늘어남"이었다. 이제 행의 열 수가 고정이라
-  // 한 장이 커지면 같은 행의 다른 장이 그만큼 줄어든다(총량 보존) → 개수는 늘지 않을 수 있다.
-  // 대신 스냅이 실제로 일어났는지를 단언한다: 자유 픽셀 드래그가 셀의 정수배로 되돌려졌는가
-  const unitOf = (arr) => Math.min(...arr.map((r) => r.w));
-  const snapped = (arr) => {
-    const u = unitOf(arr);
-    return arr.every((r) => Math.abs(r.w / u - Math.round(r.w / u)) < 0.12);
-  };
-  ok('V82-6a 리사이즈 후 스팬 스냅 정합', snapped(after), after.map((r) => Math.round(r.w)).join(','));
+  // ⚠️ 계약 재정의 (v10): 구 단언은 "폭이 최소 셀의 **정수배**로 스냅됐는가"였다.
+  //    저스티파이드에는 정수 스팬이라는 개념 자체가 없다 — 폭은 원본 비율에 비례해 정해진다.
+  //    조작의 실체는 "이 행에 사진이 몇 장인가"이므로, 끈 사진이 실제로 커졌는지를 단언한다.
+  ok('V82-6a 리사이즈 → 끈 사진이 커진다', after[1].w > before[1].w * 1.1,
+    `${Math.round(before[1].w)} → ${Math.round(after[1].w)}`);
   const othersMoved = before.some((b, i) => Math.abs(b.x - after[i].x) > 2 || Math.abs(b.y - after[i].y) > 2);
   ok('V82-6b 나머지 사진 자동 재배치', othersMoved);
   const layout = await page.evaluate(() => JSON.parse(localStorage.getItem('vision-board-data')).collageDeviceLayouts?.desktop?.editorial);
@@ -183,16 +193,21 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await ctx.close();
 }
 
-// ── V82-8) 배경 탭 → 편집 진입(기존 계약) + 편집 칩 버튼 ──
+// ── V82-8) 편집 진입 동선 ──
+// ⚠️ 계약 반전 (v10): 구 'V82-8a 배경 탭 → 편집 진입'은 이제 **성립할 수 없다**.
+//    에디토리얼이 풀블리드(외곽 여백 0)라 탭할 '배경'이 보드에 없다 — 어디를 눌러도 사진이다.
+//    감상 모드의 사진 탭은 라이트박스(확대)가 맞고, 편집 진입은 상시 칩이 유일한 결정적 동선이다.
 {
   const { ctx, page } = await newPage(boardWithN(6), WIDE);
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(2000);
   const bd = boardOf(page, 'desktop');
-  await bd.click({ position: { x: 12, y: 12 } });
+  const img = await bd.locator('img[data-photo]').first().boundingBox();
+  await page.mouse.click(img.x + img.width / 2, img.y + img.height / 2);
   await page.waitForTimeout(600);
-  ok('V82-8a 배경 탭 → 편집 진입', (await page.getByRole('button', { name: '완료', exact: true }).count()) === 1);
-  await page.getByRole('button', { name: '완료', exact: true }).click();
+  ok('V82-8a 감상 모드 사진 탭 → 확대(편집 아님)',
+    (await page.getByRole('button', { name: '완료', exact: true }).count()) === 0);
+  await page.getByRole('dialog', { name: '이미지 확대 보기' }).getByRole('button', { name: '닫기' }).click();
   await page.waitForTimeout(400);
   const chip = page.getByRole('button', { name: '✎ 탭해서 편집' });
   ok('V82-8b 편집 칩 버튼 노출', await chip.isVisible().catch(() => false));

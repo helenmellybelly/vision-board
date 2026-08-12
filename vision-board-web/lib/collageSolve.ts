@@ -24,8 +24,8 @@ import {
   CROP_VS_AMBIENT_BIAS,
   CollageTemplateId,
   HERO_MAX_H,
-  HERO_MAX_W,
   HERO_MIN_W,
+  heroMaxWFor,
   HERO_TOP_MIN_R,
   LANDSCAPE_R,
   PORTRAIT_R,
@@ -54,6 +54,7 @@ function heroSplit(
   ratio: number,
   region: NRect,
   opts: JustifyOpts,
+  maxW: number,
 ): { side: 'top' | 'left'; rect: NRect; rest: NRect } | null {
   const A = opts.aspect;
   if (ratio >= HERO_TOP_MIN_R) {
@@ -69,11 +70,14 @@ function heroSplit(
     }
     return null;
   }
-  if (ratio < 1) {
-    // 세로 히어로 — 좌측 풀하이트 컬럼. 세로 사진이면 세로 히어로가 자동으로 나온다
+  // ⚠️ `ratio < 1`로 두면 안 된다 — 정확히 1.0(정사각, 그리고 **치수 미측정 기본값**)이
+  //    두 분기 사이로 빠져 히어로가 아예 안 생기고, 매거진이 에디토리얼과 같은 그림이 된다.
+  //    v9의 "모자이크와 미니멀이 똑같다"가 그대로 재발하는 지점이다(스크린샷에서 발견).
+  if (ratio < HERO_TOP_MIN_R) {
+    // 세로·정사각 히어로 — 좌측 풀하이트 컬럼. 세로 사진이면 세로 히어로가 자동으로 나온다
     const w = (region.h * ratio) / A;
     const rest = region.w - w - opts.gx;
-    if (w >= HERO_MIN_W && w <= HERO_MAX_W && rest > 0.12) {
+    if (w >= HERO_MIN_W && w <= maxW && rest > 0.12) {
       return {
         side: 'left',
         rect: { x: region.x, y: region.y, w, h: region.h },
@@ -129,7 +133,7 @@ export function solveTemplate(
    */
   const withHero = (order: string[], opts: JustifyOpts): SolveResult | null => {
     if (n < 4) return null;
-    const split = heroSplit(ratioMap[order[0]], region, opts);
+    const split = heroSplit(ratioMap[order[0]], region, opts, heroMaxWFor(template));
     if (!split) return null;
     const restKeys = order.slice(1);
     const restRatios = restKeys.map((k) => ratioMap[k]);
@@ -190,8 +194,14 @@ export function solveTemplate(
   // 사실상 안 자르면서 꽉 채운 배치에는 가점 — 같은 '내용량'이면 여백 없는 쪽이 배경화면답다.
   // 이게 없으면 크롭 2%짜리 완벽한 배치가 채움률 0.93 앰비언트에 밀린다
   const fullBleed = (r: SolveResult | null) => (r && r.crop <= CROP_TOL ? 0.04 : 0);
-  // 매거진은 히어로에 가점 — 기하가 비슷하면 주인공이 있는 쪽이 이 템플릿의 성격이다
-  const heroBias = template === 'magazine' ? 0.06 : 0;
+  // 히어로 가점은 템플릿의 **성격**이다.
+  //   매거진 +  — 주인공이 있는 게 정체성이라 기하가 비슷하면 히어로를 택한다
+  //   스튜디오 − — 히어로는 "방향별 정렬"과 정면으로 충돌한다. 그래도 여는 이유는 미학이
+  //                아니라 기하(행 스택만으로 못 메우는 구간)이므로, **큰 이득일 때만** 이기게 한다.
+  //                가점을 0으로 두면 스튜디오가 매거진과 똑같이 거대한 좌측 히어로를 골라
+  //                "두 템플릿이 비슷하다"가 그대로 재발한다(스크린샷에서 발견)
+  //   에디토리얼 − — 조밀한 균질함이 정체성이라 약하게만 억제한다
+  const heroBias = template === 'magazine' ? 0.06 : template === 'studio' ? -0.08 : -0.04;
   const gh = withHero(grouped, opts);
   const gf = flat(grouped, opts);
   push(gh, heroBias + fullBleed(gh));
@@ -255,7 +265,7 @@ export function layoutSpec(
   let bodyKeys = spec.order;
 
   if (spec.hero) {
-    const split = heroSplit(r(spec.hero.key), region, opts);
+    const split = heroSplit(r(spec.hero.key), region, opts, heroMaxWFor(template));
     if (split) {
       out[spec.hero.key] = split.rect;
       bodyRegion = split.rest;

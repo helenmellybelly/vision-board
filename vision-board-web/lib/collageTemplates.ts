@@ -86,7 +86,8 @@ export function themeFor(template: CollageTemplate, bgColor?: string): CollageTh
     dark: ink.dark,
     titleInk: ink.title,
     labelInk: ink.label,
-    cardBg: ink.dark ? 'rgba(20,19,18,0.86)' : 'rgba(255,255,255,0.92)',
+    // 거의 불투명 — 92%로 두면 카드 뒤 사진 사이 이음매가 비쳐 렌더 결함처럼 보인다(실측)
+    cardBg: ink.dark ? 'rgba(20,19,18,0.94)' : 'rgba(255,255,255,0.96)',
     cardBorder: ink.dark ? 'rgba(255,255,255,0.14)' : 'rgba(28,27,25,0.10)',
   };
 }
@@ -161,18 +162,23 @@ interface KitEntry {
   at: { x: number; y: number; w: number; rot?: number };
 }
 
+/** 킷 장식의 잉크 — 순검정은 사진을 이긴다. 장식은 사진보다 조용해야 한다 */
+const KIT_INK = '#4A463F';
+
+// ⚠️ y 좌표는 스티커 **높이**를 감안해야 한다. 텍스트 스티커는 아래로 자라므로(폭의 0.3~0.5배)
+//    0.85 아래에 두면 보드 밖으로 잘린다(실측: 'MAKE IT HAPPEN'이 'MAKE IT'만 보였다).
 export const TEMPLATE_KIT: Record<CollageTemplate, KitEntry[]> = {
   editorial: [
-    { id: 'kit:ed:1', sticker: { kind: 'icon', icon: 'sparkle' as IconId, text: '', style: 'chip' }, at: { x: 0.82, y: 0.09, w: 0.075 } },
-    { id: 'kit:ed:2', sticker: { kind: 'text', text: 'all is well', style: 'script' }, at: { x: 0.08, y: 0.83, w: 0.3, rot: -3 } },
+    { id: 'kit:ed:1', sticker: { kind: 'icon', icon: 'sparkle' as IconId, text: '', style: 'chip', color: KIT_INK }, at: { x: 0.83, y: 0.08, w: 0.05 } },
+    { id: 'kit:ed:2', sticker: { kind: 'text', text: 'all is well', style: 'script' }, at: { x: 0.07, y: 0.79, w: 0.26, rot: -3 } },
   ],
   magazine: [
-    { id: 'kit:mg:1', sticker: { kind: 'icon', icon: 'arrow' as IconId, text: '', style: 'chip' }, at: { x: 0.66, y: 0.87, w: 0.22 } },
-    { id: 'kit:mg:2', sticker: { kind: 'text', text: '잘 될 거야', style: 'chip' }, at: { x: 0.08, y: 0.86, w: 0.3, rot: -2 } },
+    { id: 'kit:mg:1', sticker: { kind: 'icon', icon: 'arrow' as IconId, text: '', style: 'chip', color: KIT_INK }, at: { x: 0.7, y: 0.83, w: 0.16 } },
+    { id: 'kit:mg:2', sticker: { kind: 'text', text: '잘 될 거야', style: 'chip' }, at: { x: 0.08, y: 0.78, w: 0.26, rot: -2 } },
   ],
   studio: [
-    { id: 'kit:st:1', sticker: { kind: 'icon', icon: 'corner' as IconId, text: '', style: 'chip' }, at: { x: 0.05, y: 0.83, w: 0.09, rot: 180 } },
-    { id: 'kit:st:2', sticker: { kind: 'text', text: 'MAKE IT HAPPEN', style: 'outline' }, at: { x: 0.28, y: 0.85, w: 0.44 } },
+    { id: 'kit:st:1', sticker: { kind: 'icon', icon: 'corner' as IconId, text: '', style: 'chip', color: KIT_INK }, at: { x: 0.05, y: 0.86, w: 0.06, rot: 180 } },
+    { id: 'kit:st:2', sticker: { kind: 'text', text: 'MAKE IT HAPPEN', style: 'outline' }, at: { x: 0.31, y: 0.7, w: 0.38 } },
   ],
 };
 

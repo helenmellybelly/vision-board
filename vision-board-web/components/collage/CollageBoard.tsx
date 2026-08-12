@@ -27,6 +27,7 @@ import {
   TitleStyle,
   titleBoxFor,
 } from '@/lib/collageTokens';
+import { bumpRowInSpec } from '@/lib/collageJustify';
 import { ICONS, isIconId } from '@/lib/stickerArt';
 import { SECTIONS } from '@/lib/questions';
 import { SectionId } from '@/lib/types';
@@ -124,6 +125,10 @@ function StickerView({
   if (sticker.kind === 'icon' && isIconId(sticker.icon)) {
     const def = ICONS[sticker.icon];
     const ink = sticker.color ?? (dark ? '#FFFFFF' : '#1C1B19');
+    // ⚠️ 선 굵기는 **아이콘 박스의 짧은 변** 기준이어야 canvas(lineWidth = stroke × min(w,h))와 맞는다.
+    //    `${def.stroke * 100}cqi`로 두면 보드 폭 기준이 되어 화살표 선이 50px로 뭉개진다
+    //    (실측: 검은 덩어리). cqi는 보드 폭의 %이므로 박스 짧은 변을 cqi로 환산해 곱한다.
+    const shortSideCqi = it.w * 100 * Math.min(1, 1 / def.ratio);
     return (
       <svg
         viewBox="0 0 1 1"
@@ -139,7 +144,7 @@ function StickerView({
           stroke={def.mode === 'stroke' ? ink : 'none'}
           // 비등방 viewBox에서도 선 굵기가 찌그러지지 않게 — canvas의 lineWidth 처리와 같은 의도
           vectorEffect="non-scaling-stroke"
-          strokeWidth={def.mode === 'stroke' ? `${def.stroke * 100}cqi` : undefined}
+          strokeWidth={def.mode === 'stroke' ? `${def.stroke * shortSideCqi}cqi` : undefined}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -304,7 +309,11 @@ export default function CollageBoard({
     if (!editing) return;
     e.preventDefault();
     e.stopPropagation();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    // ⚠️ 캡처는 핸들이 아니라 **보드**에 건다 (v10).
+    // 핸들에 걸면 포인터가 보드 밖으로 나가는 순간 move/up이 보드 핸들러에 안 닿아 제스처가 끊긴다.
+    // v10은 풀블리드라 사진이 보드 가장자리에 붙어 있어(마지막 행의 ⤡ 핸들은 보드 하단에 있다)
+    // 아래로 조금만 끌어도 바로 이탈한다 — 실측으로 확인한 결함이다. 드래그의 주인은 보드다.
+    (boardRef.current ?? (e.currentTarget as HTMLElement)).setPointerCapture(e.pointerId);
     // 회전은 z를 건드리지 않는다 — '맨 뒤로' 보낸 항목이 회전만으로 다시 앞으로 오지 않게
     const next = mode === 'rotate' ? liveRef.current : bringToFront(key);
     const drag: DragState = {
@@ -382,7 +391,7 @@ export default function CollageBoard({
 
     // 고스트 프리뷰 — 방향이 바뀔 때만 다시 계산해 프레임당 재계산을 피한다
     if (drag.mode === 'resize') {
-      const dir = resizeDir(drag.item.w, next.w);
+      const dir = resizeDir(dxPx, dyPx, rect);
       const cur = dir === 'up' ? 1 : dir === 'down' ? -1 : 0;
       if (!drag.previewSpan || drag.previewSpan[0] !== cur) {
         drag.previewSpan = [cur, 0];
@@ -398,10 +407,16 @@ export default function CollageBoard({
 
   /** 리사이즈 핸들 드래그 → 행 경계 이동 방향 (v10).
    *  v9의 "스팬 등급 스냅"을 대체한다 — 저스티파이드에는 정수 스팬이 없고, 크기는
-   *  "이 행에 사진이 몇 장인가"로 정해진다. 그래서 조작의 실체는 한 칸 밀기/당기기다 */
-  function resizeDir(startW: number, nextW: number): 'up' | 'down' | null {
-    if (nextW > startW * 1.14) return 'up';
-    if (nextW < startW * 0.88) return 'down';
+   *  "이 행에 사진이 몇 장인가"로 정해진다. 그래서 조작의 실체는 한 칸 밀기/당기기다.
+   *
+   *  ⚠️ 의도는 **원시 드래그 거리**로 잰다. 클램프된 결과 폭으로 재면 안 된다 —
+   *  히어로 옆 사진처럼 `1 − x`에 막힌 항목은 아무리 끌어도 폭이 2%밖에 안 늘어
+   *  "끌어도 아무 반응이 없다"가 된다(실측: 고스트 프리뷰가 한 번도 안 떴다). */
+  function resizeDir(dxPx: number, dyPx: number, rect: DOMRect): 'up' | 'down' | null {
+    const unit = Math.min(rect.width, rect.height);
+    const delta = (dxPx + dyPx) / 2 / unit;
+    if (delta > 0.05) return 'up';
+    if (delta < -0.05) return 'down';
     return null;
   }
 
@@ -429,8 +444,8 @@ export default function CollageBoard({
       // 커밋 대상은 드래그 이전의 배치 — 드래그 중 임시로 밀어둔 좌표(live)를 쓰면 안 된다
       const base: CollageLayout = { ...liveRef.current, items: drag.baseItems };
       if (drag.mode === 'resize') {
-        const finalIt = liveRef.current.items[drag.key];
-        const dir = resizeDir(drag.item.w, finalIt.w);
+        // 드래그 중 계산해 둔 방향을 그대로 쓴다 — 프리뷰가 보여준 것과 커밋 결과가 어긋나면 안 된다
+        const dir = drag.previewSpan?.[0] === 1 ? 'up' : drag.previewSpan?.[0] === -1 ? 'down' : null;
         // 방향이 애매하면 원래 배치를 다시 적용해 제자리로 미끄러진다(스냅백)
         commitSpec(dir ? bumpPhoto(base, template, items, aspect, drag.key, dir) : base);
         return;
@@ -736,6 +751,9 @@ export default function CollageBoard({
                     onPointerDown={(e) => onItemPointerDown(e, key, 'resize')}
                     className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-white shadow-md border border-[#E5E3DF] flex items-center justify-center cursor-nwse-resize z-10"
                     aria-label="크기 조절"
+                    // 스티커에도 같은 핸들이 붙는다 — 검증이 사진 핸들만 집도록 표식을 준다.
+                    // 표식이 없어 nth(1)이 킷 스티커 핸들을 잡는 바람에 고스트 프리뷰 검증이 헛돌았다
+                    data-resize-for={key}
                   >
                     <span className="text-micro text-[#6E6962] leading-none">⤡</span>
                   </div>
@@ -1002,25 +1020,26 @@ export default function CollageBoard({
                 지우기
               </button>
             )}
-            {/* 크게·작게 (v10) — 핸들 정밀 드래그 없이 행 경계를 한 칸씩. 모바일 주 동선 */}
-            {spec && (
-              <>
-                <button
-                  onClick={() => bumpSize(photoAction, 'up')}
-                  className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
-                  aria-label="크게"
-                >
-                  크게
-                </button>
-                <button
-                  onClick={() => bumpSize(photoAction, 'down')}
-                  className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
-                  aria-label="작게"
-                >
-                  작게
-                </button>
-              </>
-            )}
+            {/* 크게·작게 (v10) — 핸들 정밀 드래그 없이 행 경계를 한 칸씩. 모바일 주 동선.
+                더 갈 곳이 없으면(혼자 쓰는 행을 더 키우기 등) 비활성화한다 —
+                눌러도 아무 일이 없으면 사용자는 앱이 고장 났다고 읽는다 */}
+            {spec &&
+              (['up', 'down'] as const).map((dir) => {
+                const enabled = bumpRowInSpec(spec, photoAction, dir) !== spec;
+                return (
+                  <button
+                    key={dir}
+                    onClick={() => bumpSize(photoAction, dir)}
+                    disabled={!enabled}
+                    className={`px-3 py-1.5 rounded-full text-caption font-medium ${
+                      enabled ? 'bg-black/60 text-white active:opacity-70' : 'bg-black/25 text-white/50 cursor-default'
+                    }`}
+                    aria-label={dir === 'up' ? '크게' : '작게'}
+                  >
+                    {dir === 'up' ? '크게' : '작게'}
+                  </button>
+                );
+              })}
             {!spec && (
               <button
                 onClick={() => sendToBack(photoAction)}
