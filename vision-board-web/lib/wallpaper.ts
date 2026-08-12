@@ -2,8 +2,15 @@
 // 외부 라이브러리 없이 Canvas API로 직접 그린다.
 // 사이즈를 먼저 고르고 그 비율 그대로 편집하므로, 선택한 해상도로 직접 그린다(무크롭 WYSIWYG, v6.19).
 import { CollageLayout, CollageSticker, CollageTemplate } from './types';
-import { CollageItem, STICKER_FONT_RATIO, themeFor } from './collageTemplates';
-import { MATTE_MAT_RATIO, PHOTO_RADIUS_RATIO, titleTokensFor } from './collageTokens';
+import { CollageItem, CollageTheme, STICKER_FONT_RATIO, themeFor, titleFor } from './collageTemplates';
+import {
+  AMBIENT_SCALE,
+  AMBIENT_SCRIM_ALPHA,
+  PHOTO_RADIUS_RATIO,
+  TitleBox,
+  titleBoxFor,
+} from './collageTokens';
+import { ICONS, hasPath2D, isIconId } from './stickerArt';
 import { bustedSrc, displaySrc } from './imageSrc';
 // 사진 18장이 한꺼번에 몰려 서로를 타임아웃시키는 걸 막는다 (v8.7 → v10에서 순수 모듈로 추출)
 import { mapLimit } from './mapLimit';
@@ -162,46 +169,124 @@ function drawRoundedPhoto(
   ctx.restore();
 }
 
-// 매트 갤러리 — 흰 매트 카드 안에 사진을 **자르지 않고**(contain) 앉힌다 (v9.0).
-// 세로 스크린샷이 정사각 셀에서 위아래가 잘려 글자가 안 보이던 문제(오너 v8.7 팟캐스트 사례)의
-// 완전 해소책이자, 이 템플릿의 컨셉 그 자체다 — 남는 자리는 결함이 아니라 액자의 매트다.
-function drawMattePhoto(
+/** #RRGGBB → rgba() — 스크림처럼 배경색에서 파생되는 알파 색을 만든다 */
+function withAlpha(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/**
+ * 앰비언트 배경 — 사진 한 장을 크게 흐려 깔고 그 위에 배경색 스크림을 덮는다.
+ *
+ * 크롭 없이는 보드를 꽉 채울 수 없는 배치(보통 사진 1~3장)에서 남는 자리를 메운다.
+ * 애플 TV·음악 앱이 쓰는 방식이라 "빈 공간"이 아니라 의도된 배경으로 읽힌다.
+ *
+ * ⚠️ ctx.filter='blur()'를 쓰지 않는다 — 구 Safari 미지원이라 환경에 따라 결과가 갈린다.
+ *    32px로 줄였다가 다시 키우는 쪽이 전 브라우저에서 동일하게 동작하고 더 빠르다.
+ *    DOM(CollageBoard)은 CSS filter를 쓰지만, 앰비언트는 사진 뒤 배경이라 미세한 차이가
+ *    락스텝을 해치지 않는다(타이틀·사진 좌표처럼 정합이 필요한 요소가 아니다).
+ */
+function drawAmbient(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
-  x: number,
-  y: number,
   w: number,
   h: number,
-  onWhiteBg: boolean
+  bg: string
 ) {
-  const r = Math.min(w, h) * 0.04;
-  ctx.save();
-  ctx.shadowColor = 'rgba(28,27,25,0.10)';
-  ctx.shadowBlur = Math.min(w, h) * 0.06;
-  ctx.shadowOffsetY = Math.min(w, h) * 0.015;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  ctx.fill();
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
-  // 배경이 흰색이면 그림자만으로는 카드가 배경에 녹는다 — 이때만 실선 테두리를 더한다
-  if (onWhiteBg) {
-    ctx.strokeStyle = '#E5E3DF';
-    ctx.lineWidth = Math.max(1, Math.min(w, h) * 0.004);
-    ctx.stroke();
-  }
-  ctx.restore();
+  const sw = 32;
+  const sh = Math.max(1, Math.round((sw * h) / w));
+  const small = document.createElement('canvas');
+  small.width = sw;
+  small.height = sh;
+  const sctx = small.getContext('2d');
+  if (!sctx) return;
+  drawCover(sctx, img, 0, 0, sw, sh);
 
-  const mat = Math.min(w, h) * MATTE_MAT_RATIO;
-  const iw = w - mat * 2;
-  const ih = h - mat * 2;
-  if (iw <= 0 || ih <= 0) return;
-  const scale = Math.min(iw / img.width, ih / img.height);
-  const dw = img.width * scale;
-  const dh = img.height * scale;
-  ctx.drawImage(img, x + mat + (iw - dw) / 2, y + mat + (ih - dh) / 2, dw, dh);
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  // 가장자리에서 블러가 끊겨 보이지 않게 살짝 키워 덮는다
+  const ow = w * AMBIENT_SCALE;
+  const oh = h * AMBIENT_SCALE;
+  ctx.drawImage(small, (w - ow) / 2, (h - oh) / 2, ow, oh);
+  ctx.fillStyle = withAlpha(bg, AMBIENT_SCRIM_ALPHA);
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+
+/**
+ * 타이틀 카드 — 사진 **위에** 얹힌다 (v10).
+ *
+ * v9는 상단 15~22%를 통째로 비워 타이틀을 넣었다. 그 예약을 없앤 만큼 사진이 커진다.
+ * 기하는 collageTokens.titleBoxFor()가 단일 소스라 DOM과 자동으로 락스텝이다.
+ */
+function drawTitleCard(
+  ctx: CanvasRenderingContext2D,
+  box: TitleBox,
+  theme: CollageTheme,
+  year: string,
+  bw: number,
+  bh: number,
+  minDim: number
+) {
+  const x = box.x * bw;
+  const y = box.y * bh;
+  const w = box.w * bw;
+  const h = box.h * bh;
+  ctx.save();
+  ctx.fillStyle = theme.cardBg;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, minDim * box.radius);
+  ctx.fill();
+  ctx.strokeStyle = theme.cardBorder;
+  ctx.lineWidth = Math.max(1, minDim * 0.0012);
+  ctx.stroke();
+
+  const padX = box.padX * bw;
+  const labelPx = minDim * box.labelRatio;
+  const yearPx = minDim * box.yearRatio;
+  const cx = box.align === 'left' ? x + padX : x + w / 2;
+  ctx.textAlign = box.align === 'left' ? 'left' : 'center';
+  ctx.textBaseline = 'middle';
+
+  // ctx.letterSpacing 미지원 환경 폴백 — 글자 사이에 공백을 끼워 시각적 자간을 만든다
+  const canTrack = 'letterSpacing' in ctx;
+  const spaced = (s: string) => (canTrack ? s : s.split('').join(' '));
+  const setTrack = (em: number) => {
+    if (canTrack) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${em}em`;
+  };
+
+  if (box.stack === 'h') {
+    // 라벨과 연도가 한 줄에 나란히 — 얇은 스트립
+    const midY = y + h / 2;
+    setTrack(box.tracking);
+    ctx.font = `600 ${Math.round(labelPx)}px "Pretendard Variable", Pretendard, sans-serif`;
+    ctx.fillStyle = theme.labelInk;
+    ctx.textAlign = 'left';
+    ctx.fillText(spaced('VISION BOARD'), x + padX, midY);
+    setTrack(0);
+    ctx.font = `700 ${Math.round(yearPx)}px ${SCRIPT_FONT}`;
+    ctx.fillStyle = theme.titleInk;
+    ctx.textAlign = 'right';
+    ctx.fillText(year, x + w - padX, midY);
+  } else {
+    const labelY = y + h * 0.32;
+    const yearY = y + h * 0.68;
+    setTrack(box.tracking);
+    ctx.font = `600 ${Math.round(labelPx)}px "Pretendard Variable", Pretendard, sans-serif`;
+    ctx.fillStyle = theme.labelInk;
+    ctx.fillText(spaced('VISION BOARD'), cx, labelY);
+    setTrack(0);
+    ctx.font = `700 ${Math.round(yearPx)}px ${SCRIPT_FONT}`;
+    ctx.fillStyle = theme.titleInk;
+    ctx.fillText(year, cx, yearY);
+  }
+  setTrack(0);
+  ctx.restore();
 }
 
 // ── 보드 그대로 내보내기 — /collage 화면의 편집 배치·스티커를 1:1로 캔버스에 그린다 ──
@@ -245,6 +330,35 @@ function drawSticker(
   if (rect.rot) ctx.rotate((rect.rot * Math.PI) / 180);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
+
+  // 라인 아이콘 (v10) — 단위 path를 DOM(<svg viewBox="0 0 1 1">)과 공유한다.
+  // ⚠️ Path2D 미지원이면 아무것도 그리지 않는다. 화면에는 보이는데 저장 이미지엔 없는
+  //    '반쪽 렌더'를 만들 바에야, UI 쪽에서 아이콘 자체를 숨기는 게 계약이다(stickerArt.hasPath2D)
+  if (sticker.kind === 'icon' && isIconId(sticker.icon)) {
+    const def = ICONS[sticker.icon];
+    const w = rect.w;
+    const h = w / def.ratio;
+    if (hasPath2D()) {
+      // ⚠️ ctx.scale(w, h)로 확대하면 안 된다 — 비등방 스케일이 선 굵기까지 찌그러뜨린다.
+      //    기하만 행렬로 변환하고 lineWidth는 픽셀 단위로 둔다
+      const p = new Path2D();
+      p.addPath(new Path2D(def.d), new DOMMatrix([w, 0, 0, h, -w / 2, 0]));
+      const ink = sticker.color ?? (dark ? '#FFFFFF' : '#1C1B19');
+      if (def.mode === 'fill') {
+        ctx.globalAlpha = def.alpha ?? 1;
+        ctx.fillStyle = ink;
+        ctx.fill(p);
+      } else {
+        ctx.lineWidth = def.stroke * Math.min(w, h);
+        ctx.strokeStyle = ink;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke(p);
+      }
+    }
+    ctx.restore();
+    return;
+  }
 
   if (sticker.style === 'chip') {
     ctx.font = `600 ${fontPx}px "Pretendard Variable", Pretendard, sans-serif`;
@@ -343,18 +457,10 @@ export async function renderBoardLayout(
   }
   const skipped = skippedKeys.length;
 
-  // 상단 타이틀 밴드 — 사진보다 먼저. 수치는 lib/collageTokens가 단일 소스라
-  // DOM(CollageBoard)의 padTop·폰트 비율과 자동으로 락스텝이다 (v9.0)
-  {
-    const t = titleTokensFor(template, aspect);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = theme.labelInk;
-    ctx.font = `600 ${Math.round(minDim * t.labelRatio)}px "Pretendard Variable", Pretendard, sans-serif`;
-    ctx.fillText('V I S I O N   B O A R D', bx + bw / 2, by + minDim * t.labelY);
-    ctx.fillStyle = theme.titleInk;
-    ctx.font = `700 ${Math.round(minDim * t.yearRatio)}px ${SCRIPT_FONT}`;
-    ctx.fillText(year, bx + bw / 2, by + minDim * t.yearY);
+  // 앰비언트 배경 — 사진보다 먼저(z-0). 크롭 없이 꽉 채울 수 없는 배치에서만 존재한다 (v10)
+  if (layout.spec?.ambient) {
+    const amb = loadedByKey.get(layout.spec.ambient);
+    if (amb) drawAmbient(ctx, amb, w, h, theme.bg);
   }
 
   // 사진 + 스티커 — z 순서대로
@@ -378,13 +484,11 @@ export async function renderBoardLayout(
     const py = by + it.y * bh;
     const pw = it.w * bw;
     const ph = (it.h ?? it.w * aspect) * bh;
-    // 매트 갤러리는 무크롭(contain) 매트 카드, 나머지는 라운드 사진(cover) — DOM과 락스텝
-    const onWhite = theme.bg.toUpperCase() === '#FFFFFF';
+    // v10 — 전 템플릿 단일 경로(라운드 + cover). 무크롭용 매트 액자가 필요 없어졌다:
+    // 박스 자체가 사진의 원본 비율에 맞춰 만들어지므로 cover가 잘라낼 게 거의 없다
     const draw = (dx: number, dy: number) =>
-      theme.frame === 'matte'
-        ? drawMattePhoto(ctx, img, dx, dy, pw, ph, onWhite)
-        : drawRoundedPhoto(ctx, img, dx, dy, pw, ph, pw * PHOTO_RADIUS_RATIO, theme.dark);
-    // 회전은 자유 배치 모드에서만 남는다 (v9.0) — 그리드 배치는 rot을 쓰지 않는다
+      drawRoundedPhoto(ctx, img, dx, dy, pw, ph, pw * PHOTO_RADIUS_RATIO, theme.dark);
+    // 회전은 자유 배치 모드에서만 남는다 — spec 배치는 rot을 쓰지 않는다
     if (it.rot) {
       ctx.save();
       ctx.translate(px + pw / 2, py + ph / 2);
@@ -394,6 +498,12 @@ export async function renderBoardLayout(
     } else {
       draw(px, py);
     }
+  }
+
+  // 타이틀 카드 — 사진 위에 얹힌다 (v10). 맨 마지막에 그려 어떤 사진에도 가리지 않는다
+  {
+    const t = titleFor(template, layout.title);
+    drawTitleCard(ctx, titleBoxFor(t.style, t.anchor, aspect), theme, year, bw, bh, minDim);
   }
 
   return { canvas, skipped, skippedKeys };

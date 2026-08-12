@@ -69,7 +69,7 @@ const readBoard = (page) =>
   ok('R6-1a v4 백필: current', ex?.current === '바쁘게 사는 사람');
   ok('R6-1b v4 백필: keyword', ex?.keyword === '여유로운');
   ok('R6-1c v4 백필: want/feeling', ex?.want === '혼자 여행' && ex?.feeling === '충만한');
-  ok('R6-1d schemaVersion 4', board?.schemaVersion === 4, `v=${board?.schemaVersion}`);
+  ok('R6-1d schemaVersion 5', board?.schemaVersion === 5, `v=${board?.schemaVersion}`);
   // 백필 결과가 /review에 렌더 (구 slots 직접 읽기 제거 후에도)
   await page.goto(`${BASE}/review`);
   await page.waitForTimeout(1500);

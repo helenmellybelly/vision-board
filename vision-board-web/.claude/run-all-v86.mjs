@@ -5,7 +5,7 @@ import { readdirSync } from 'node:fs';
 const suites = readdirSync('.claude')
   .filter((f) => /^verify-.*\.mjs$/.test(f))
   .sort();
-suites.push('verify-collage-layout.js'); // scripts/ 기하 계약
+suites.push('verify-justify.js'); // scripts/ 기하 계약
 
 const summary = [];
 for (const s of suites) {

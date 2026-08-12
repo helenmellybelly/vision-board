@@ -273,7 +273,8 @@ const loadStored = (page) =>
   const { ctx, page } = await newPage(
     board(overrides, {
       collageDevicePresets: { phone: 'phone' },
-      collageDeviceLayouts: { phone: { mosaic: freeform } },
+      collageDeviceLayouts: { phone: { editorial: freeform } },
+      schemaVersion: 5,
     }),
     NARROW
   );
@@ -281,9 +282,10 @@ const loadStored = (page) =>
   await page.waitForTimeout(2000);
   const bd = page.locator('[data-testid="collage-board"][data-view="phone"]');
   const rectsOf = () =>
-    bd.locator('img').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top.toFixed(1)).join('|'));
+    bd.locator('img[data-photo]').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top.toFixed(1)).join('|'));
   const before = await rectsOf();
-  await bd.click({ position: { x: 12, y: 12 } });
+  // v10 에디토리얼은 풀블리드라 '빈 곳 탭'이 없다 — 상시 어포던스 버튼이 결정적 진입점
+  await page.getByRole('button', { name: /탭해서 편집/ }).first().click();
   await page.waitForTimeout(600);
   const handle = bd.locator('div[aria-label="크기 조절"]').first();
   const hb = await handle.boundingBox();

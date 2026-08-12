@@ -140,7 +140,9 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   // 두 번째 사진(1×1)의 ⤡ 핸들을 셀 하나만큼 끌어 2×2로
   const handle = bd.locator('div[aria-label="크기 조절"]').nth(1);
   const hb = await handle.boundingBox();
-  const grow = before[1].w * 1.1;
+  // v10 — 사진이 커져(타이틀 밴드 예약 폐지) 예전 거리로 끌면 포인터가 보드 밖으로 나가
+  // pointerup이 보드에 도달하지 않는다. 보드 안에 머무는 거리로 줄인다
+  const grow = Math.min(before[1].w * 0.5, 120);
   await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
   await page.mouse.down();
   await page.mouse.move(hb.x + hb.width / 2 + grow, hb.y + hb.height / 2 + grow, { steps: 8 });
@@ -158,7 +160,7 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   ok('V82-6a 리사이즈 후 스팬 스냅 정합', snapped(after), after.map((r) => Math.round(r.w)).join(','));
   const othersMoved = before.some((b, i) => Math.abs(b.x - after[i].x) > 2 || Math.abs(b.y - after[i].y) > 2);
   ok('V82-6b 나머지 사진 자동 재배치', othersMoved);
-  const layout = await page.evaluate(() => JSON.parse(localStorage.getItem('vision-board-data')).collageDeviceLayouts?.desktop?.mosaic);
+  const layout = await page.evaluate(() => JSON.parse(localStorage.getItem('vision-board-data')).collageDeviceLayouts?.desktop?.editorial);
   ok('V82-6c edited:true 저장', layout?.edited === true);
   await ctx.close();
 }
@@ -169,7 +171,7 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await page.goto(`${BASE}/collage`);
   await page.waitForTimeout(2000);
   const bd = boardOf(page, 'desktop');
-  const img = await bd.locator('img').first().boundingBox();
+  const img = await bd.locator('img[data-photo]').first().boundingBox();
   await page.mouse.click(img.x + img.width / 2, img.y + img.height / 2);
   await page.waitForTimeout(600);
   const dialog = page.getByRole('dialog', { name: '이미지 확대 보기' });

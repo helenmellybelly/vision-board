@@ -74,7 +74,7 @@ async function newPage(seed, ctxOpts = {}) {
     if (raw) {
       const b = JSON.parse(raw);
       if (!b.collageTemplate) {
-        b.collageTemplate = 'matte';
+        b.collageTemplate = 'studio';
         localStorage.setItem('vision-board-data', JSON.stringify(b));
       }
     }
@@ -87,10 +87,11 @@ async function newPage(seed, ctxOpts = {}) {
   const boardBg = await board.evaluate((el) => getComputedStyle(el).backgroundImage).catch(() => '');
   ok('V6-2a 보드 배경은 단색(그라디언트 폐기)', !boardBg.includes('linear-gradient'), boardBg.slice(0, 40));
   const boardColor = await board.evaluate((el) => getComputedStyle(el).backgroundColor).catch(() => '');
-  ok('V6-2b 매트 갤러리 기본 배경 흰색', boardColor === 'rgb(255, 255, 255)', boardColor);
+  ok('V6-2b 스튜디오 기본 배경(아이보리)', boardColor === 'rgb(244, 241, 236)', boardColor);
   ok('V6-2c 흰 폴라로이드 프레임 부재', (await board.locator('.bg-white.p-1').count()) === 0);
-  ok('V6-2d 매트 카드 래퍼', (await board.locator('.rounded-lg.bg-white img').count()) >= 1);
-  ok('V6-2e 템플릿 라벨 매트 갤러리', await page.getByText('매트 갤러리', { exact: true }).first().isVisible().catch(() => false));
+  // v10 — 매트(흰 액자) 폐기. 액자가 필요했던 이유(세로 사진 무크롭)를 배치 엔진이 없앴다
+  ok('V6-2d 전 템플릿 액자 없음(cover 단일 경로)', (await board.locator('.rounded-lg.bg-white img').count()) === 0);
+  ok('V6-2e 템플릿 라벨 스튜디오', await page.getByText('스튜디오', { exact: true }).first().isVisible().catch(() => false));
   await ctx.close();
 }
 

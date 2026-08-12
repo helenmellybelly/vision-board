@@ -84,11 +84,12 @@ export interface SectionData {
   deferredSlots?: (keyof ExtractedSlots)[];
 }
 
-// 콜라주(한눈에 보기) 템플릿 — v6.15: '내 배치' 탭 제거, 모든 템플릿이 자유 편집 가능
-// v9.0: 숲('polaroid') 삭제 → 매트 갤러리('matte'). 구 id는 storage.ts migrateCollage가 이관한다.
-// ⚠️ 세 템플릿은 성격이 갈려야 한다 — 모자이크=매거진 리듬(크기 섞임) / 미니멀=균일·정적 /
-//    매트=넓은 액자 여백 + 균일 + 무크롭. lib/collageTemplates.ts의 VARIETY_WEIGHT가 이 계약을 만든다.
-export type CollageTemplate = 'mosaic' | 'minimal' | 'matte';
+// 콜라주 템플릿 — v10 전면 교체. 구 id(mosaic/minimal/matte)는 storage.ts 스키마 v5가 이관한다.
+// ⚠️ 템플릿은 배치 알고리즘이 아니라 **완성된 구성안**이다 — 배치 구조 + 타이틀 위치 +
+//    기본 스티커 킷 + 갭. 여백 수치로만 구분하면 (a) 사진이 작아지거나 (b) 차이를 못 느낀다.
+//    v9의 모자이크↔미니멀이 갭 0.025 vs 0.03 차이뿐이라 사실상 같은 템플릿이었던 게 그 증거다.
+//    에디토리얼 = 순서대로 조밀 / 매거진 = 한 장이 주인공 / 스튜디오 = 방향별로 정렬
+export type CollageTemplate = 'editorial' | 'magazine' | 'studio';
 
 // 편집 타깃 — board = 한눈에 보기(4:5), phone = 폰 배경(9:19.5), desktop = PC 배경(16:9).
 // 타깃마다 좌표 공간(가로세로비)이 달라 배치를 따로 저장한다 (v6.18)
@@ -105,7 +106,7 @@ export interface CollageLayoutItem {
   h?: number; // 정규화 높이 — 없으면 정사각(w × 보드 가로/세로비). 모자이크 스팬 셀용
 }
 
-// 문구 스티커 — 보드 위에 올리는 텍스트. 위치/크기는 CollageLayout.items에 `sticker:${id}` 키로 저장
+// 스티커 — 보드 위에 올리는 문구·장식. 위치/크기는 CollageLayout.items에 `sticker:${id}` 키로 저장
 export type StickerStyle = 'script' | 'chip' | 'outline';
 
 export interface CollageSticker {
@@ -113,6 +114,9 @@ export interface CollageSticker {
   text: string;
   style: StickerStyle; // script = 손글씨(Enjoystories) / chip = 종이 라벨 / outline = 아웃라인 레터
   color?: string; // script 스타일 글자색 (기본: 테마에 맞는 흑/백)
+  /** v10 — 'icon'이면 text 대신 icon(lib/stickerArt.ts의 IconId)을 그린다. 없으면 'text' */
+  kind?: 'text' | 'icon';
+  icon?: string;
 }
 
 export interface CollageLayout {
@@ -124,23 +128,30 @@ export interface CollageLayout {
    *  true(드래그·리사이즈·회전·스티커 조작)면 기존 위치 보존 + 새 키만 빈 공간 배치.
    *  없음(레거시) = 상호작용으로만 저장됐으므로 true 취급 */
   edited?: boolean;
-  /** v9.0 — 배치의 진실 원천. 있으면 items는 이것으로부터 파생된 결과다.
-   *  좌표에서 그리드를 역산(inferGridSpans)하던 v8.2 방식은 역산 실패 시 자동 정렬이 통째로 죽었다.
-   *  ⚠️ grid를 바꿨으면 반드시 materialize()로 items를 다시 만들어 둘을 일치시킬 것 —
-   *  이 일관성 덕분에 grid를 모르는 구 코드가 읽어도 정상 렌더된다(스키마 v4 유지) */
-  grid?: GridSpec;
+  /** v10 — 배치의 진실 원천. 있으면 items는 이것으로부터 파생된 결과다.
+   *  ⚠️ spec을 바꿨으면 반드시 applySpec()으로 items를 다시 만들어 둘을 일치시킬 것 —
+   *  이 일관성 덕분에 spec을 모르는 코드가 읽어도 정상 렌더된다 */
+  spec?: JustifiedSpec;
+  /** v10 — 타이틀 카드 위치·스타일. 없으면 템플릿 기본값 */
+  title?: { anchor: string; style: string };
+  /** v10 — 사용자가 지운 기본 킷 스티커 id. '기본 배치로'를 누르면 비워져 킷이 되살아난다 */
+  kitRemoved?: string[];
+  /** v10 — 사용자가 배치(spec)를 직접 손댔는가(스왑·크게/작게).
+   *  edited(스티커·연도까지 포함)와 달리, 이게 false면 사진 치수를 새로 알게 됐을 때
+   *  더 나은 배치로 갈아준다 — 배치를 손대지 않은 사용자에게는 그게 맞다 */
+  specTouched?: boolean;
   /** v9.0 — 사용자가 '자유 배치'를 명시적으로 켠 배치. 자동 정렬·스냅 대상이 아니며 회전이 살아난다 */
   freeform?: boolean;
 }
 
-/** 그리드 배치 명세 — 실체는 lib/collageGrid.ts. 구조적 타입으로만 두어 types.ts의 무의존을 지킨다 */
-export interface GridSpec {
-  v: 1;
-  cols: number;
-  bands: (
-    | { kind: 'hero'; heroKey: string; heroRight: boolean; stackKeys: string[] }
-    | { kind: 'row'; keys: string[]; spans: number[]; rows: number; center?: boolean }
-  )[];
+/** 저스티파이드 배치 명세 — 실체는 lib/collageJustify.ts. 구조적 타입으로만 두어 types.ts의 무의존을 지킨다.
+ *  rows는 hero를 뺀 나머지를 순서대로 자른 행별 장수다(합 = order.length − (hero?1:0)) */
+export interface JustifiedSpec {
+  v: 2;
+  order: string[];
+  hero?: { key: string; side: 'top' | 'left' };
+  rows: number[];
+  ambient?: string;
 }
 
 export interface BoardData {
@@ -179,6 +190,9 @@ export interface BoardData {
   /** @deprecated v6.14 '내 배치' 레이아웃 — loadBoard()가 collageLayouts.polaroid로 이관 */
   collageLayout?: CollageLayout;
   collageLayouts?: Partial<Record<CollageTemplate, CollageLayout>>; // 템플릿별 편집 배치 (board 타깃)
+  /** v10 마이그레이션이 구제한 사용자 문구 스티커 — 배치는 재해석 불가라 버리지만 글은 아깝다.
+   *  첫 시드에서 빈 자리에 다시 얹고 비운다 */
+  collageStickerSalvage?: CollageSticker[];
   // 기기 타깃별 편집 배치 — 폰/PC 배경화면 전용 (v6.18). 비율은 collageDevicePresets가 결정 (v6.19)
   collageDeviceLayouts?: Partial<
     Record<'phone' | 'desktop', Partial<Record<CollageTemplate, CollageLayout>>>

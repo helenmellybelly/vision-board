@@ -68,7 +68,7 @@ const withPhoto = (extra = {}) =>
   await page.waitForTimeout(1500);
   // v8.1: 좁은 화면 기본 뷰가 폰
   ok('R5-1a 진입 즉시 폰 탭 활성 (v8.1 기본)', await page.getByRole('radio', { name: '📱 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
-  ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('매트 갤러리').first().isVisible().catch(() => false));
+  ok('R5-1b 템플릿 셀렉터 노출', await page.getByText('스튜디오').first().isVisible().catch(() => false));
   await page.screenshot({ path: `${OUT}/v7r5-collage-unified.png`, fullPage: true });
   // v7.3: 빈 피커 대신 표준 프리셋 자동 선택 + 상시 칩 행
   ok('R5-1e 기본 폰 자동 선택', await page.getByRole('radio', { name: '기본 폰' }).getAttribute('aria-checked').then((v) => v === 'true').catch(() => false));
@@ -159,18 +159,27 @@ const withPhoto = (extra = {}) =>
   await ctx.close();
 }
 
-// ── 8) 기존 collageDeviceLayouts 무손실 (v6.19 마이그레이션 회귀) ──
+// ── 8) v10 마이그레이션 — 배치는 폐기, 사진·색·기기 사이즈는 보존 ──
+// ⚠️ 계약 반전: v6.19~v9의 "기존 기기 배치 무손실"은 v10에서 폐기됐다.
+//    v9 좌표는 "정사각 셀 + 상단 titleBottom 예약"을 이미 구워 넣어 새 엔진이 재해석할 수 없다.
+//    대신 무엇이 **보존되는지**를 계약으로 못박는다 — 사진은 섹션 데이터에 있어 무손실이다.
 {
   const layout = { items: { '1-0': { x: 0.1, y: 0.1, w: 0.4, z: 1 } }, aspect: 1170 / 2532 };
   const { ctx, page } = await newPage(doneBoard({ 1: withPhoto() }, {
+    schemaVersion: 4,
+    collageTemplate: 'matte',
+    collageBgColor: '#DDE3DE',
     collageDevicePresets: { phone: 'phone' },
     collageDeviceLayouts: { phone: { matte: layout } },
   }));
   await page.goto(`${BASE}/collage`);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1800);
   const board = await page.evaluate(() => JSON.parse(localStorage.getItem('vision-board-data') ?? 'null'));
-  const saved = board?.collageDeviceLayouts?.phone?.matte?.items?.['1-0'];
-  ok('R5-8 기존 기기 배치 무손실', saved?.x === 0.1 && saved?.w === 0.4);
+  ok('R5-8a 구 배치 폐기', board?.collageDeviceLayouts === undefined, JSON.stringify(board?.collageDeviceLayouts));
+  ok('R5-8b 템플릿 이관(matte → 스튜디오)', board?.collageTemplate === 'studio', String(board?.collageTemplate));
+  ok('R5-8c 기기 사이즈 보존', board?.collageDevicePresets?.phone === 'phone');
+  ok('R5-8d 배경색 보존', board?.collageBgColor === '#DDE3DE', String(board?.collageBgColor));
+  ok('R5-8e 사진 보존', !!board?.sections?.[1]?.uploadedImages?.[0]);
   await ctx.close();
 }
 

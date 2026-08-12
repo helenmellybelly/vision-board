@@ -6,7 +6,7 @@ import { track } from '@/lib/analytics';
 import AccountButton from '@/components/AccountButton';
 import {
   clearCollageDeviceLayouts,
-  consumeMatteNotice,
+  consumeCollageNotice,
   loadBoard,
   saveTargetDate,
   saveCollageDeviceLayout,
@@ -41,11 +41,17 @@ import DevicePresetPicker from '@/components/collage/DevicePresetPicker';
 type CollageView = 'phone' | 'desktop';
 
 // 순서·기본값은 lib/collageTemplates.ts의 TEMPLATE_ORDER/DEFAULT_TEMPLATE 단일 소스.
-// v9.0 — '숲'(polaroid) 삭제 → '매트 갤러리'(matte). 구 선택값은 storage.ts migrateCollage가 이관한다
+// v10 — 모자이크/미니멀/매트 폐기. 세 템플릿이 배치·타이틀 위치·기본 스티커까지 함께 갈린다
 const TEMPLATE_LABELS: Record<CollageTemplate, string> = {
-  mosaic: '모자이크',
-  minimal: '미니멀',
-  matte: '매트 갤러리',
+  editorial: '에디토리얼',
+  magazine: '매거진',
+  studio: '스튜디오',
+};
+/** 탭 아래 한 줄 설명 — 이름만으로는 뭐가 다른지 모른다 */
+const TEMPLATE_HINTS: Record<CollageTemplate, string> = {
+  editorial: '순서대로 조밀하게',
+  magazine: '한 장이 주인공',
+  studio: '방향별로 정렬',
 };
 const TEMPLATES: { id: CollageTemplate; label: string }[] = TEMPLATE_ORDER.map((id) => ({
   id,
@@ -69,34 +75,44 @@ function photoSlotsOf(b: BoardData): { key: string; src: string }[] {
   return out;
 }
 
-// 템플릿 탭 미니 스와치 — 글자만으로는 모드 차이가 안 보인다는 피드백(v6.17)
+// 템플릿 탭 미니 스와치 (v10) — 배치뿐 아니라 **타이틀 카드 위치**까지 보여준다.
+// 세 템플릿의 차이가 배치·타이틀·킷 세 축에 걸쳐 있는데 배치만 그리면 또 "비슷해 보인다"가 된다
 function TemplateSwatch({ id }: { id: CollageTemplate }) {
-  if (id === 'matte') {
-    // 넓은 매트 여백 안에 작은 사진 하나 — 이 템플릿의 정체성(액자)을 그대로 축약
+  const cell = 'bg-[#C4C2BE] rounded-[1px]';
+  const bar = 'absolute bg-[#1C1B19] rounded-[1px]';
+  if (id === 'magazine') {
+    // 왼쪽 히어로 한 장 + 나머지, 타이틀은 좌상단
     return (
-      <span className="inline-block w-4 h-4 rounded-[3px] bg-white border border-[#C4C2BE] relative flex-shrink-0" aria-hidden="true">
-        <span className="absolute left-[4.5px] top-[4.5px] right-[4.5px] bottom-[4.5px] bg-[#8A8784] rounded-[1px]" />
+      <span className="relative inline-block w-4 h-4 flex-shrink-0" aria-hidden="true">
+        <span className={`absolute left-0 top-0 w-[7px] h-4 ${cell}`} />
+        <span className={`absolute left-[8px] top-0 w-[8px] h-[7px] ${cell}`} />
+        <span className={`absolute left-[8px] top-[8px] w-[8px] h-[8px] ${cell}`} />
+        <span className={`${bar} left-0 top-0 w-[6px] h-[2px]`} />
       </span>
     );
   }
-  if (id === 'mosaic') {
+  if (id === 'studio') {
+    // 위는 넓고 낮은 밴드(가로), 아래는 좁고 긴 밴드(세로). 타이틀은 상단 가운데
     return (
-      <span className="inline-grid w-4 h-4 grid-cols-2 gap-[2px] flex-shrink-0" aria-hidden="true">
-        <span className="rounded-[2px] bg-[#C4C2BE]" />
-        <span className="rounded-[2px] bg-[#8A8784]" />
-        <span className="rounded-[2px] bg-[#8A8784]" />
-        <span className="rounded-[2px] bg-[#C4C2BE]" />
+      <span className="relative inline-block w-4 h-4 flex-shrink-0" aria-hidden="true">
+        <span className={`absolute left-0 top-0 w-[7.5px] h-[6px] ${cell}`} />
+        <span className={`absolute left-[8.5px] top-0 w-[7.5px] h-[6px] ${cell}`} />
+        <span className={`absolute left-0 top-[7px] w-[4.5px] h-[9px] ${cell}`} />
+        <span className={`absolute left-[5.5px] top-[7px] w-[4.5px] h-[9px] ${cell}`} />
+        <span className={`absolute left-[11px] top-[7px] w-[5px] h-[9px] ${cell}`} />
+        <span className={`${bar} left-[4px] top-[2px] w-[8px] h-[1.5px]`} />
       </span>
     );
   }
+  // 에디토리얼 — 행마다 높이가 다른 조밀 배치, 타이틀은 정중앙
   return (
-    <span className="inline-block w-4 h-4 rounded-[3px] bg-white border border-[#C4C2BE] relative flex-shrink-0" aria-hidden="true">
-      <span className="absolute left-[3px] top-[3px] right-[3px] bottom-[3px] grid grid-cols-2 gap-[1.5px]">
-        <span className="bg-[#E5E3DF] rounded-[1px]" />
-        <span className="bg-[#E5E3DF] rounded-[1px]" />
-        <span className="bg-[#E5E3DF] rounded-[1px]" />
-        <span className="bg-[#E5E3DF] rounded-[1px]" />
-      </span>
+    <span className="relative inline-block w-4 h-4 flex-shrink-0" aria-hidden="true">
+      <span className={`absolute left-0 top-0 w-[6px] h-[7px] ${cell}`} />
+      <span className={`absolute left-[7px] top-0 w-[4px] h-[7px] ${cell}`} />
+      <span className={`absolute left-[12px] top-0 w-[4px] h-[7px] ${cell}`} />
+      <span className={`absolute left-0 top-[8px] w-[9px] h-[8px] ${cell}`} />
+      <span className={`absolute left-[10px] top-[8px] w-[6px] h-[8px] ${cell}`} />
+      <span className={`${bar} left-[3px] top-[7px] w-[10px] h-[2px]`} />
     </span>
   );
 }
@@ -108,7 +124,7 @@ export default function CollagePage() {
   const [sheetView, setSheetView] = useState<CollageView | null>(null);
   const [confirmReseed, setConfirmReseed] = useState<{ view: CollageView; preset: WallpaperPreset } | null>(null);
   const [showCoach, setShowCoach] = useState(false);
-  const [showMatteNotice, setShowMatteNotice] = useState(false);
+  const [showV10Notice, setShowV10Notice] = useState(false);
   // 사진 치수 백필 진행 중 플래그 (v10) — board가 바뀔 때마다 재진입해 중복 측정하는 걸 막는다
   const backfillRef = useRef(false);
   // 사진 교체 인라인 패널 대상 — key는 `${sectionId}-${slotIdx}` (v8.1)
@@ -131,8 +147,8 @@ export default function CollagePage() {
       return;
     }
     setBoard(b);
-    // 숲 → 매트 갤러리 전환 안내 (v9.0) — loadBoard가 마이그레이션하며 세운 플래그를 1회 소비
-    if (consumeMatteNotice()) setShowMatteNotice(true);
+    // 콜라주 v10 전환 안내 — loadBoard가 마이그레이션하며 세운 플래그를 1회 소비
+    if (consumeCollageNotice()) setShowV10Notice(true);
     try {
       if (!localStorage.getItem(COACH_KEY)) setShowCoach(true);
     } catch {
@@ -182,9 +198,13 @@ export default function CollagePage() {
     measureMany(missing, 6, { deadlineMs: 6000 })
       .then((map) => {
         backfillRef.current = false;
-        if (!alive || !map.size) return;
+        if (!map.size) return;
+        // ⚠️ 저장은 alive와 무관하게 한다. React StrictMode는 이 이펙트를 두 번 실행하는데,
+        //    첫 번째의 cleanup이 alive=false로 만들고 두 번째는 backfillRef 가드에 걸려 조기 반환한다.
+        //    저장까지 alive로 막으면 **측정은 끝났는데 아무것도 저장되지 않는다**(실측: photoDims 0건).
+        //    측정 결과는 순수한 파생 캐시라 언마운트 뒤에 써도 안전하다.
         savePhotoDims(Object.fromEntries(map));
-        setBoard(loadBoard());
+        if (alive) setBoard(loadBoard());
       })
       .catch(() => {
         backfillRef.current = false;
@@ -430,29 +450,37 @@ export default function CollagePage() {
 
   const templateSelector = (
     // mb-2 (v8.7) — 바로 아래 기기 사이즈 칩과 한 덩어리로 읽히게(템플릿 → 기기 순서)
-    <div className="flex gap-1.5 mb-2 lg:mb-1.5 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="콜라주 템플릿">
+    <div className="flex gap-1.5 mb-2 lg:mb-1 bg-[#F5F5F3] rounded-xl p-1" role="radiogroup" aria-label="콜라주 템플릿">
       {TEMPLATES.map((t) => (
         <button
           key={t.id}
           role="radio"
           aria-checked={template === t.id}
           onClick={() => selectTemplate(t.id)}
-          className={`flex-1 py-2 rounded-lg text-caption font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-1.5 rounded-lg transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col items-center justify-center ${
             template === t.id ? 'bg-white text-[#1C1B19] shadow-sm' : 'text-[#6E6962]'
           }`}
         >
-          <TemplateSwatch id={t.id} />
-          {t.label}
+          <span className="flex items-center gap-1.5 text-caption font-semibold">
+            <TemplateSwatch id={t.id} />
+            {t.label}
+          </span>
+          {/* 이름만으로는 뭐가 다른지 모른다 — 한 줄 설명이 곧 선택 기준이다 (v10).
+              lg에서는 숨긴다: PC 세로 예산이 빠듯해 이 한 줄이 무스크롤 계약을 깨뜨린다.
+              PC는 스와치가 배치·타이틀 위치를 그림으로 이미 보여준다
+              aria-hidden: 라디오 이름은 라벨 하나로 읽혀야 스크린리더가 장황해지지 않는다 */}
+          <span className="lg:hidden text-micro text-[#8A8784] leading-none mt-0.5" aria-hidden="true">
+            {TEMPLATE_HINTS[t.id]}
+          </span>
         </button>
       ))}
     </div>
   );
 
-  // 배경색 팔레트 (v9.0) — 세 템플릿 공통. 매트 갤러리 전용이 아닌 이유:
-  // 배경색은 템플릿의 특권이 아니라 세 템플릿을 가로지르는 축이고, 매트의 정체성은
-  // "색을 고를 수 있다"가 아니라 넓은 매트 여백·균일 배치·무크롭이다.
+  // 배경색 팔레트 (v9.0) — 세 템플릿 공통.
+  // 배경색은 어느 한 템플릿의 특권이 아니라 세 템플릿을 가로지르는 축이다.
   const bgPalette = (
-    <div className="mb-2 lg:mb-1.5">
+    <div className="mb-2 lg:mb-1">
       <div
         className="flex gap-2 overflow-x-auto scroll-soft lg:flex-wrap lg:overflow-visible pb-0.5"
         role="radiogroup"
@@ -539,7 +567,9 @@ export default function CollagePage() {
             보드가 떠 있으면 빈 공간이 실수처럼 보인다. 구 레일이 쓰던 자리이기도 하다 */}
         {preset && (
           <div
-            className={`mt-1 lg:mt-0 lg:bg-[#F5F5F3] lg:rounded-3xl lg:px-2 lg:py-3 ${
+            // lg:py-3 → lg:py-1 (v10): 타이틀 밴드 예약이 사라져 보드 자체가 커진 만큼
+            // 크롬을 깎아야 PC 무스크롤(V87-4d)과 보드 폭 ≥1000(V87-4e)이 함께 산다
+            className={`mt-1 lg:mt-0 lg:bg-[#F5F5F3] lg:rounded-3xl lg:px-2 lg:py-1 ${
               v === 'phone' ? 'lg:max-w-md lg:mx-auto' : ''
             }`}
           >
@@ -662,7 +692,7 @@ export default function CollagePage() {
           v8.7: flex-wrap 한 컨테이너로 통합 — 좁은 화면은 [← 제목 … 도토리] / [뷰 탭] 2줄,
           lg+는 한 줄([← 제목 … 뷰 탭 도토리])로 접어 세로 한 행(≈52px)을 보드에 돌려준다.
           ⚠️ 계정 버튼·뷰 탭은 각각 DOM에 하나뿐이어야 한다(중복 렌더는 aria 이름 strict 매칭을 깬다) */}
-      <div className="px-6 pt-4 pb-3 lg:pt-2 lg:pb-1.5 flex flex-wrap items-center gap-x-3 gap-y-3 lg:flex-nowrap lg:gap-x-6">
+      <div className="px-6 pt-4 pb-3 lg:pt-1 lg:pb-1 flex flex-wrap items-center gap-x-3 gap-y-3 lg:flex-nowrap lg:gap-x-6">
         <button
           onClick={() => router.push('/dashboard')}
           aria-label="대시보드로 돌아가기"
@@ -706,12 +736,15 @@ export default function CollagePage() {
           ⚠️ Tailwind JIT 스캔을 위해 완성된 클래스 리터럴을 삼항으로 고를 것(문자열 조립 금지).
           ⚠️ 이 수치의 진실 원천은 verify-v87r1 V87-4d(무스크롤)·V87-4e(보드 폭 ≥1000px)다.
           두 계약은 서로 반대 방향이라 눈대중으로 정하면 안 되고 테스트로 역산해야 한다.
-          v9.0에서 배경색 팔레트 행과 보드 위 가이드 알약이 추가돼 PC 예산을 17→20rem으로 올렸다
-          (900px 뷰포트에서 보드 폭 약 1031px — V87-4e의 1000px 하한을 그대로 만족). */}
+          v9.0에서 배경색 팔레트 행과 보드 위 가이드 알약이 추가돼 PC 예산을 17→20rem으로 올렸다.
+          v10에서 타이틀 밴드 예약(상단 15~22%)이 사라져 보드가 커진 만큼 세로가 모자라졌다.
+          예산을 크게 올리면 보드 폭이 1000 밑으로 떨어지므로, 먼저 크롬을 깎고(헤더·CTA·저장 바·
+          패널 패딩 lg 축소, 가이드 알약을 보드 안으로) 남은 7px만 예산으로 흡수했다 —
+          20 → 20.5rem, 900px 뷰포트에서 보드 폭 약 1017px로 V87-4e를 여전히 만족한다. */}
       <div
         className={`px-4 md:px-6 animate-fadeIn ${
           view === 'desktop'
-            ? '[--board-reserve:13rem] lg:[--board-reserve:20rem]'
+            ? '[--board-reserve:13rem] lg:[--board-reserve:20.5rem]'
             : '[--board-reserve:13rem] lg:[--board-reserve:10rem]'
         }`}
       >
@@ -731,14 +764,14 @@ export default function CollagePage() {
           </div>
         ) : (
           <>
-            {/* 숲 → 매트 갤러리 전환 안내 (v9.0) — 템플릿이 조용히 바뀌면 "망가졌다"로 읽힌다 */}
-            {showMatteNotice && (
+            {/* v10 전환 안내 — 배치가 조용히 바뀌면 "내 보드가 망가졌다"로 읽힌다 */}
+            {showV10Notice && (
               <div className="mb-2 rounded-xl bg-[#FEF9C3] px-4 py-3 animate-fadeIn">
                 <p className="text-caption text-[#92400E]">
-                  &lsquo;숲&rsquo;은 &lsquo;매트 갤러리&rsquo;로 바뀌었어. 사진은 그대로고 배치만 새로 깔렸어 — 배경색도 골라봐.
+                  보드 만드는 방식이 새로워졌어 — 이제 세로 사진도 안 잘려. 배치는 새로 깔렸고, 사진이랑 색은 그대로야.
                 </p>
                 <button
-                  onClick={() => setShowMatteNotice(false)}
+                  onClick={() => setShowV10Notice(false)}
                   className="text-caption font-semibold text-[#92400E] underline mt-1.5 active:opacity-70"
                 >
                   알겠어
@@ -758,10 +791,12 @@ export default function CollagePage() {
             그대로 있고 /diary가 읽기의 단일 홈이다. 여기 남는 건 완성 CTA뿐 */}
         {collageImages.length > 0 && !board.futureDayStory && completedCount >= FIRST_BOARD_THRESHOLD ? (
           // 첫 보드 조기 개방 (v7.8) — 임계값부터 최종 스토리로 초대. 6/6 라벨은 불변(v75r1 계약)
-          <div className="mt-8 space-y-2">
+          <div className="mt-8 lg:mt-3 space-y-2 lg:space-y-1">
+            {/* lg에서 세로를 아낀다 (v10) — PC 무스크롤(V87-4d)과 보드 폭 ≥1000px(V87-4e)이
+                반대 방향이라, 예산을 늘리는 대신 크롬을 깎아야 둘 다 산다. 임계는 테스트로 역산했다 */}
             <button
               onClick={() => router.push('/finish')}
-              className="w-full bg-[#1C1B19] text-white py-4 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity"
+              className="w-full bg-[#1C1B19] text-white py-4 lg:py-2 rounded-2xl text-heading font-semibold active:opacity-80 transition-opacity"
             >
               {completedCount === 6 ? '내 비전보드 완성하기 🐿️' : '첫 보드 완성하기 🐿️'}
             </button>
@@ -777,7 +812,7 @@ export default function CollagePage() {
       {/* 저장 — sticky 하단 바 (v8.2): 보드가 화면보다 길어도 저장 버튼은 항상 손닿는 곳에.
           z-40 — 시트(z-50)·코치마크(z-[60]) 아래 */}
       {collageImages.length > 0 && forView(view).preset && (
-        <div className="sticky bottom-0 z-40 px-4 md:px-6 pt-6 pb-4 lg:pt-3 lg:pb-2 bg-gradient-to-t from-[#FAF9F7] via-[#FAF9F7]/85 to-[#FAF9F7]/0 pointer-events-none">
+        <div className="sticky bottom-0 z-40 px-4 md:px-6 pt-6 pb-4 lg:pt-2 lg:pb-1.5 bg-gradient-to-t from-[#FAF9F7] via-[#FAF9F7]/85 to-[#FAF9F7]/0 pointer-events-none">
           <button
             onClick={() => handleOpenSheet(view)}
             className="pointer-events-auto block w-full max-w-md mx-auto py-3.5 lg:py-3 rounded-2xl text-heading font-semibold text-white bg-[#1C1B19] active:opacity-80 transition-opacity shadow-[0_8px_24px_rgba(28,27,25,0.22)]"

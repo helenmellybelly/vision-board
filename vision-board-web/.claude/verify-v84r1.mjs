@@ -158,7 +158,7 @@ const collageSeed = () =>
   const calls = await page.evaluate(() => window.__pickerCalls);
   const bytes = await page.evaluate(() => window.__savedBytes);
   ok('V84-4a 픽커 호출 1회', Array.isArray(calls) && calls.length === 1, `calls=${JSON.stringify(calls)}`);
-  ok('V84-4b 제안 파일명 계약', /^vision-board-\d{4}-(mosaic|minimal|matte)-phone\.png$/.test(calls?.[0] ?? ''), calls?.[0]);
+  ok('V84-4b 제안 파일명 계약', /^vision-board-\d{4}-(editorial|magazine|studio)-phone\.png$/.test(calls?.[0] ?? ''), calls?.[0]);
   ok('V84-4c 파일 기록 > 0바이트', bytes > 0, `bytes=${bytes}`);
   ok('V84-4d 저장 실패 문구 부재', (await page.getByText('저장에 실패했어').count()) === 0);
   await ctx.close();

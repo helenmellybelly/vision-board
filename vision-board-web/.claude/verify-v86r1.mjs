@@ -45,7 +45,7 @@ const board = (overrides = {}, extra = {}) => ({
   startedAt: 1700000000000,
   lastVisitAt: 1700000100000,
   targetDate: '2029-07-07',
-  schemaVersion: 4,
+  schemaVersion: 5,
   loginNudgeSeen: true,
   storyPromptVersion: 3,
   ...extra,

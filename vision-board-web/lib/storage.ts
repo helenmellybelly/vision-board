@@ -1,11 +1,11 @@
-import { BoardData, CollageLayout, CollageTemplate, SectionData, SectionId, ChatMessage, ExtractedSlots } from './types';
+import { BoardData, CollageLayout, CollageSticker, CollageTemplate, SectionData, SectionId, ChatMessage, ExtractedSlots } from './types';
 import { STORY_PROMPT_VERSION } from './milestone';
 import { bumpBoardRev } from './syncStamp';
 
 const STORAGE_KEY = 'vision-board-data';
 
 // 현재 스키마 버전 — 비멱등 마이그레이션(migrateBoard)의 게이트. 올릴 때 migrateBoard에 체인 추가
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 function createEmptySection(id: SectionId): SectionData {
   return {
@@ -57,72 +57,46 @@ export function loadBoard(): BoardData {
   }
 }
 
-/** 숲 → 매트 갤러리 전환 안내 1회 노출 플래그 (v9.0). BoardData 스키마와 분리 — 안내는 기기 사정이다 */
-export const MATTE_NOTICE_KEY = 'vb-collage-matte-notice';
+/** 콜라주 v10 전환 안내 1회 노출 플래그. BoardData 스키마와 분리 — 안내는 기기 사정이다 */
+export const COLLAGE_V10_NOTICE_KEY = 'vb-collage-v10-notice';
 
 /** 안내를 띄워야 하는가. 읽는 즉시 소비(1회 노출) */
-export function consumeMatteNotice(): boolean {
+export function consumeCollageNotice(): boolean {
   try {
-    if (localStorage.getItem(MATTE_NOTICE_KEY) !== '1') return false;
-    localStorage.removeItem(MATTE_NOTICE_KEY);
+    if (localStorage.getItem(COLLAGE_V10_NOTICE_KEY) !== '1') return false;
+    localStorage.removeItem(COLLAGE_V10_NOTICE_KEY);
     return true;
   } catch {
     return false;
   }
 }
 
+/**
+ * 구 템플릿 → v10 템플릿 명시 매핑.
+ *
+ * ⚠️ normalizeTemplate의 기본값 폴백에 기대면 안 된다 — 셋이 전부 editorial로 뭉개져
+ * "무엇이 무엇으로 바뀌었다"는 안내가 거짓말이 된다. 성격이 가장 가까운 쪽으로 보낸다:
+ *   mosaic(히어로 레시피를 쓰던 쪽) → 매거진
+ *   minimal(히어로 없이 평평하던 쪽) → 에디토리얼
+ *   matte(균일 배치) → 스튜디오
+ */
+const TEMPLATE_MAP_V10: Record<string, CollageTemplate> = {
+  mosaic: 'magazine',
+  minimal: 'editorial',
+  matte: 'studio',
+  polaroid: 'editorial',
+  custom: 'editorial',
+};
+
 // 콜라주 필드 가드형 마이그레이션 (멱등) — schemaVersion 체인과 달리 매 로드 시 돌아도 안전하다.
-// v6.15: '내 배치'(custom) 탭 제거 / v9.0: 숲(polaroid) 템플릿 삭제 → 매트 갤러리(matte)
 function migrateCollage(board: BoardData): void {
   let dirty = false;
 
-  // v9.0 — 숲 삭제. 배치 좌표는 회전·지터 산포라 매트 갤러리의 균일 그리드로 재해석할 수 없다.
-  // 버리면 seedLayout이 새로 깔아준다(사진 자체는 섹션 데이터에 있어 무손실).
-  const LEGACY_TEMPLATES = ['polaroid', 'custom'];
-  if (LEGACY_TEMPLATES.includes(board.collageTemplate as string)) {
-    board.collageTemplate = 'matte';
-    dirty = true;
-    // 왜 템플릿이 바뀌었는지 1회 알린다 — 조용히 바뀌면 "내 보드가 망가졌다"로 읽힌다
-    try {
-      localStorage.setItem(MATTE_NOTICE_KEY, '1');
-    } catch {
-      // 프라이빗 모드 등 저장 불가 — 안내를 못 띄울 뿐 마이그레이션은 계속
-    }
-  }
   if (board.collageLayout) {
     board.collageLayout = undefined;
     dirty = true;
   }
-  const dropLegacy = (bucket: Partial<Record<CollageTemplate, CollageLayout>> | undefined) => {
-    if (!bucket) return;
-    for (const t of LEGACY_TEMPLATES) {
-      if (t in bucket) {
-        delete (bucket as Record<string, unknown>)[t];
-        dirty = true;
-      }
-    }
-  };
-  dropLegacy(board.collageLayouts);
-  dropLegacy(board.collageDeviceLayouts?.phone);
-  dropLegacy(board.collageDeviceLayouts?.desktop);
-
-  // v6.19: 기존 배치에 제작 당시 비율 스탬프 — v6.18 배치는 보드 4:5 / 폰 1170×2532 / PC 1920×1080 고정이었다
-  const stampAspect = (
-    layouts: Partial<Record<CollageTemplate, CollageLayout>> | undefined,
-    aspect: number
-  ) => {
-    if (!layouts) return;
-    for (const layout of Object.values(layouts)) {
-      if (layout && layout.aspect === undefined) {
-        layout.aspect = aspect;
-        dirty = true;
-      }
-    }
-  };
-  stampAspect(board.collageLayouts, 4 / 5);
-  stampAspect(board.collageDeviceLayouts?.phone, 1170 / 2532);
-  stampAspect(board.collageDeviceLayouts?.desktop, 1920 / 1080);
-  // 기기 배치가 있는데 사이즈 미선택이면 v6.18 캐논 캔버스와 비율이 일치하는 기본 프리셋으로 — 기존 배치 무손실
+  // 기기 배치가 있는데 사이즈 미선택이면 v6.18 캐논 캔버스와 비율이 일치하는 기본 프리셋으로
   if (!board.collageDevicePresets && board.collageDeviceLayouts) {
     board.collageDevicePresets = { phone: 'phone', desktop: 'pc-fhd' };
     dirty = true;
@@ -187,6 +161,48 @@ function migrateBoard(board: BoardData): void {
         if (slots?.[5]?.text) legacy.feeling = slots[5].text;
         if (Object.keys(legacy).length > 0) sec.extractedSlots = legacy;
       }
+    }
+  }
+  if (from < 5) {
+    // v5: 콜라주 v10 — 템플릿 3종 교체 + 격자 배치 폐기.
+    //
+    // 왜 비멱등인가(= 가드형 migrateCollage가 아니라 여기 있어야 하는가): 안내를 정확히 1회만
+    // 띄워야 하고, "배치를 폐기했다"는 사실을 한 번만 기록할 수 있어야 한다.
+    //
+    // 왜 배치를 살릴 수 없나: v9 좌표는 "정사각 셀 + 상단 titleBottom 예약"을 이미 구워 넣었다.
+    // 새 엔진은 사진마다 다른 비율의 박스를 쓰고 상단 예약이 없어 재해석이 불가능하다.
+    // 사진·배경색·기기 사이즈는 그대로 보존된다(사진은 섹션 데이터에 있어 무손실).
+    const legacy = board.collageTemplate as string | undefined;
+    // 이미 v10 이름이면 그대로 둔다 — 매핑 테이블에 없다고 editorial로 뭉개면
+    // (마이그레이션이 어떤 이유로든 다시 돌 때) 사용자가 고른 템플릿을 조용히 빼앗는다
+    const V10_NAMES = ['editorial', 'magazine', 'studio'];
+    board.collageTemplate =
+      (legacy && V10_NAMES.includes(legacy)
+        ? (legacy as CollageTemplate)
+        : legacy
+          ? TEMPLATE_MAP_V10[legacy]
+          : undefined) ?? 'editorial';
+    // 스티커 '문구'만은 구제한다 — 사용자가 직접 쓴 것이라 배치보다 아깝다.
+    // 첫 시드에서 placeNewItems가 빈 자리에 다시 얹는다
+    const salvage: CollageSticker[] = [];
+    const collect = (l: CollageLayout | undefined) => {
+      for (const s of Object.values(l?.stickers ?? {})) {
+        if (s?.text && !s.id.startsWith('kit:') && !salvage.some((x) => x.text === s.text)) {
+          salvage.push(s);
+        }
+      }
+    };
+    for (const b of [board.collageLayouts, board.collageDeviceLayouts?.phone, board.collageDeviceLayouts?.desktop]) {
+      for (const l of Object.values(b ?? {})) collect(l as CollageLayout | undefined);
+    }
+    board.collageStickerSalvage = salvage.length ? salvage : undefined;
+    board.collageLayouts = undefined;
+    board.collageDeviceLayouts = undefined;
+    // collageDevicePresets(사용자가 고른 기기 비율)는 살린다 — 재설계와 무관하다
+    try {
+      localStorage.setItem(COLLAGE_V10_NOTICE_KEY, '1');
+    } catch {
+      // 프라이빗 모드 등 저장 불가 — 안내를 못 띄울 뿐 마이그레이션은 계속
     }
   }
   board.schemaVersion = SCHEMA_VERSION;
