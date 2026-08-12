@@ -64,6 +64,9 @@ const VOLATILE_BOARD_KEYS = [
   'storyUpgradeNudgeDismissed',
   'pathChoice',
   'schemaVersion',
+  // 사진 실측 치수 (v10) — 기기마다 백필 진행도가 달라 내용 동등성 판정에서 빼야 한다.
+  // 넣지 않으면 "한쪽 기기만 측정 완료"가 독립 변경으로 잡혀 병합 시트가 헛되이 뜬다
+  'photoDims',
 ];
 const VOLATILE_SECTION_KEYS = ['photoFirstNudgeDismissed'];
 

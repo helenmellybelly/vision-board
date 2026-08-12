@@ -1,6 +1,7 @@
 import { SECTIONS } from './questions';
 import { loadBoard, saveUploadedImage } from './storage';
 import { importRemoteImage } from './imagePick';
+import { fingerprint } from './imageDims';
 import { SectionId } from './types';
 
 // 이미 보드에 들어있는 원격 사진의 복구 (v8.7).
@@ -64,7 +65,18 @@ export async function normalizeSlots(
     if (!imported.ok) {
       if (imported.reason === 'gone') result.expired.push(s.key);
       else result.failed.push(s.key);
-    } else if (!saveUploadedImage(s.sectionId, s.slot, imported.dataUrl)) {
+    } else if (
+      !saveUploadedImage(
+        s.sectionId,
+        s.slot,
+        imported.dataUrl,
+        undefined,
+        // 수입하며 이미 잰 치수를 그대로 기록 (v10) — 못 쟀으면 /collage 백필이 채운다
+        imported.dims
+          ? { ...imported.dims, f: fingerprint(imported.dataUrl) }
+          : null
+      )
+    ) {
       // 저장 공간이 찼다 — 여기서 멈춘다. 지금까지 바꾼 것은 그대로 유효하다
       result.quotaHit = true;
       onProgress?.(i + 1, slots.length);

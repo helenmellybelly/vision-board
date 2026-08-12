@@ -167,6 +167,11 @@ export interface BoardData {
   /** @deprecated v7.0-r3 — targetDate로 통일. 마이그레이션 v3가 흡수, R6에서 제거 예정 */
   boardYear?: string;
   collageTemplate?: CollageTemplate;     // 한눈에 보기 템플릿 선택값
+  /** 사진 실측 치수 (v10) — 키는 슬롯 키 `${sectionId}-${slotIdx}`, f는 슬롯 내용 지문.
+   *  실체는 lib/imageDims.ts. 구조적 타입으로만 두어 types.ts의 무의존을 지킨다.
+   *  ⚠️ 기기 파생 캐시다(어느 기기에서든 다시 측정할 수 있다) — lib/merge.ts의
+   *  VOLATILE_BOARD_KEYS에 포함해 이것만 다른 두 보드가 '충돌'로 잡히지 않게 한다 */
+  photoDims?: Record<string, { w: number; h: number; f: string }>;
   /** 보드 배경색 (v9.0) — 세 템플릿 공통·전역 1개. lib/collageTokens BG_PALETTE의 hex.
    *  ⚠️ 템플릿별/타깃별로 두지 않는 게 계약 — 템플릿을 바꿔도 고른 색이 따라와야 "내 보드 색"이 성립한다.
    *  없으면(기존 사용자) TEMPLATE_DEFAULT_BG를 써서 지금 화면 그대로 보인다(무회귀) */

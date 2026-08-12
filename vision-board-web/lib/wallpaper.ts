@@ -5,6 +5,8 @@ import { CollageLayout, CollageSticker, CollageTemplate } from './types';
 import { CollageItem, STICKER_FONT_RATIO, themeFor } from './collageTemplates';
 import { MATTE_MAT_RATIO, PHOTO_RADIUS_RATIO, titleTokensFor } from './collageTokens';
 import { bustedSrc, displaySrc } from './imageSrc';
+// 사진 18장이 한꺼번에 몰려 서로를 타임아웃시키는 걸 막는다 (v8.7 → v10에서 순수 모듈로 추출)
+import { mapLimit } from './mapLimit';
 
 // ── 기기별 사이즈 프리셋 — 편집 진입 전에 고르고, 편집·내보내기 모두 이 비율을 쓴다 (v6.19) ──
 export interface WallpaperPreset {
@@ -78,19 +80,6 @@ export async function loadOne(src: string, opts?: { bust?: number }): Promise<HT
   // 프록시 허용 밖(레거시 임의 호스트) — 직행이 유일한 길이고, 실패하면 그대로 실패다.
   // lib/imageNormalize.ts의 복구 동선이 이런 사진을 내 저장소로 수입해 이 분기를 없앤다.
   return tryLoad(src, true, 8_000);
-}
-
-/** 동시 실행 상한이 있는 map — 사진 18장이 한꺼번에 몰려 서로를 타임아웃시키는 걸 막는다 (v8.7) */
-async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
-  let cursor = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    for (;;) {
-      const i = cursor++;
-      if (i >= items.length) return;
-      await fn(items[i]);
-    }
-  });
-  await Promise.all(workers);
 }
 
 async function ensureFonts() {

@@ -15,10 +15,12 @@ import {
   saveGeneratedImages,
   saveImageDescriptions,
   saveImageKeywords,
+  savePhotoDims,
   saveUploadedImage,
   saveUploadedImages,
 } from '@/lib/storage';
-import { compressImage } from '@/lib/imageUtils';
+import { compressImageWithDims } from '@/lib/imageUtils';
+import { fingerprint } from '@/lib/imageDims';
 import { displaySrc } from '@/lib/imageSrc';
 import { removeSlotImage } from '@/lib/photoSlots';
 import { getPickedPhotoIds, importRemoteImage, IMPORT_NOTICES } from '@/lib/imagePick';
@@ -212,19 +214,26 @@ export default function ScenesPage() {
       }
       try {
         const raw = await readFileAsDataUrl(file);
-        const compressed = await compressImage(raw, 0.60, 800);
+        const compressed = await compressImageWithDims(raw, 0.60, 800);
         // compressImage는 성공 시 JPEG로 재인코딩한다. 결과가 JPEG가 아니면 브라우저가
         // 디코드 못 한 포맷(HEIC 등) — 저장하면 깨진 썸네일이 되므로 막는다 (v7.4 감사 M5)
-        if (!compressed.startsWith('data:image/jpeg')) {
+        if (!compressed.dataUrl.startsWith('data:image/jpeg')) {
           badFormat = true;
           continue;
         }
         // quota 초과 시 저장 실패를 사용자에게 알리고 슬롯에 반영하지 않는다 (v7.4 감사 H1)
-        if (!saveUploadedImage(sectionId, slot, compressed)) {
+        // 5번째 인자(v10): 압축하며 함께 잰 실측 치수 — 콜라주가 가로/세로를 알아야 안 잘린다
+        if (
+          !saveUploadedImage(sectionId, slot, compressed.dataUrl, undefined, {
+            w: compressed.w,
+            h: compressed.h,
+            f: fingerprint(compressed.dataUrl),
+          })
+        ) {
           quotaFull = true;
           break;
         }
-        local[slot] = compressed;
+        local[slot] = compressed.dataUrl;
       } catch {
         badFormat = true;
       }
@@ -266,7 +275,13 @@ export default function ScenesPage() {
       setSlotNotice(IMPORT_NOTICES[imported.reason]);
       return;
     }
-    const ok = saveUploadedImage(sectionId, emptyIdx, imported.dataUrl);
+    const ok = saveUploadedImage(
+      sectionId,
+      emptyIdx,
+      imported.dataUrl,
+      undefined,
+      imported.dims ? { ...imported.dims, f: fingerprint(imported.dataUrl) } : null
+    );
     if (!ok) {
       setSlotNotice('저장 공간이 부족해 담지 못했어. 사진을 지우고 다시 시도해줘.');
       return;
@@ -309,8 +324,16 @@ export default function ScenesPage() {
     const validAiUrls = generatedImages.filter((img) => img.url).map((img) => img.url);
     let saveOk = true;
     if (validAiUrls.length > 0) {
-      const compressed = await Promise.all(validAiUrls.map((url) => compressImage(url)));
-      saveOk = saveGeneratedImages(sectionId, compressed) && saveOk;
+      const compressed = await Promise.all(validAiUrls.map((url) => compressImageWithDims(url)));
+      saveOk = saveGeneratedImages(sectionId, compressed.map((c) => c.dataUrl)) && saveOk;
+      // AI 생성 사진의 실측 치수 (v10) — 콜라주 키는 저장 인덱스와 같은 `${sectionId}-${i}`
+      const dims: Record<string, { w: number; h: number; f: string }> = {};
+      compressed.forEach((c, i) => {
+        if (c.w > 0 && c.h > 0) {
+          dims[`${sectionId}-${i}`] = { w: c.w, h: c.h, f: fingerprint(c.dataUrl) };
+        }
+      });
+      savePhotoDims(dims);
     }
     saveOk = saveUploadedImages(sectionId, uploadedImages) && saveOk;
     // quota 초과로 저장이 실패하면 '완성' 처리를 막고 사용자에게 알린다 (v7.4 감사 H1)

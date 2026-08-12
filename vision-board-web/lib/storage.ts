@@ -376,6 +376,21 @@ export function saveCollageBgColor(hex: string): void {
   saveBoard(board);
 }
 
+/** 사진 실측 치수 병합 저장 (v10) — 키는 콜라주 슬롯 키 `${sectionId}-${slotIdx}`.
+ *  백필·기회적 되먹임이 여러 번 호출하므로 **병합**이지 교체가 아니다.
+ *  실패(quota)해도 조용히 넘어간다 — 치수는 없으면 비율 1로 폴백하는 선택적 정보다.
+ *
+ *  ⚠️ skipRevBump 필수 (v8.6 계약) — 이건 /collage 마운트에서 자동으로 도는 휘발 저장이다.
+ *  rev를 올리면 병합 판정의 "로컬 무변경 + 서버 앞섬 → useServer" 분기가 영영 성립하지 않아,
+ *  다른 기기에서 이어하기를 눌러도 서버 보드를 못 받아온다. photoDims는 어느 기기에서든
+ *  다시 측정할 수 있는 파생 캐시라 동기화 대상이 아니다(lib/merge.ts VOLATILE_BOARD_KEYS와 락스텝). */
+export function savePhotoDims(entries: Record<string, { w: number; h: number; f: string }>): boolean {
+  if (!Object.keys(entries).length) return true;
+  const board = loadBoard();
+  board.photoDims = { ...board.photoDims, ...entries };
+  return trySaveBoard(board, { skipRevBump: true });
+}
+
 export function saveCollageLayout(template: CollageTemplate, layout: CollageLayout): void {
   const board = loadBoard();
   board.collageLayouts = { ...board.collageLayouts, [template]: layout };
@@ -460,11 +475,14 @@ export function saveImageKeywords(sectionId: SectionId, keywords: string[]): voi
 // 성공 여부 반환 — false면 저장 공간 부족 (호출부에서 무시해도 무방)
 // sourceId(v7.1-r2): 원격 픽(큐레이션·Unsplash)의 photo.id. 비우기(null)·수동 업로드가
 // 자동으로 출처를 소거하도록 항상 함께 기록한다 — 별도 클린업 경로 없음
+// dims(v10): 저장하는 이미지의 실측 치수. 여기서 함께 기록해야 콜라주가 가로/세로를 안다.
+// 슬롯을 비우면(dataUrl null) 치수도 함께 지운다 — 남겨두면 지문만 어긋난 쓰레기가 쌓인다.
 export function saveUploadedImage(
   sectionId: SectionId,
   index: number,
   dataUrl: string | null,
-  sourceId?: string | null
+  sourceId?: string | null,
+  dims?: { w: number; h: number; f: string } | null
 ): boolean {
   const board = loadBoard();
   const sec = board.sections[sectionId];
@@ -476,6 +494,12 @@ export function saveUploadedImage(
   while (sources.length < 5) sources.push(null);
   sources[index] = dataUrl ? sourceId ?? null : null;
   sec.uploadedImageSources = sources;
+  const dimKey = `${sectionId}-${index}`;
+  if (!dataUrl) {
+    if (board.photoDims?.[dimKey]) delete board.photoDims[dimKey];
+  } else if (dims && dims.w > 0 && dims.h > 0) {
+    board.photoDims = { ...board.photoDims, [dimKey]: dims };
+  }
   return trySaveBoard(board);
 }
 

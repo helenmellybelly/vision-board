@@ -13,6 +13,7 @@ import {
   saveCollageBgColor,
   saveCollageDevicePreset,
   saveCollageTemplate,
+  savePhotoDims,
   saveUploadedImage,
 } from '@/lib/storage';
 import { getTargetDate, getTargetYear, withYear } from '@/lib/targetDate';
@@ -20,11 +21,11 @@ import { SECTIONS, getSection } from '@/lib/questions';
 import { BoardData, CollageLayout, CollageTemplate, SectionId } from '@/lib/types';
 import { ASPECT, CollageItem, DEFAULT_TEMPLATE, TEMPLATE_ORDER, aspectsEqual, resolveLayout } from '@/lib/collageTemplates';
 import { BG_PALETTE, normalizeBgColor, titleInkFor } from '@/lib/collageTokens';
-import { displaySrc } from '@/lib/imageSrc';
 import { WALLPAPER_PRESETS, WallpaperPreset } from '@/lib/wallpaper';
 import { IMPORT_NOTICES, importRemoteImage } from '@/lib/imagePick';
 import { findRemoteSlots, normalizeSlots } from '@/lib/imageNormalize';
-import { compressImage } from '@/lib/imageUtils';
+import { compressImageWithDims } from '@/lib/imageUtils';
+import { fingerprint, measureMany, ratioOf } from '@/lib/imageDims';
 import { removeSlotImage } from '@/lib/photoSlots';
 import { FIRST_BOARD_THRESHOLD } from '@/lib/milestone';
 import WallpaperSheet from '@/components/WallpaperSheet';
@@ -54,17 +55,18 @@ const TEMPLATES: { id: CollageTemplate; label: string }[] = TEMPLATE_ORDER.map((
 // 첫 진입 코치마크 1회 노출 여부 — BoardData 스키마와 분리해 별도 키로 관리
 const COACH_KEY = 'vb-collage-coach-v1';
 
-/** 보드의 첫 사진 src — 히어로 후보라 이 장의 비율만 측정하면 된다 (v9.0) */
-function firstPhotoSrc(b: BoardData | null): string | null {
-  if (!b) return null;
+/** 보드의 모든 사진 슬롯 — 키 계약은 CollageBoard·parsePhotoKey와 같은 `${sectionId}-${slot}`.
+ *  keyedItems와 **같은 순서·같은 우선순위**(업로드 > AI 생성)로 뽑아야 치수가 어긋나지 않는다 (v10) */
+function photoSlotsOf(b: BoardData): { key: string; src: string }[] {
+  const out: { key: string; src: string }[] = [];
   for (const section of SECTIONS) {
     const sec = b.sections[section.id];
     for (let i = 0; i < 3; i++) {
-      const src = sec.uploadedImages?.[i] || sec.generatedImages?.[i];
-      if (src) return src;
+      const src = sec.uploadedImages?.[i] || sec.generatedImages?.[i] || '';
+      if (src) out.push({ key: `${section.id}-${i}`, src });
     }
   }
-  return null;
+  return out;
 }
 
 // 템플릿 탭 미니 스와치 — 글자만으로는 모드 차이가 안 보인다는 피드백(v6.17)
@@ -107,8 +109,8 @@ export default function CollagePage() {
   const [confirmReseed, setConfirmReseed] = useState<{ view: CollageView; preset: WallpaperPreset } | null>(null);
   const [showCoach, setShowCoach] = useState(false);
   const [showMatteNotice, setShowMatteNotice] = useState(false);
-  // 첫 사진의 실제 가로세로비 — 세로 사진이 정사각 히어로에 들어가 잘리는 걸 막는다 (v9.0)
-  const [heroRatio, setHeroRatio] = useState<number | null>(null);
+  // 사진 치수 백필 진행 중 플래그 (v10) — board가 바뀔 때마다 재진입해 중복 측정하는 걸 막는다
+  const backfillRef = useRef(false);
   // 사진 교체 인라인 패널 대상 — key는 `${sectionId}-${slotIdx}` (v8.1)
   const [replaceTarget, setReplaceTarget] = useState<{ view: CollageView; key: string } | null>(null);
   const [replaceUrl, setReplaceUrl] = useState('');
@@ -162,21 +164,35 @@ export default function CollagePage() {
     setBoard(loadBoard());
   }, [board]);
 
-  // 첫 사진 비율 측정 (v9.0) — DOM <img>와 같은 URL(displaySrc)이라 HTTP 캐시를 공유해
-  // 실질 추가 요청이 없다. ⚠️ 캐시 키를 갈라놓지 않으려면 crossOrigin을 설정하지 말 것 (v8.7 교훈)
-  const heroSrc = firstPhotoSrc(board);
+  // 사진 실측 치수 백필 (v10) — v9.0의 "첫 사진 1장만 측정"을 전 사진으로 확장했다.
+  // 치수를 모르면 배치 엔진이 세로 사진을 가로 자리에 우겨넣는다(그게 v9의 근본 문제였다).
+  //
+  // 업로드·붙여넣기 경로는 이제 저장 시점에 치수를 함께 기록하므로, 여기 걸리는 건
+  // **v10 이전에 담은 사진**뿐이다. 한 번 재고 나면 다시 돌지 않는다.
+  // ⚠️ measureMany는 displaySrc()를 거치고 crossOrigin을 설정하지 않는다 —
+  //    DOM <img>와 캐시를 공유해야 실질 네트워크가 0이다 (v8.7 교훈, lib/imageDims.ts 헤더).
   useEffect(() => {
-    if (!heroSrc) return;
+    if (!board || backfillRef.current) return;
+    const missing = photoSlotsOf(board).filter(
+      (s) => ratioOf(board.photoDims, s.key, s.src) === undefined
+    );
+    if (!missing.length) return;
+    backfillRef.current = true;
     let alive = true;
-    const im = new Image();
-    im.onload = () => {
-      if (alive && im.naturalWidth > 0 && im.naturalHeight > 0) {
-        setHeroRatio(im.naturalWidth / im.naturalHeight);
-      }
+    measureMany(missing, 6, { deadlineMs: 6000 })
+      .then((map) => {
+        backfillRef.current = false;
+        if (!alive || !map.size) return;
+        savePhotoDims(Object.fromEntries(map));
+        setBoard(loadBoard());
+      })
+      .catch(() => {
+        backfillRef.current = false;
+      });
+    return () => {
+      alive = false;
     };
-    im.src = displaySrc(heroSrc);
-    return () => { alive = false; };
-  }, [heroSrc]);
+  }, [board]);
 
   function dismissCoach() {
     // iOS 프라이빗 모드에서 setItem이 throw해도 오버레이는 닫히게 (v7.4 감사 M6)
@@ -209,17 +225,13 @@ export default function CollagePage() {
   });
 
   // 보드 배치용 — 섹션·슬롯 키와 함께 (사진 교체·삭제에도 배치가 안정적).
-  // heroRatio: 첫 사진의 실제 가로세로비 (v9.0) — 세로 사진을 2×2 정사각 히어로에 넣으면
-  // 위아래가 잘려 글자가 안 보인다(오너 v8.7 팟캐스트 사례). chooseGrid가 이 값만 참조하므로
-  // 첫 장만 측정한다. 측정 전이거나 실패하면 undefined → 1로 간주해 결정성을 지킨다
-  const keyedItems: CollageItem[] = SECTIONS.flatMap((section) => {
-    const sec = board.sections[section.id];
-    const uploaded = sec.uploadedImages ?? [];
-    const generated = sec.generatedImages ?? [];
-    return [0, 1, 2]
-      .map((i) => ({ key: `${section.id}-${i}`, src: uploaded[i] || generated[i] || '' }))
-      .filter((item) => !!item.src);
-  }).map((item, i) => (i === 0 && heroRatio ? { ...item, ratio: heroRatio } : item));
+  // ratio (v10): 각 사진의 실측 가로세로비. v9.0은 첫 장만 알았고 그것도 히어로 on/off 판정에만
+  // 썼다 — 그래서 2번째부터는 가로인지 세로인지 몰라 정사각 셀에 우겨넣고 잘라냈다.
+  // 아직 못 잰 사진은 undefined → 배치 엔진이 1로 간주해 결정성을 지킨다(백필이 곧 채운다).
+  const keyedItems: CollageItem[] = photoSlotsOf(board).map((s) => {
+    const ratio = ratioOf(board!.photoDims, s.key, s.src);
+    return ratio === undefined ? s : { ...s, ratio };
+  });
 
   // 중앙 연도의 소스는 targetDate(일기 날짜)로 통일 (v7.0-r3) — 연도 편집도 targetDate의 연도만 교체
   const boardYear = getTargetYear(board);
@@ -342,11 +354,21 @@ export default function CollagePage() {
 
   // 같은 key(슬롯)에 새 사진 저장 — 배치·z·회전은 key 기준이라 그대로 유지된다.
   // 업로드 슬롯이 우선 소스라 여기 쓰면 생성 이미지가 있던 슬롯도 이 사진으로 교체된다
-  function applyReplacement(src: string): boolean {
+  function applyReplacement(src: string, dims?: { w: number; h: number }): boolean {
     if (!replaceTarget) return false;
     const parsed = parsePhotoKey(replaceTarget.key);
     if (!parsed) return false;
-    if (!saveUploadedImage(parsed.sectionId, parsed.slot, src)) {
+    if (
+      !saveUploadedImage(
+        parsed.sectionId,
+        parsed.slot,
+        src,
+        undefined,
+        // 교체하며 잰 치수 (v10). 못 쟀으면 null로 지워 백필이 새로 재게 한다 —
+        // 옛 사진의 치수가 남아 있으면 새 사진을 엉뚱한 비율로 배치한다
+        dims ? { ...dims, f: fingerprint(src) } : null
+      )
+    ) {
       setReplaceNotice('저장 공간이 부족해 담지 못했어. 사진을 지우고 다시 시도해줘.');
       return false;
     }
@@ -369,7 +391,7 @@ export default function CollagePage() {
       setReplaceNotice(IMPORT_NOTICES[imported.reason]);
       return;
     }
-    applyReplacement(imported.dataUrl);
+    applyReplacement(imported.dataUrl, imported.dims);
   }
 
   async function handleReplaceFile(file: File) {
@@ -381,13 +403,16 @@ export default function CollagePage() {
         reader.onerror = () => reject(new Error('read-failed'));
         reader.readAsDataURL(file);
       });
-      const compressed = await compressImage(raw, 0.60, 800);
+      const compressed = await compressImageWithDims(raw, 0.60, 800);
       // 브라우저가 디코드 못 한 포맷(HEIC 등)은 JPEG 재인코딩에 실패한다 — 깨진 썸네일 방지 (v7.4 감사 M5)
-      if (!compressed.startsWith('data:image/jpeg')) {
+      if (!compressed.dataUrl.startsWith('data:image/jpeg')) {
         setReplaceNotice('이 사진은 형식을 지원하지 않아. JPG나 PNG로 다시 올려줄래?');
         return;
       }
-      applyReplacement(compressed);
+      applyReplacement(
+        compressed.dataUrl,
+        compressed.w > 0 ? { w: compressed.w, h: compressed.h } : undefined
+      );
     } catch {
       setReplaceNotice('사진을 읽지 못했어. 다른 사진으로 다시 시도해줘.');
     }

@@ -1,6 +1,7 @@
 import { SectionId } from './types';
 import { loadBoard, saveUploadedImage } from './storage';
-import { compressImage } from './imageUtils';
+import { compressImageWithDims } from './imageUtils';
+import { fingerprint } from './imageDims';
 
 // 원격 사진(큐레이션·Unsplash 검색) 담기 공용 파이프라인 (v7.0-r4)
 // proxy → base64 → 압축(0.55/640, 업로드보다 강하게 — localStorage 용량 보호) → 저장 → 다운로드 핑
@@ -19,7 +20,11 @@ export type PickResult = 'saved' | 'full' | 'quota' | 'error';
 // CORS·핫링크 차단·서명 만료에 인질이 되고, 배경화면 저장에서 조용히 빠진다.
 
 export type ImportFailReason = 'pin' | 'not-image' | 'unreachable' | 'gone' | 'too-large' | 'decode';
-export type ImportResult = { ok: true; dataUrl: string } | { ok: false; reason: ImportFailReason };
+/** dims(v10): 압축하며 함께 잰 원본 실측 치수. data: pass-through 경로는 재압축을 안 하므로
+ *  치수를 모른 채 통과한다(undefined) — /collage 백필이 나중에 채운다. */
+export type ImportResult =
+  | { ok: true; dataUrl: string; dims?: { w: number; h: number } }
+  | { ok: false; reason: ImportFailReason };
 
 // ⚠️ 선두 문구는 검증 계약이다 — '그건 핀 페이지 주소야'(v81r1 C-1a·v81r2 V-7b·smoke S5),
 // '이 주소에선 사진을 못 불러왔어'(v81r1 C-2a). 바꾸려면 해당 스위트도 함께.
@@ -34,14 +39,18 @@ export const IMPORT_NOTICES: Record<ImportFailReason, string> = {
 
 /** blob → data URL → 압축. pickRemotePhoto와 importRemoteImage의 공용 심장.
  *  ⚠️ compressImage에 https URL을 직접 넘기면 안 된다 — onerror가 원본을 그대로 resolve해 조용히 통과한다. */
-async function blobToCompressedDataUrl(blob: Blob, quality: number, maxWidth: number): Promise<string> {
+async function blobToCompressedDataUrl(
+  blob: Blob,
+  quality: number,
+  maxWidth: number
+): Promise<{ dataUrl: string; w: number; h: number }> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error('read failed'));
     reader.readAsDataURL(blob);
   });
-  return compressImage(dataUrl, quality, maxWidth);
+  return compressImageWithDims(dataUrl, quality, maxWidth);
 }
 
 /** 외부 이미지 URL → 내 저장소에 넣을 data URL. 모든 붙여넣기 지점의 유일한 관문. */
@@ -74,8 +83,12 @@ export async function importRemoteImage(
       opts?.maxWidth ?? 720
     );
     // compressImage는 실패해도 입력을 그대로 돌려준다 — 결과가 이미지 data URL인지 직접 확인
-    if (!compressed.startsWith('data:image/')) return { ok: false, reason: 'decode' };
-    return { ok: true, dataUrl: compressed };
+    if (!compressed.dataUrl.startsWith('data:image/')) return { ok: false, reason: 'decode' };
+    return {
+      ok: true,
+      dataUrl: compressed.dataUrl,
+      dims: compressed.w > 0 ? { w: compressed.w, h: compressed.h } : undefined,
+    };
   } catch {
     return { ok: false, reason: 'decode' };
   }
@@ -105,7 +118,15 @@ export async function pickRemotePhoto(
     const res = await fetch(`/api/image/proxy?url=${encodeURIComponent(photo.regular)}`);
     if (!res.ok) throw new Error('proxy failed');
     const compressed = await blobToCompressedDataUrl(await res.blob(), 0.55, 640);
-    const ok = saveUploadedImage(sectionId, slot, compressed, photo.id);
+    const ok = saveUploadedImage(
+      sectionId,
+      slot,
+      compressed.dataUrl,
+      photo.id,
+      compressed.w > 0
+        ? { w: compressed.w, h: compressed.h, f: fingerprint(compressed.dataUrl) }
+        : null
+    );
     if (!ok) return 'quota';
     // Unsplash 다운로드 핑 — 실패해도 무시 (가이드라인 준수)
     if (photo.downloadLocation) {
