@@ -120,6 +120,120 @@ export function titleTokensFor(template: GridTemplate, aspect: number): TitleTok
   return { padTop, labelRatio, yearRatio, labelY: padTop + 0.01, yearY: padTop + 0.07 };
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// v10 — 저스티파이드 배치 토큰
+// 아래 블록은 lib/collageJustify.ts(순수 솔버)에 주입되는 수치다. v9 그리드 토큰과
+// 당분간 공존하며, 렌더러 전환(c6)에서 위쪽 그리드 토큰이 삭제된다.
+// ══════════════════════════════════════════════════════════════════════
+
+/** v10 템플릿. lib/types.ts의 CollageTemplate과 같은 유니온이지만 의존을 만들지 않는다 */
+export type CollageTemplateId = 'editorial' | 'magazine' | 'studio';
+
+/** 방향 분류 임계 — 이 값이 스튜디오 밴드의 경계를 정한다.
+ *  4:5(0.8)는 세로로, 5:4(1.25)는 가로로 읽혀야 한다 */
+export const PORTRAIT_R = 0.85;
+export const LANDSCAPE_R = 1.18;
+
+/** 갭 / minDim. 에디토리얼은 헤어라인(사진이 서로 맞닿는 느낌) */
+const JUSTIFY_GAP: Record<CollageTemplateId, number> = {
+  editorial: 0.008,
+  magazine: 0.013,
+  studio: 0.016,
+};
+
+/** 외곽 여백 / minDim. 에디토리얼 0 = 풀블리드(화면 끝까지 사진).
+ *  ⚠️ 여백으로 템플릿을 구분하지 않는다 — 여백은 곧 사진 면적 손실이고, 그게 매트 갤러리가
+ *  거부당한 이유다. 여기 값은 "성격"이 아니라 세 템플릿의 최소한의 숨 쉴 틈이다 */
+const JUSTIFY_MARGIN: Record<CollageTemplateId, number> = {
+  editorial: 0,
+  magazine: 0.028,
+  studio: 0.022,
+};
+
+/** 세로로 긴 화면(폰)에서 상단에 비워두는 몫 — 잠금화면 시계·위젯이 사진을 덮는 자리.
+ *  v9의 titleBottom 0.22를 대체한다. 타이틀은 이제 사진 위에 얹히므로 이 예약은 시계 전용이다 */
+export const SAFE_TOP = 0.1;
+
+/** 사진이 놓이는 영역 (0..1 정규화). 타이틀은 이 위에 오버레이되므로 세로 예약이 없다 —
+ *  v9 대비 사진 면적이 15~22% 늘어나는 지점이 바로 여기다 */
+export function regionFor(template: CollageTemplateId, aspect: number): { x: number; y: number; w: number; h: number } {
+  const nx = minDimNormX(aspect);
+  const ny = minDimNormY(aspect);
+  const mx = JUSTIFY_MARGIN[template] * nx;
+  const my = JUSTIFY_MARGIN[template] * ny;
+  const top = my + (hasTopReserve(aspect) ? SAFE_TOP : 0);
+  return { x: mx, y: top, w: 1 - mx * 2, h: 1 - top - my };
+}
+
+/** 솔버에 넣을 수치 일체 (lib/collageJustify.ts JustifyOpts와 같은 모양).
+ *
+ *  ⚠️ 이 상수들은 눈대중이 아니다 — scripts/tune-justify.mjs가
+ *  3 aspect × 3 template × n=1..18 × 5 비율믹스를 쓸어 역산했고,
+ *  scripts/verify-justify.js가 그 결과를 계약으로 고정한다.
+ *  손으로 조이면 "채움률 47%짜리 성긴 배치가 남는" v9의 실패를 되풀이한다. */
+export function justifyOptsFor(
+  template: CollageTemplateId,
+  aspect: number,
+  n: number,
+  cropTol: number,
+) {
+  const nx = minDimNormX(aspect);
+  const ny = minDimNormY(aspect);
+  const g = JUSTIFY_GAP[template];
+  // 사진이 적을 때는 가드레일을 풀어준다 — 1~3장은 크게 보이는 게 맞다 (v9 GUARDRAIL_MIN_ITEMS 계승)
+  const loose = n < 4;
+  return {
+    aspect,
+    gx: g * nx,
+    gy: g * ny,
+    cropTol,
+    minRowH: loose ? 0 : 0.05,
+    // ⚠️ 상한을 조이지 말 것. 저스티파이드에서 "높은 행"은 곧 "그 행에 사진이 적다"이고,
+    //    그건 정당한 디자인 선택이다. v9의 photoBounds.maxH(0.55)를 그대로 가져왔다가
+    //    세로 보드에서 후보가 전멸해 앰비언트가 63% 발동했다(tune 실측). 막아야 할 것은
+    //    큰 사진이 아니라 **실오라기 같은 행**이므로, 실효 가드레일은 minRowH 쪽이다.
+    maxRowH: loose ? 1 : 0.85,
+    // ⚠️ 여기를 조이면 채움률이 무너진다. 0.085로 뒀더니 16:9에서 7~8장짜리 행이 전부 탈락해
+    //    3행(크롭 29%)밖에 안 남았고, 결국 앰비언트로 떨어져 n=18 채움률이 0.64였다(tune 실측).
+    //    0.05 = FHD에서 96px — 18장 보드의 세로 사진 폭으로 타당하다.
+    minPhotoW: loose ? 0 : 0.05,
+    maxPhotoW: 1,
+    // 후보(=달성 가능한 자연높이 합)의 밀도가 곧 적합도다. 넉넉히 열어야 s가 1에 가까워진다.
+    // 더 키워도 나아지지 않는다 — 4.0×/상한 12로 스윕했더니 실사용 채움률이 오히려 한 칸
+    // 나빠졌다(tune 실측). 행이 지나치게 길어지면 사진이 잘아져 다른 가드레일에 걸린다
+    maxPerRow: Math.max(2, Math.min(9, Math.round(2.6 * aspect + 3))),
+    // 스튜디오는 밴드 대비(세로 밴드는 높고 가로 밴드는 낮게)를 **장려**한다 → 음수.
+    // 에디토리얼은 고른 리듬을 선호 → 양수. 매거진은 행마다 장수가 섞여야 매거진처럼 보인다
+    wVar: template === 'studio' ? -0.6 : template === 'editorial' ? 0.3 : 0,
+    wVariety: template === 'magazine' ? -0.15 : 0,
+    nodeBudget: 200_000,
+  };
+}
+
+/** 탐색 상한. 솔버는 이 안에서 **최소 크롭 해**를 찾는다 —
+ *  이산 tier를 여러 개 두는 것보다 정확하고 한 번만 돌면 된다 */
+export const CROP_MAX = 0.35;
+
+/** 이 이하면 "사실상 안 잘림"으로 보고 그대로 채택한다.
+ *  v9는 세로 사진을 정사각 셀에 넣으며 40~55%를 잘라냈다 — 6%는 그에 비하면 없는 것과 같다 */
+export const CROP_TOL = 0.06;
+
+/** 크롭 c로 보드를 100% 채우기  vs  크롭 0으로 f만 채우고 나머지를 블러로 두기.
+ *  "보이는 사진 내용량"으로 직접 비교한다: 전자는 (1 − c), 후자는 f.
+ *  이 상수는 그 비교에 얹는 여유 — 같은 값이면 **자르지 않는 쪽**을 택한다(오너의 1순위 요구). */
+export const CROP_VS_AMBIENT_BIAS = 0.02;
+
+/** 히어로(매거진) 기하 한계. 이 밖이면 히어로를 포기하고 평평한 저스티파이드로 간다 */
+export const HERO_TOP_MIN_R = 1.1;
+export const HERO_MAX_H = 0.62;
+export const HERO_MIN_W = 0.24;
+export const HERO_MAX_W = 0.6;
+
+/** 앰비언트 배경 — 블러 반경 / minDim, 배경 위에 덮는 스크림 알파, 엣지 블리드 확대율 */
+export const BLUR_RATIO = 0.06;
+export const AMBIENT_SCRIM_ALPHA = 0.28;
+export const AMBIENT_SCALE = 1.12;
+
 // ── 사진 박스 가드레일 ──
 // "빈틈 없이 꽉"(목적함수=채움률)과 "왁! 하지 않게"는 서로 반대 방향이다.
 // 하나는 목적함수, 다른 하나는 제약으로 분리해야 둘 다 만족한다.
