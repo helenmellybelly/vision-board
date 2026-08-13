@@ -7,7 +7,6 @@ import {
   CollageItem,
   MAX_W,
   MIN_W,
-  STICKER_FONT_RATIO,
   STICKER_MIN_W,
   bumpPhoto,
   newStickerLayoutItem,
@@ -15,25 +14,15 @@ import {
   seedLayout,
   stickerKey,
   swapPhotos,
-  themeFor,
-  titleFor,
 } from '@/lib/collageTemplates';
 import {
-  AMBIENT_SCALE,
-  AMBIENT_SCRIM_ALPHA,
-  TITLE_LABEL_TEXT,
   TITLE_SCALE_MAX,
   TITLE_SCALE_MIN,
   TitleAnchor,
   nearestAnchor,
-  titleLayoutFor,
 } from '@/lib/collageTokens';
 import { bumpRowInSpec } from '@/lib/collageJustify';
-import { ICONS, isIconId } from '@/lib/stickerArt';
-import { SECTIONS } from '@/lib/questions';
-import { SectionId } from '@/lib/types';
-import { displaySrc } from '@/lib/imageSrc';
-import EditableYear from './EditableYear';
+import BoardCanvasDom, { TITLE_KEY, boardVisuals, titleConfigOf } from './BoardCanvasDom';
 import StickerSheet from './StickerSheet';
 import TitleSheet from './TitleSheet';
 import Lightbox from '@/components/Lightbox';
@@ -66,24 +55,7 @@ interface Props {
   onTitleGlobalChange?: (patch: NonNullable<BoardData['collageTitle']>) => void;
 }
 
-// 사진 키 `${sectionId}-${slotIdx}` → 출처 섹션 배지 (v8.1 편집 모드)
-function sectionBadge(key: string): { color: string; label: string } | null {
-  const m = /^(\d+)-\d+$/.exec(key);
-  if (!m) return null;
-  const section = SECTIONS.find((s) => s.id === (Number(m[1]) as SectionId));
-  if (!section) return null;
-  return { color: section.color, label: section.shortTitle ?? section.title.split(' — ')[0] };
-}
-
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-
-/** #RRGGBB + 알파 → rgba(). canvas(withAlpha)와 같은 규칙이라 타이틀 카드 색이 락스텝이다 */
-function rgba(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
-  const n = parseInt(full, 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
-}
 
 const TAP_THRESHOLD = 8; // px — 이 이하 움직임은 탭으로 간주 (스크롤/드래그와 구분)
 const ROT_MAX = 30; // 회전 클램프(±도) — 경계 수학이 감당 가능한 범위
@@ -99,12 +71,6 @@ function rotatedPad(it: CollageLayoutItem, hNorm: number, aspect: number): { pad
   const bh = it.w * sin * aspect + hNorm * cos;
   return { padX: Math.max(0, (bw - it.w) / 2), padY: Math.max(0, (bh - hNorm) / 2) };
 }
-
-/** 타이틀 카드의 드래그 키 — items 맵에 넣지 않는다 (v11).
- *  넣으면 photoAtPoint·withStickers·resolveLayout·applySpec·wallpaper z정렬·bringToFront·
- *  isLayoutBroken 일곱 곳이 전부 이걸 사진으로 오인한다. 하나만 놓쳐도 조용한 데이터 손상이라,
- *  드래그 엔진에 분기 하나를 두는 쪽이 훨씬 안전하다. 좌표는 layout.title.pos에 산다 */
-const TITLE_KEY = 'title';
 
 interface DragState {
   key: string;
@@ -126,87 +92,6 @@ interface DragState {
   previewSpan?: [number, number];
 }
 
-// 문구 스티커 1개 — 글자 크기는 cqi(보드 폭 %)로, canvas 렌더(lib/wallpaper.ts)와 같은 비율식
-function StickerView({
-  sticker,
-  it,
-  dark,
-}: {
-  sticker: CollageSticker;
-  it: CollageLayoutItem;
-  dark: boolean;
-}) {
-  const fontSize = `${it.w * 100 * STICKER_FONT_RATIO[sticker.style]}cqi`;
-  // 라인 아이콘 (v10) — canvas(lib/wallpaper.ts)와 **같은 단위 path**를 그린다.
-  // viewBox="0 0 1 1" + preserveAspectRatio="none"이면 박스가 곧 좌표계라 두 렌더러가 자동 일치한다
-  if (sticker.kind === 'icon' && isIconId(sticker.icon)) {
-    const def = ICONS[sticker.icon];
-    const ink = sticker.color ?? (dark ? '#FFFFFF' : '#1C1B19');
-    // ⚠️ 선 굵기는 **아이콘 박스의 짧은 변** 기준이어야 canvas(lineWidth = stroke × min(w,h))와 맞는다.
-    //    `${def.stroke * 100}cqi`로 두면 보드 폭 기준이 되어 화살표 선이 50px로 뭉개진다
-    //    (실측: 검은 덩어리). cqi는 보드 폭의 %이므로 박스 짧은 변을 cqi로 환산해 곱한다.
-    const shortSideCqi = it.w * 100 * Math.min(1, 1 / def.ratio);
-    return (
-      <svg
-        viewBox="0 0 1 1"
-        preserveAspectRatio="none"
-        className="w-full block"
-        style={{ aspectRatio: String(def.ratio), overflow: 'visible' }}
-        aria-hidden="true"
-      >
-        <path
-          d={def.d}
-          fill={def.mode === 'fill' ? ink : 'none'}
-          fillOpacity={def.mode === 'fill' ? def.alpha ?? 1 : undefined}
-          stroke={def.mode === 'stroke' ? ink : 'none'}
-          // 비등방 viewBox에서도 선 굵기가 찌그러지지 않게 — canvas의 lineWidth 처리와 같은 의도
-          vectorEffect="non-scaling-stroke"
-          strokeWidth={def.mode === 'stroke' ? `${def.stroke * shortSideCqi}cqi` : undefined}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-  if (sticker.style === 'chip') {
-    return (
-      <div
-        className="w-full bg-white rounded-md shadow-md px-[0.7em] py-[0.5em] text-center font-semibold text-[#1C1B19] leading-snug"
-        style={{ fontSize }}
-      >
-        {sticker.text}
-      </div>
-    );
-  }
-  if (sticker.style === 'outline') {
-    return (
-      <div
-        className="w-full text-center font-extrabold uppercase leading-tight tracking-wide"
-        style={{
-          fontSize,
-          color: '#FFFFFF',
-          WebkitTextStroke: '0.07em #1C1B19',
-          paintOrder: 'stroke fill',
-        }}
-      >
-        {sticker.text}
-      </div>
-    );
-  }
-  return (
-    <div
-      className="font-script w-full text-center font-bold leading-tight"
-      style={{
-        fontSize,
-        color: sticker.color ?? (dark ? '#FFFFFF' : '#1C1B19'),
-        textShadow: dark ? '0 2px 12px rgba(0,0,0,0.4)' : 'none',
-      }}
-    >
-      {sticker.text}
-    </div>
-  );
-}
-
 // 통합 콜라주 보드 — 모든 템플릿이 같은 드래그 엔진을 쓴다.
 // 보드를 탭하면 편집 모드: 사진·스티커 이동/리사이즈, + 문구 추가, 변경 즉시 저장.
 export default function CollageBoard({
@@ -214,8 +99,6 @@ export default function CollageBoard({
   view, active, onEditingChange, onRequestReplace, onRequestRemove, onBrokenChange, bgColor,
   titleGlobal, onTitleGlobalChange,
 }: Props) {
-  // 배경색은 세 템플릿 공통 — canvas(lib/wallpaper.ts)도 같은 themeFor()를 호출한다 (v9.0 락스텝)
-  const theme = themeFor(template, bgColor);
   const boardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const tapRef = useRef<{ x: number; y: number } | null>(null);
@@ -688,10 +571,12 @@ export default function CollageBoard({
   // 타이틀 카드 (v10~v11) — 상단 예약 밴드를 없애고 사진 위에 얹는다.
   // 기하·색은 collageTokens.titleLayoutFor가 단일 소스라 canvas(drawTitleCard)와 자동 락스텝이다.
   // ⚠️ 여기서 좌표를 계산하지 말 것 — 표시 리스트(titleLayout.lines)를 그리기만 한다
-  const baseTitleCfg = titleFor(template, live.title, titleGlobal);
+  const baseTitleCfg = titleConfigOf(template, live, titleGlobal);
   const titleCfg =
     titleScaleDraft !== null ? { ...baseTitleCfg, scale: titleScaleDraft } : baseTitleCfg;
-  const titleLayout = titleLayoutFor(titleCfg, aspect, theme.bg);
+  // 배경색은 세 템플릿 공통 — canvas(lib/wallpaper.ts)도 같은 themeFor()를 호출한다 (v9.0 락스텝).
+  // boardVisuals로 묶어 축하 화면(BoardPreview)과 **같은 조립**을 쓴다 (v12)
+  const { theme, titleLayout } = boardVisuals(template, bgColor, titleCfg, aspect);
 
   /** 위치는 기기·템플릿별 — 앵커를 고르면 자유 좌표를 버린다(프리셋으로 되돌아간다) */
   const setTitleAnchor = (anchor: TitleAnchor) =>
@@ -701,286 +586,106 @@ export default function CollageBoard({
     onTitleGlobalChange?.(patch);
   /** '깔끔한 자리로' — 지금 카드 중심에서 가장 가까운 9점으로 스냅 */
   const snapTitleToAnchor = () => setTitleAnchor(nearestAnchor(titleLayout.box));
-  // 앰비언트 배경 (v10) — 크롭 없이 꽉 채울 수 없는 배치에서만 존재한다
-  const ambientSrc = spec?.ambient ? items.find((i) => i.key === spec.ambient)?.src : undefined;
+
+  /** 항목마다 얹는 편집 핸들 — 그림은 BoardCanvasDom이, 조작은 여기가 담당한다 (v12 분리) */
+  const itemOverlay = (key: string, isSticker: boolean) => (
+    <>
+      {editing && (
+        <div
+          onPointerDown={(e) => onItemPointerDown(e, key, 'resize')}
+          className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-white shadow-md border border-[#E5E3DF] flex items-center justify-center cursor-nwse-resize z-10"
+          aria-label="크기 조절"
+          // 스티커에도 같은 핸들이 붙는다 — 검증이 사진 핸들만 집도록 표식을 준다.
+          // 표식이 없어 nth(1)이 킷 스티커 핸들을 잡는 바람에 고스트 프리뷰 검증이 헛돌았다
+          data-resize-for={key}
+        >
+          <span className="text-micro text-[#6E6962] leading-none">⤡</span>
+        </div>
+      )}
+      {/* 회전은 자유 배치·스티커에서만 (v9.0) — 회전 bbox가 이웃 셀을 침범해
+          "빈틈 0"과 논리적으로 모순이고, 핸들 난립도 함께 해소된다 */}
+      {editing && (!spec || isSticker) && (
+        <div
+          onPointerDown={(e) => onItemPointerDown(e, key, 'rotate')}
+          className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-white shadow-md border border-[#E5E3DF] flex items-center justify-center cursor-grab z-10"
+          aria-label="회전"
+          // 스티커는 정렬 모드에서도 회전이 살아 있다 — 검증이 사진 핸들만 세도록 표식을 준다
+          data-rot-for={key}
+        >
+          <span className="text-micro text-[#6E6962] leading-none">↻</span>
+        </div>
+      )}
+      {/* 스왑 대상 하이라이트 — 여기에 놓으면 자리가 바뀐다 */}
+      {swapTarget === key && (
+        <div
+          data-testid="swap-target"
+          aria-hidden="true"
+          className="absolute -inset-1 rounded-xl border-2 border-dashed border-[#6366F1] pointer-events-none z-20"
+        />
+      )}
+      {editing && isSticker && (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => handleStickerDelete(key.slice('sticker:'.length))}
+          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-black/60 text-white text-caption flex items-center justify-center z-10"
+          aria-label="스티커 삭제"
+        >
+          ×
+        </button>
+      )}
+    </>
+  );
 
   return (
     <div>
       {/* 사용법 안내 (v9.0) — 보드 아래 회색 잔글씨는 "안 보인다"는 오너 피드백.
           보드 바로 위 알약으로 올리고 대비·크기를 키워 여백 텍스트가 아니라 UI로 읽히게 했다.
           PC 뷰는 보드가 넓어 하단 중앙이 시야 밖이라 상단 앵커가 특히 유효하다 */}
-      <div
-        ref={boardRef}
-        data-testid="collage-board"
-        data-view={view}
-        className="relative w-full mx-auto rounded-3xl overflow-hidden select-none"
-        style={{
-          aspectRatio: String(aspect),
-          // 배경색은 사용자가 고른 단색 (v9.0) — canvas renderBoardLayout과 같은 themeFor() 결과
-          background: theme.bg,
-          border: theme.dark ? 'none' : '1px solid #E5E3DF',
-          containerType: 'size',
-          // 높이 예산 (v8.2) — 저장 버튼이 sticky 바로 내려가 "보드+버튼 한 화면" 제약이 풀렸다.
-          // 예산은 부모가 --board-reserve로 주입(기본 19rem 폴백), 가로형도 같은 식으로 통일
-          // (16:9는 대부분 min()의 100%로 수렴하고, 낮은 창에서만 높이에 맞춰 줄어든다)
-          maxWidth: `min(100%, calc((100dvh - var(--board-reserve, 19rem)) * ${aspect}))`,
-          touchAction: editing ? 'none' : 'auto',
-        }}
-        onPointerDown={onBoardPointerDown}
-        onPointerUp={editing ? onPointerUp : onBoardPointerUp}
-        onPointerMove={onPointerMove}
-        onPointerCancel={onPointerUp}
+      <BoardCanvasDom
+        testId="collage-board"
+        view={view}
+        template={template}
+        items={items}
+        layout={live}
+        aspect={aspect}
+        theme={theme}
+        titleLayout={titleLayout}
+        year={year}
+        boardRef={boardRef}
+        editing={editing}
+        settling={settling}
+        brokenKeys={brokenKeys}
+        onPhotoError={markBroken}
+        onYearChange={onYearChange}
+        onItemPointerDown={onItemPointerDown}
+        onBoardPointerDown={onBoardPointerDown}
+        onBoardPointerUp={editing ? onPointerUp : onBoardPointerUp}
+        onBoardPointerMove={onPointerMove}
+        onBoardPointerCancel={onPointerUp}
+        itemOverlay={itemOverlay}
+        titleOverlay={
+          /* ⚠️ 핸들은 카드 **안쪽**에 둔다 (v11). 사진 핸들처럼 -bottom-2 -right-2로 띄우면
+             카드 밖 24px가 새로 클릭을 삼켜, 그 자리 사진을 탭할 수 없게 된다 —
+             verify-v10r1 V10-7a가 실제로 여기 걸렸다. 카드가 이미 가리는 영역 안에 두면
+             새로 막히는 곳이 0이다 */
+          editing ? (
+            <div
+              onPointerDown={(e) => onItemPointerDown(e, TITLE_KEY, 'resize')}
+              // ⚠️ 표식이 `data-resize-for`면 안 된다 — 그 속성은 **items 항목**(사진·스티커)의
+              //    핸들이라는 뜻이고, 기존 스위트가 `[data-resize-for]:not([...^="sticker:"])`로
+              //    사진 핸들을 고른다. 타이틀은 items에 없으므로 여기 끼면 `.last()`가 타이틀을
+              //    집어 "사진을 리사이즈했는데 아무 일도 안 일어난다"가 된다(V85-8d가 실제로 그랬다)
+              data-title-resize="1"
+              aria-label="타이틀 크기 조절"
+              // ⚠️ pointer-events는 상속된다 — 카드가 none이므로 핸들이 명시적으로 auto를 켜야 잡힌다
+              className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-white/90 shadow-md border border-[#E5E3DF] flex items-center justify-center text-[#4A463F] text-micro cursor-nwse-resize z-10 pointer-events-auto"
+              style={{ touchAction: 'none' }}
+            >
+              <span className="pointer-events-none">⤡</span>
+            </div>
+          ) : null
+        }
       >
-        {/* 앰비언트 배경 (v10) — 사진 뒤(z-0). 크롭 0으로는 꽉 채울 수 없는 배치에서만 나온다.
-            같은 사진을 크게 흐려 깔아 "빈 공간"이 아니라 의도된 배경으로 읽히게 한다 */}
-        {ambientSrc && (
-          <div
-            data-testid="collage-ambient"
-            className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
-            aria-hidden="true"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={displaySrc(ambientSrc)}
-              alt=""
-              className="w-full h-full object-cover"
-              style={{ filter: 'blur(6cqmin)', transform: `scale(${AMBIENT_SCALE})` }}
-            />
-            <div className="absolute inset-0" style={{ background: theme.bg, opacity: AMBIENT_SCRIM_ALPHA }} />
-          </div>
-        )}
-
-        {/* 사진 + 스티커 — z 순서대로 */}
-        {Object.entries(live.items)
-          .sort(([, a], [, b]) => a.z - b.z)
-          .map(([key, it]) => {
-            const isSticker = key.startsWith('sticker:');
-            const sticker = isSticker ? live.stickers?.[key.slice('sticker:'.length)] : undefined;
-            const src = isSticker ? undefined : items.find((i) => i.key === key)?.src;
-            if (!sticker && !src) return null;
-            return (
-              <div
-                key={key}
-                className={`absolute ${editing ? 'cursor-move' : !isSticker ? 'cursor-zoom-in' : ''} ${settling ? 'collage-item-settle' : ''}`}
-                style={{
-                  left: `${it.x * 100}%`,
-                  top: `${it.y * 100}%`,
-                  width: `${it.w * 100}%`,
-                  height: it.h !== undefined ? `${it.h * 100}%` : undefined,
-                  zIndex: it.z,
-                  transform: it.rot ? `rotate(${it.rot}deg)` : undefined,
-                  // 스티커는 canvas 렌더(drawSticker: top-center 피벗)와 회전 원점을 맞춘다 (v8.0 락스텝)
-                  transformOrigin: isSticker ? 'top center' : 'center',
-                  touchAction: editing ? 'none' : 'auto',
-                }}
-                onPointerDown={(e) => onItemPointerDown(e, key, 'move')}
-              >
-                {sticker ? (
-                  <StickerView sticker={sticker} it={it} dark={theme.dark} />
-                ) : (() => {
-                  const badge = sectionBadge(key);
-                  return (
-                    // v7.6 프레임리스 — 흰 폴라로이드 프레임 제거, 전 템플릿 사진만 + 라운드·그림자.
-                    // 편집 모드의 링은 출처 섹션 색 2px — 어느 칸의 사진인지 보드 위에서 바로 보인다 (v8.1)
-                    <div
-                      className={`w-full h-full rounded-xl overflow-hidden ${
-                        // 어두운 배경에서는 그림자가 안 보인다 — 밝은 링으로 바꿔야 사진 경계가 산다 (v9.0)
-                        theme.dark ? 'shadow-none ring-1 ring-white/15' : 'shadow-sm'
-                      } ${
-                        editing && !badge ? (theme.dark ? 'ring-1 ring-white/40' : 'ring-1 ring-black/15') : ''
-                      }`}
-                      style={editing && badge ? { boxShadow: `0 0 0 2px ${badge.color}` } : undefined}
-                    >
-                      {brokenKeys.has(key) ? (
-                        <div
-                          data-broken-photo={key}
-                          className={`w-full bg-[#EDECEA] flex flex-col items-center justify-center text-center px-[1cqmin] ${it.h !== undefined ? 'h-full' : 'aspect-square'}`}
-                        >
-                          <span aria-hidden="true" style={{ fontSize: '5cqmin' }}>⚠️</span>
-                          <span className="text-[#6E6962] leading-tight" style={{ fontSize: '2.4cqmin' }}>
-                            사진을 못 불러왔어
-                          </span>
-                        </div>
-                      ) : (
-                        <img
-                          // displaySrc (v8.7) — 캔버스 내보내기와 동일한 URL·동일한 CORS 모드.
-                          // 캐시 엔트리를 공유해야 저장 시 재로드가 없고, onError가 내보내기 실패와
-                          // 같은 조건에서 발화해 ⚠️ 타일·저장 경고가 비로소 진실해진다.
-                          src={displaySrc(src ?? '')}
-                          alt=""
-                          // 앰비언트 배경도 <img>라 검증이 사진과 구분할 표식이 필요하다 (v10)
-                          data-photo={key}
-                          draggable={false}
-                          // v10 — 전 템플릿 단일 경로(cover). 액자(object-contain)가 필요 없어졌다:
-                          // 박스가 사진의 원본 비율에 맞춰 만들어지므로 cover가 잘라낼 게 거의 없다
-                          // (crop ≤ 6%가 계약 — scripts/verify-justify.js). canvas drawCover와 락스텝
-                          className={`w-full object-cover pointer-events-none ${
-                            it.h !== undefined ? 'h-full' : 'aspect-square'
-                          }`}
-                          onError={() => markBroken(key)}
-                        />
-                      )}
-                      {/* 출처 섹션 칩 (v8.1) — 편집 모드에서만, 좌상단 */}
-                      {editing && badge && (
-                        <span
-                          className="absolute top-0 left-0 z-10 rounded-tl-xl rounded-br-md px-[1.6cqmin] py-[0.6cqmin] font-semibold text-white pointer-events-none"
-                          style={{ backgroundColor: badge.color, fontSize: '2.2cqmin' }}
-                        >
-                          {badge.label}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-                {editing && (
-                  <div
-                    onPointerDown={(e) => onItemPointerDown(e, key, 'resize')}
-                    className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-white shadow-md border border-[#E5E3DF] flex items-center justify-center cursor-nwse-resize z-10"
-                    aria-label="크기 조절"
-                    // 스티커에도 같은 핸들이 붙는다 — 검증이 사진 핸들만 집도록 표식을 준다.
-                    // 표식이 없어 nth(1)이 킷 스티커 핸들을 잡는 바람에 고스트 프리뷰 검증이 헛돌았다
-                    data-resize-for={key}
-                  >
-                    <span className="text-micro text-[#6E6962] leading-none">⤡</span>
-                  </div>
-                )}
-                {/* 회전은 자유 배치·스티커에서만 (v9.0) — 회전 bbox가 이웃 셀을 침범해
-                    "빈틈 0"과 논리적으로 모순이고, 핸들 난립도 함께 해소된다 */}
-                {editing && (!spec || isSticker) && (
-                  <div
-                    onPointerDown={(e) => onItemPointerDown(e, key, 'rotate')}
-                    className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-white shadow-md border border-[#E5E3DF] flex items-center justify-center cursor-grab z-10"
-                    aria-label="회전"
-                    // 스티커는 정렬 모드에서도 회전이 살아 있다 — 검증이 사진 핸들만 세도록 표식을 준다
-                    data-rot-for={key}
-                  >
-                    <span className="text-micro text-[#6E6962] leading-none">↻</span>
-                  </div>
-                )}
-                {/* 스왑 대상 하이라이트 — 여기에 놓으면 자리가 바뀐다 */}
-                {swapTarget === key && (
-                  <div
-                    data-testid="swap-target"
-                    aria-hidden="true"
-                    className="absolute -inset-1 rounded-xl border-2 border-dashed border-[#6366F1] pointer-events-none z-20"
-                  />
-                )}
-                {editing && isSticker && (
-                  <button
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={() => handleStickerDelete(key.slice('sticker:'.length))}
-                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-black/60 text-white text-caption flex items-center justify-center z-10"
-                    aria-label="스티커 삭제"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            );
-          })}
-
-        {/* 타이틀 카드 (v10~v11) — 사진 **위에** 얹힌다. v9의 상단 예약 밴드를 없앤 만큼 사진이 커졌다.
-            v11부터 좌표·색을 여기서 계산하지 않는다: titleLayoutFor의 표시 리스트를 그리기만 해
-            canvas drawTitleCard와 구조적으로 락스텝이다(v10은 세로 정렬·연도 자간이 실제로 갈라져 있었다).
-            ⚠️ backdrop-filter 금지 — canvas로 재현할 수 없어 화면과 저장 이미지가 갈라진다 */}
-        {titleLayout.visible && (
-          <div
-            data-testid="board-title"
-            // ⚠️ 카드 자체는 항상 pointer-events-none (v11). 편집 모드에서 카드 전체를 잡게 두면
-            //    카드가 덮은 사진을 아예 탭할 수 없다 — V10-7a가 실제로 그렇게 깨졌다.
-            //    잡는 대상은 **보이는 글자**뿐이고, 그건 사용자가 무엇을 집는지 눈에 보인다는 뜻이기도 하다
-            className="absolute z-30 pointer-events-none"
-            style={{
-              left: `${titleLayout.box.x * 100}%`,
-              top: `${titleLayout.box.y * 100}%`,
-              width: `${titleLayout.box.w * 100}%`,
-              height: `${titleLayout.box.h * 100}%`,
-              background:
-                titleLayout.card.alpha > 0 ? rgba(titleLayout.card.color, titleLayout.card.alpha) : 'transparent',
-              border:
-                titleLayout.border.alpha > 0
-                  ? `1px solid ${rgba(titleLayout.border.color, titleLayout.border.alpha)}`
-                  : 'none',
-              borderRadius: `${titleLayout.radius * 100}cqmin`,
-              outline: editing ? '2px dashed rgba(255,255,255,0.65)' : undefined,
-              outlineOffset: editing ? '2px' : undefined,
-            }}
-          >
-            {titleLayout.lines.map((l) => {
-              const style: React.CSSProperties = {
-                position: 'absolute',
-                left: `${((l.x - titleLayout.box.x) / titleLayout.box.w) * 100}%`,
-                top: `${((l.cy - titleLayout.box.y) / titleLayout.box.h) * 100}%`,
-                transform: `translate(${l.align === 'left' ? '0' : l.align === 'right' ? '-100%' : '-50%'}, -50%)`,
-                color: l.color,
-                fontSize: `${l.size * 100}cqmin`,
-                letterSpacing: `${l.tracking}em`,
-                whiteSpace: 'nowrap',
-                textShadow: titleLayout.shadow
-                  ? `0 ${titleLayout.shadow.dy * 100}cqmin ${titleLayout.shadow.blur * 100}cqmin ${titleLayout.shadow.color}`
-                  : undefined,
-              };
-              // 편집 모드에서 **글자만** 잡는다 — 끌면 이동, 움직이지 않고 탭하면 설정 시트.
-              // ⚠️ 핸들러는 인라인 화살표로 둘 것 — 객체에 담아 prop으로 펼치면
-              //    react-hooks/refs가 "렌더 중 ref 접근"으로 잡는다(주변 핸들 코드와 같은 형태 유지)
-              const grabCls = editing ? 'pointer-events-auto cursor-move' : '';
-              const grabStyle = editing ? { ...style, touchAction: 'none' as const } : style;
-              if (l.kind === 'label') {
-                return (
-                  <span
-                    key="label"
-                    className={`font-semibold ${grabCls}`}
-                    style={grabStyle}
-                    onPointerDown={editing ? (e) => onItemPointerDown(e, TITLE_KEY, 'move') : undefined}
-                  >
-                    {TITLE_LABEL_TEXT}
-                  </span>
-                );
-              }
-              // 감상 모드에서만 연도 인라인 편집 — 편집 모드에서는 글자가 드래그 핸들이라
-              // 탭이 시트를 열어야 한다(연도는 시트 안에서 고친다)
-              return editing ? (
-                <span
-                  key="year"
-                  className={`font-script font-bold ${grabCls}`}
-                  style={grabStyle}
-                  onPointerDown={(e) => onItemPointerDown(e, TITLE_KEY, 'move')}
-                >
-                  {year}
-                </span>
-              ) : (
-                <span key="year" className="pointer-events-auto" style={style}>
-                  <EditableYear
-                    year={year}
-                    onYearChange={onYearChange}
-                    className="font-script font-bold"
-                    style={{ color: l.color, fontSize: 'inherit', letterSpacing: 'inherit' }}
-                  />
-                </span>
-              );
-            })}
-            {/* ⚠️ 핸들은 카드 **안쪽**에 둔다 (v11). 사진 핸들처럼 -bottom-2 -right-2로 띄우면
-                카드 밖 24px가 새로 클릭을 삼켜, 그 자리 사진을 탭할 수 없게 된다 —
-                verify-v10r1 V10-7a가 실제로 여기 걸렸다(사진 중심이 핸들에 가려 액션 칩이 안 열림).
-                카드가 이미 가리는 영역 안에 두면 새로 막히는 곳이 0이다 */}
-            {editing && (
-              <div
-                onPointerDown={(e) => onItemPointerDown(e, TITLE_KEY, 'resize')}
-                // ⚠️ 표식이 `data-resize-for`면 안 된다 — 그 속성은 **items 항목**(사진·스티커)의
-                //    핸들이라는 뜻이고, 기존 스위트가 `[data-resize-for]:not([...^="sticker:"])`로
-                //    사진 핸들을 고른다. 타이틀은 items에 없으므로 여기 끼면 `.last()`가 타이틀을
-                //    집어 "사진을 리사이즈했는데 아무 일도 안 일어난다"가 된다(V85-8d가 실제로 그랬다)
-                data-title-resize="1"
-                aria-label="타이틀 크기 조절"
-                // ⚠️ pointer-events는 상속된다 — 카드가 none이므로 핸들이 명시적으로 auto를 켜야 잡힌다
-                className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-white/90 shadow-md border border-[#E5E3DF] flex items-center justify-center text-[#4A463F] text-micro cursor-nwse-resize z-10 pointer-events-auto"
-                style={{ touchAction: 'none' }}
-              >
-                <span className="pointer-events-none">⤡</span>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* 편집 가이드 (v10) — 보드 **안쪽** 하단 플로팅.
             v9는 보드 위 알약이었는데, 타이틀 예약이 사라지며 보드가 커진 만큼 페이지 세로 예산이
@@ -1163,7 +868,7 @@ export default function CollageBoard({
             </button>
           </div>
         )}
-      </div>
+      </BoardCanvasDom>
 
       {sheet.open && (
         <StickerSheet
