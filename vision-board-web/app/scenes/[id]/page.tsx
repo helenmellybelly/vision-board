@@ -29,7 +29,7 @@ import ProcessBar from '@/components/ProcessBar';
 import CuratedGallery from '@/components/CuratedGallery';
 import UnsplashSearch from '@/components/UnsplashSearch';
 import StoryModal from '@/components/StoryModal';
-import MiniBoardPreview from '@/components/MiniBoardPreview';
+import SectionProgressGrid from '@/components/SectionProgressGrid';
 import useFocusTrap from '@/components/useFocusTrap';
 import Lightbox from '@/components/Lightbox';
 
@@ -683,7 +683,7 @@ export default function ScenesPage() {
               </p>
               {/* 방금 채워진 칸 강조 미니보드 (v7.0-r5 peak) */}
               <div className="mb-4">
-                <MiniBoardPreview board={board} highlightSectionId={sectionId} compact />
+                <SectionProgressGrid board={board} highlightSectionId={sectionId} compact />
               </div>
               {/* 첫 보드 조기 개방 (v7.8) — 임계값 도달의 보상 회수 지점: 방금 3번째 나무가 자란 순간 */}
               {nextSection && completedCount >= FIRST_BOARD_THRESHOLD && !board.futureDayStory && (
@@ -747,7 +747,7 @@ export default function ScenesPage() {
               근데 이 칸이 진짜 &apos;완성&apos;이 되려면 네 이야기가 필요해.
             </p>
             <div className="mb-4">
-              <MiniBoardPreview board={board} compact />
+              <SectionProgressGrid board={board} compact />
             </div>
             <button
               onClick={() => router.push(`/section/${sectionId}`)}

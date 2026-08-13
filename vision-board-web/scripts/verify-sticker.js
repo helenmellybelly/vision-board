@@ -286,7 +286,7 @@ const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol;
     for (const [an, aspect] of Object.entries({ phone: ASPECTS.phone, board: ASPECTS.board, fhd: ASPECTS.fhd })) {
       const seeded = seedLayout(template, photos, aspect);
       // 자유 배치로 들어가 사용자가 좌표를 흩어놓는다
-      const free = enterFreeform(seeded, template, photos, aspect);
+      const free = enterFreeform(seeded, photos);
       const moved = {
         ...free,
         items: Object.fromEntries(
@@ -294,7 +294,7 @@ const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol;
         ),
       };
       // 정렬로 되돌렸다가 다시 자유 배치 — 내가 만든 좌표가 그대로 돌아와야 한다
-      const back = enterFreeform(exitFreeform(moved, template, photos, aspect), template, photos, aspect);
+      const back = enterFreeform(exitFreeform(moved, template, photos, aspect), photos);
       const same = Object.keys(moved.items).every(
         (k) => back.items[k] && near(back.items[k].x, moved.items[k].x, 1e-9) && near(back.items[k].y, moved.items[k].y, 1e-9),
       );
@@ -306,9 +306,9 @@ const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol;
   // 사진 구성이 바뀌면 스태시를 폐기한다 — 없는 키의 좌표가 되살아나면 안 된다
   const aspect = ASPECTS.board;
   const seeded = seedLayout('studio', photos, aspect);
-  const stashed = exitFreeform(enterFreeform(seeded, 'studio', photos, aspect), 'studio', photos, aspect);
+  const stashed = exitFreeform(enterFreeform(seeded, photos), 'studio', photos, aspect);
   const fewer = photos.slice(0, 4);
-  const re = enterFreeform(stashed, 'studio', fewer, aspect);
+  const re = enterFreeform(stashed, fewer);
   const ghost = Object.keys(re.items).filter((k) => !k.startsWith('sticker:') && !fewer.some((p) => p.key === k));
   ok('S-7d 사진이 줄면 스태시 폐기 (유령 키 없음)', ghost.length === 0, ghost.join(','));
 }

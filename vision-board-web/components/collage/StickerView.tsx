@@ -76,6 +76,8 @@ export default function StickerView({
         suppressContentEditableWarning: true,
         // ⚠️ 부모 보드가 touchAction:'none'이라 상속받으면 캐럿 조작이 막힌다
         'data-sticker-edit': '1',
+        // 빈 문구는 보드에서 안 보인다 — 자리표시가 없으면 "추가했는데 아무 일도 안 났다"가 된다
+        'data-placeholder': '여기에 한마디',
         onBlur: (e: React.FocusEvent<HTMLDivElement>) => onCommit?.(e.currentTarget.innerText),
         // plaintext-only 미지원 폴백에서 붙여넣기가 HTML을 넣는 걸 막는다
         onPaste: (e: React.ClipboardEvent<HTMLDivElement>) => {

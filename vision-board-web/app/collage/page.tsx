@@ -27,7 +27,7 @@ import { IMPORT_NOTICES, importRemoteImage } from '@/lib/imagePick';
 import { findRemoteSlots, normalizeSlots } from '@/lib/imageNormalize';
 import { compressImageWithDims } from '@/lib/imageUtils';
 import { fingerprint, measureMany, ratioOf } from '@/lib/imageDims';
-import { removeSlotImage } from '@/lib/photoSlots';
+import { photoSlotsOf, removeSlotImage } from '@/lib/photoSlots';
 import { FIRST_BOARD_THRESHOLD } from '@/lib/milestone';
 import WallpaperSheet from '@/components/WallpaperSheet';
 import CollageBoard from '@/components/collage/CollageBoard';
@@ -61,20 +61,6 @@ const TEMPLATES: { id: CollageTemplate; label: string }[] = TEMPLATE_ORDER.map((
 
 // 첫 진입 코치마크 1회 노출 여부 — BoardData 스키마와 분리해 별도 키로 관리
 const COACH_KEY = 'vb-collage-coach-v1';
-
-/** 보드의 모든 사진 슬롯 — 키 계약은 CollageBoard·parsePhotoKey와 같은 `${sectionId}-${slot}`.
- *  keyedItems와 **같은 순서·같은 우선순위**(업로드 > AI 생성)로 뽑아야 치수가 어긋나지 않는다 (v10) */
-function photoSlotsOf(b: BoardData): { key: string; src: string }[] {
-  const out: { key: string; src: string }[] = [];
-  for (const section of SECTIONS) {
-    const sec = b.sections[section.id];
-    for (let i = 0; i < 3; i++) {
-      const src = sec.uploadedImages?.[i] || sec.generatedImages?.[i] || '';
-      if (src) out.push({ key: `${section.id}-${i}`, src });
-    }
-  }
-  return out;
-}
 
 // 템플릿 탭 미니 스와치 (v10) — 배치뿐 아니라 **타이틀 카드 위치**까지 보여준다.
 // 세 템플릿의 차이가 배치·타이틀·킷 세 축에 걸쳐 있는데 배치만 그리면 또 "비슷해 보인다"가 된다

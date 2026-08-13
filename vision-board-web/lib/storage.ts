@@ -122,6 +122,25 @@ function migrateCollage(board: BoardData): void {
     }
   }
 
+  // v12: 글자가 빈 문구 스티커를 쓸어낸다.
+  //
+  // 인라인 편집은 '+ 문구'를 누른 즉시 빈 스티커를 저장한다(그래야 보드 위에서 바로 쓸 수 있다).
+  // 사용자가 아무것도 안 쓰고 나가면 편집 종료 경로가 지우지만, 그전에 탭을 닫거나 새로고침하면
+  // **보이지 않는 유령 항목**이 남는다 — 보드에는 아무것도 안 보이는데 그 자리 사진의 탭만
+  // 가로챈다. 로드 시점에 쓸어내면 어떤 경로로 생겼든 구조적으로 정리된다.
+  // ⚠️ 아이콘 스티커는 text가 원래 비어 있다(그림이 내용이다) — 건드리면 안 된다.
+  for (const layouts of [board.collageLayouts, board.collageDeviceLayouts?.phone, board.collageDeviceLayouts?.desktop]) {
+    for (const layout of Object.values(layouts ?? {})) {
+      if (!layout?.stickers) continue;
+      for (const [id, s] of Object.entries(layout.stickers)) {
+        if (s.kind === 'icon' || s.text.trim() !== '') continue;
+        delete layout.stickers[id];
+        delete layout.items[`sticker:${id}`];
+        dirty = true;
+      }
+    }
+  }
+
   if (dirty) saveBoard(board);
 }
 

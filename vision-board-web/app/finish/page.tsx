@@ -8,7 +8,7 @@ import { SECTIONS } from '@/lib/questions';
 import { BoardData } from '@/lib/types';
 import { countCompleted } from '@/lib/milestone';
 import { generateBoardStory } from '@/lib/storyClient';
-import MiniBoardPreview from '@/components/MiniBoardPreview';
+import BoardPreview from '@/components/collage/BoardPreview';
 import AccountButton from '@/components/AccountButton';
 import { renderStory } from '@/components/StoryModal';
 
@@ -248,9 +248,13 @@ export default function FinishPage() {
             </h1>
           </div>
 
-          {/* 완성 보드 리빌 — 폴라로이드가 하나씩 나타나는 스태거 애니메이션 (v7.0-r5 peak) */}
-          <div className="w-full">
-            <MiniBoardPreview board={board} />
+          {/* 완성 보드 리빌 (v12) — 사용자가 /collage에서 고른 **그 보드**를 그린다.
+              v11까지는 여기가 별개의 6칸 숲 그리드라, 템플릿·배경색을 바꿔도 축하 화면만
+              옛 그림이었다. 축하의 대상이 실제 결과물과 달라서는 안 된다.
+              ⚠️ 보드 예산 변수를 안 주면 --board-reserve 폴백(19rem)이 걸려 화면 높이에 눌린다.
+                 축하 화면은 카드 폭에 맞추면 되므로 예산을 0으로 둔다 */}
+          <div className="w-full" style={{ ['--board-reserve' as string]: '0rem' }}>
+            <BoardPreview board={board} />
           </div>
 
           {(board.oneSentence || sentenceInput.trim()) && (

@@ -7,6 +7,16 @@ import { SectionStatus } from '@/lib/types';
 // 주의: aria-label(`${label} — ${STATUS_LABEL[status]}`)은 여기와 무관한 별도 계약 —
 // 구 회귀 스위트가 문자열에 의존하므로 아이콘 변경이 라벨에 새어들면 안 된다.
 
+// 산책길 지도(WalkPathMap)와 진행 그리드(SectionProgressGrid)가 공유하는 aria-label 어휘.
+// v12에 컴포넌트에서 여기로 옮겼다 — 화면 컴포넌트가 다른 화면 컴포넌트의 상수를 import하면
+// 어느 쪽이 정의의 주인인지 알 수 없다. 상태 어휘의 주인은 상태 모듈이다.
+export const STATUS_LABEL: Record<SectionStatus, string> = {
+  not_started: '시작 전',
+  in_progress: '진행 중',
+  text_complete: '글 완료',
+  completed: '완성',
+};
+
 export function statusEmoji(status: SectionStatus, hasPhoto: boolean): string {
   if (status === 'completed') return '🌳';
   if (status === 'text_complete') return '📷';

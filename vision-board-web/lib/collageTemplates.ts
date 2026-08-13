@@ -430,7 +430,12 @@ export function resolveLayout(
 ): CollageLayout {
   if (!saved) return seedLayout(template, items, aspect);
   if (saved.aspect !== undefined && !aspectsEqual(saved.aspect, aspect)) {
-    return seedLayout(template, items, aspect, { kitRemoved: saved.kitRemoved });
+    // 사진 **배치**는 비율이 다르면 재해석할 수 없어 새로 깐다 (v6.19).
+    // 하지만 **문구는 가져온다** (v12) — 좌표가 0..1 정규화라 같은 상대 위치로 옮겨가고,
+    // 무엇보다 사용자가 쓴 글이다. 폰에서 쓴 한마디가 PC 탭이나 축하 화면에서 조용히
+    // 사라지는 건, 오너가 지적한 "내가 만든 게 왜 없어지지" 계열의 같은 문제다
+    const fresh = seedLayout(template, items, aspect, { kitRemoved: saved.kitRemoved });
+    return withStickers(fresh, saved, template, aspect);
   }
   if (saved.edited === false) return seedLayout(template, items, aspect, { kitRemoved: saved.kitRemoved });
 
@@ -504,13 +509,10 @@ function stashMatches(
   return want.length === have.length && want.every((k) => freeItems[k] !== undefined);
 }
 
-/** 자유 배치 켜기 — 스태시가 지금 구성과 맞으면 되살리고, 아니면 현재 정렬 좌표를 시드로 쓴다 */
-export function enterFreeform(
-  prev: CollageLayout,
-  template: CollageTemplate,
-  items: CollageItem[],
-  aspect: number = ASPECT
-): CollageLayout {
+/** 자유 배치 켜기 — 스태시가 지금 구성과 맞으면 되살리고, 아니면 현재 정렬 좌표를 그대로 이어받는다.
+ *  ⚠️ exitFreeform과 달리 template·aspect를 안 받는다 — 켜는 건 배치를 **다시 만들지 않기** 때문이다.
+ *     좌표를 재생성하는 순간 "지금 보이는 그대로 이어서 옮긴다"는 감각이 깨진다 */
+export function enterFreeform(prev: CollageLayout, items: CollageItem[]): CollageLayout {
   const restored = stashMatches(prev.freeItems, items)
     ? // 스티커는 스태시가 아니라 **현재 자리**를 지킨다 — 배치 밖 오버레이라 정렬 모드에서도 자유롭게 옮긴다
       { ...prev.items, ...Object.fromEntries(Object.entries(prev.freeItems).filter(([k]) => !isStickerKey(k))) }

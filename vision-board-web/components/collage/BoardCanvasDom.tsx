@@ -180,6 +180,9 @@ export default function BoardCanvasDom({
           return (
             <div
               key={key}
+              // 항목 래퍼의 주소 (v12) — 스티커 실측 높이를 재고, E2E가 항목 상자를 직접 집는다.
+              // data-photo는 <img>에 붙어 있어 스티커에는 없고, 래퍼 자체를 가리키는 표식이 없었다
+              data-item={key}
               className={`absolute ${editing ? 'cursor-move' : !isSticker ? 'cursor-zoom-in' : ''} ${settling ? 'collage-item-settle' : ''}`}
               style={{
                 left: `${it.x * 100}%`,

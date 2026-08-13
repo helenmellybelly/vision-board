@@ -9,7 +9,11 @@ import {
   MIN_W,
   STICKER_MIN_W,
   bumpPhoto,
+  enterFreeform,
+  exitFreeform,
   newStickerLayoutItem,
+  normalizeStickerText,
+  stickerBoxH,
   resolveLayout,
   seedLayout,
   stickerKey,
@@ -23,7 +27,7 @@ import {
 } from '@/lib/collageTokens';
 import { bumpRowInSpec } from '@/lib/collageJustify';
 import BoardCanvasDom, { TITLE_KEY, boardVisuals, titleConfigOf } from './BoardCanvasDom';
-import StickerSheet from './StickerSheet';
+import StickerToolbar from './StickerToolbar';
 import TitleSheet from './TitleSheet';
 import Lightbox from '@/components/Lightbox';
 
@@ -57,6 +61,16 @@ interface Props {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** 캐럿을 글자 끝으로 — 편집 진입·프리셋 적용 후 커서가 앞에 남아 있으면 계속 쓸 수가 없다 */
+function placeCaretAtEnd(el: HTMLElement) {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
 const TAP_THRESHOLD = 8; // px — 이 이하 움직임은 탭으로 간주 (스크롤/드래그와 구분)
 const ROT_MAX = 30; // 회전 클램프(±도) — 경계 수학이 감당 가능한 범위
 const ROT_SNAP = 3; // 이 이하는 0°로 스냅
@@ -88,6 +102,9 @@ interface DragState {
   startAngle?: number;
   /** 드래그 시작 시점의 배치 스냅샷 (v9.0) — 스왑 대상 히트테스트는 움직이기 전 좌표로 해야 한다 */
   baseItems: Record<string, CollageLayoutItem>;
+  /** 스티커 실측 높이(정규화, v12) — 소프트랩까지 포함한 안전망.
+   *  공식(stickerBoxH)은 하드 브레이크만 세므로, 긴 한 줄이 자동으로 접힌 경우를 이걸로 덮는다 */
+  measuredH?: number;
   /** resize 모드 — 마지막 프리뷰 스팬. 정수 스팬이 바뀔 때만 프리뷰를 다시 계산 */
   previewSpan?: [number, number];
 }
@@ -107,7 +124,10 @@ export default function CollageBoard({
   const [editing, setEditing] = useState(false);
   // 탭한 사진의 구제 액션(맨 뒤로·바로 세우기) — 묻힌 사진을 꺼내는 유일한 동선 (v8.0)
   const [photoAction, setPhotoAction] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<{ open: boolean; editId?: string }>({ open: false });
+  // 인라인 편집 중인 문구 id (v12) — v11의 sheet {open, editId}를 대체한다.
+  // ⚠️ 글자 **내용**은 여기 없다. 편집 중에는 DOM(contentEditable)이 소유하고, 커밋 시점에만
+  //    거둬들인다 — React state로 물면 한글 IME 조합 중 캐럿이 튄다
+  const [editingSticker, setEditingSticker] = useState<string | null>(null);
   // 로드 실패 사진 (v8.1) — 사진 구성이 바뀌면 리셋, 여전히 깨졌으면 onError가 다시 채운다
   const [brokenKeys, setBrokenKeys] = useState<Set<string>>(new Set());
   const [live, setLive] = useState<CollageLayout>(() => resolveLayout(template, items, layout, aspect));
@@ -132,6 +152,9 @@ export default function CollageBoard({
 
   // 편집 상태 전환은 이 함수로만 — 부모(나란히 배타 편집)에 항상 통지 (v8.1)
   function switchEditing(next: boolean) {
+    // ⚠️ 편집을 나가기 전에 쓰던 문구를 반드시 거둬들인다 (v12). 안 하면 마지막 글자가 저장되지
+    //    않거나, 아무것도 안 쓴 빈 문구가 보이지 않는 유령 항목으로 남아 그 자리 사진의 탭을 가로챈다
+    if (!next && editingSticker) finishStickerEdit();
     setEditing(next);
     if (!next) setPhotoAction(null);
     onEditingChange?.(next);
@@ -140,10 +163,12 @@ export default function CollageBoard({
   // 다른 쪽 보드가 편집을 가져가면 이쪽은 감상 모드로 (StickerSheet 중복 방지)
   useEffect(() => {
     if (active === false) {
+      // 다른 보드가 편집을 가져가도 쓰던 문구는 잃지 않는다 (v12)
+      if (editingSticker) finishStickerEdit();
       setEditing(false);
       setPhotoAction(null);
-      setSheet({ open: false });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   function markBroken(key: string) {
@@ -179,11 +204,27 @@ export default function CollageBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template]);
 
-  // 외부 layout·사진 구성 변경 동기화 (드래그 중이 아닐 때)
+  // 문구 편집에 들어가면 캐럿을 잡아준다 (v12) — 탭 한 번으로 바로 쓸 수 있어야 한다.
+  // ⚠️ StickerView가 마운트된 **뒤에** 잡아야 하므로 editingSticker 변화에 반응한다
   useEffect(() => {
-    if (!dragRef.current) commitLive(() => resolveLayout(template, items, layout, aspect));
+    if (!editingSticker) return;
+    const el = boardRef.current?.querySelector<HTMLElement>('[data-sticker-edit]');
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    placeCaretAtEnd(el);
+  }, [editingSticker]);
+
+  // 외부 layout·사진 구성 변경 동기화 (드래그 중이 아닐 때)
+  //
+  // ⚠️ 문구 편집 중에도 건너뛴다 (v12). 드래그를 막는 것과 **정확히 같은 이유**다 —
+  //    사용자가 손대고 있는 상태를 props에서 되돌려 받으면 진행 중인 작업이 사라진다.
+  //    새 문구는 글자가 생기기 전까지 저장되지 않으므로(초안), 이 가드가 없으면 부모가 한 번만
+  //    리렌더해도 초안이 통째로 날아가 **아예 쓸 수가 없다**(실측: 타이핑 직후 툴바째 사라짐).
+  //    편집이 끝나면 커밋 → 저장 → layout 변경으로 이 효과가 다시 돌아 정상 동기화된다.
+  useEffect(() => {
+    if (!dragRef.current && !editingSticker) commitLive(() => resolveLayout(template, items, layout, aspect));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, aspect, items.map((i) => i.key).join(','), layout]);
+  }, [template, aspect, items.map((i) => i.key).join(','), layout, editingSticker]);
 
   if (items.length === 0) return null;
 
@@ -235,6 +276,12 @@ export default function CollageBoard({
       item: next.items[key],
       baseItems: liveRef.current.items,
     };
+    // 스티커 높이 1회 실측 (v12) — 공식은 하드 브레이크만 세므로 소프트랩된 실제 높이를 상한으로 얹는다
+    if (key.startsWith('sticker:')) {
+      const box = boardRef.current?.getBoundingClientRect();
+      const el = boardRef.current?.querySelector<HTMLElement>(`[data-item="${CSS.escape(key)}"]`);
+      if (box && el) drag.measuredH = el.getBoundingClientRect().height / box.height;
+    }
     if (mode === 'rotate') {
       const rect = boardRef.current?.getBoundingClientRect();
       if (rect) {
@@ -280,7 +327,15 @@ export default function CollageBoard({
 
     const it = drag.item!;
     const isSticker = drag.key.startsWith('sticker:');
-    const hNorm = it.h ?? it.w * aspect;
+    // ⚠️ 스티커의 높이를 정사각(it.w × aspect)으로 가정하면 안 된다 (v12).
+    //    chip 1줄의 실제 높이는 그 0.26배라, w=0.44 문구가 높이 5%인데 20%를 예약당해
+    //    **보드 하단 20%에 문구를 놓을 수가 없었다** — 오너의 "배치가 박스에 갇혀 있다"의 일부다.
+    //    공식(stickerHeightNorm)이 단일 소스이고, 실측은 소프트랩까지 감안한 상한으로만 쓴다
+    const hNorm =
+      it.h ??
+      (isSticker
+        ? Math.max(stickerBoxH(live.stickers?.[drag.key.slice('sticker:'.length)], it.w, aspect), drag.measuredH ?? 0)
+        : it.w * aspect);
     let next: CollageLayoutItem;
     if (drag.mode === 'move') {
       // 회전 bbox 기준 클램프 — 회전한 모서리가 보드 밖으로 잘리지 않게 (v8.0)
@@ -409,8 +464,11 @@ export default function CollageBoard({
     saveEdited(liveRef.current);
     if (!moved && drag.mode === 'move') {
       if (isSticker) {
-        // 스티커를 움직이지 않고 탭하면 수정 시트 열기
-        setSheet({ open: true, editId: drag.key.slice('sticker:'.length) });
+        // 문구를 움직이지 않고 탭하면 그 자리에서 편집 (v12) — 시트를 띄우지 않는다.
+        // 캐럿은 StickerView가 마운트되며 잡는다(편집 중인 스티커에는 드래그 핸들러가 안 붙는다)
+        const id = drag.key.slice('sticker:'.length);
+        setPhotoAction(null);
+        setEditingSticker(id);
       } else {
         // 사진 탭 → 액션 칩 (크게·작게·맨 뒤로·교체·삭제)
         setPhotoAction((cur) => (cur === drag.key ? null : drag.key));
@@ -427,25 +485,18 @@ export default function CollageBoard({
   }
 
   /** 자유 배치 토글 — 정렬을 벗어나 원하는 곳에 두고 회전까지 하고 싶을 때의 명시적 탈출구.
-   *  되돌리면 지금 장수의 표준 배치로 다시 정렬된다 */
+   *
+   *  v12: **왕복이 무손실이다.** 끄면 지금 좌표를 freeItems에 스태시하고, 다시 켜면 되돌린다.
+   *  v11까지는 끄는 순간 사용자가 만든 좌표가 흔적 없이 사라졌고 되돌릴 방법이 없었다 —
+   *  그래서 오너는 "배치가 박스에 갇혀 있다"고 느끼면서도 이 토글을 못 썼다. 기능이 없어서가
+   *  아니라 **실험이 위험해서**였다. 안전해지면 그것 자체가 자율성이다.
+   *  (로직은 lib/collageTemplates의 순수 함수 — verify-sticker S-7이 왕복을 기계로 잠근다) */
   function toggleFreeform() {
     const prev = liveRef.current;
-    if (prev.freeform) {
-      const fresh = seedLayout(template, items, aspect, { kitRemoved: prev.kitRemoved });
-      // 스티커는 배치 밖 오버레이라 자유 배치에서 옮겨둔 자리를 그대로 지킨다
-      const stickerItems = Object.fromEntries(
-        Object.entries(prev.items).filter(([k]) => k.startsWith('sticker:'))
-      );
-      saveEdited({
-        ...fresh,
-        items: { ...fresh.items, ...stickerItems },
-        stickers: { ...fresh.stickers, ...prev.stickers },
-        edited: true,
-        freeform: false,
-      });
-      return;
-    }
-    saveEdited({ ...prev, freeform: true });
+    setPhotoAction(null);
+    saveEdited(
+      prev.freeform ? exitFreeform(prev, template, items, aspect) : enterFreeform(prev, items)
+    );
   }
 
   // 보기 모드에서 보드 탭 → 편집 진입 (8px 임계값으로 페이지 스크롤과 구분)
@@ -526,29 +577,98 @@ export default function CollageBoard({
     setPhotoAction(null);
   }
 
-  function handleStickerConfirm(data: { text: string; style: CollageSticker['style']; color?: string }) {
+  // ── 문구 인라인 편집 (v12) ──
+  // v11의 '문구 수정' 바텀시트를 대체한다. 시트가 보드를 덮어 자기가 고치는 글자를 볼 수 없었고,
+  // 그게 "입력 후 바로 수정이 안 된다"는 오너 피드백의 실체였다.
+
+  /** 편집 중인 스티커 하나를 부분 갱신 — 텍스트는 DOM이 소유하므로 여기로 오지 않는다 */
+  function patchSticker(id: string, patch: Partial<CollageSticker>) {
     const prev = liveRef.current;
-    if (sheet.editId) {
-      const sticker: CollageSticker = { ...prev.stickers![sheet.editId], ...data };
-      saveEdited({ ...prev, stickers: { ...prev.stickers, [sheet.editId]: sticker } });
-    } else {
-      const id = `s${Date.now()}`;
-      const key = stickerKey(id);
-      const stickers = { ...prev.stickers, [id]: { id, ...data } };
-      // ⚠️ prev를 펼쳐야 한다 — v11까지 {items, stickers}만 저장해 spec·title·aspect·freeform이
-      //    통째로 사라졌고, 다음 렌더의 resolveLayout이 배치를 새로 깔았다. 삭제 경로(아래)에는
-      //    이 경고가 이미 적혀 있었는데 추가 경로만 빠져 있었다
-      saveEdited({
-        ...prev,
-        items: {
-          ...prev.items,
-          // 빈자리 탐색에 위임 — 같은 좌표에 계속 쌓여 "추가해도 안 늘어난다"가 되던 지점 (v12)
-          [key]: newStickerLayoutItem(maxZ, aspect, { key, existing: prev.items, template, stickers }),
-        },
-        stickers,
-      });
+    const cur = prev.stickers?.[id];
+    if (!cur) return;
+    saveEdited({ ...prev, stickers: { ...prev.stickers, [id]: { ...cur, ...patch } } });
+  }
+
+  /** 글자 커밋 — blur·완료·툴바 조작처럼 **IME 조합이 끝난** 시점에만 부른다.
+   *  onInput마다 부르면 한글 조합 중 캐럿이 튄다 */
+  function commitStickerText(id: string, raw: string) {
+    const text = normalizeStickerText(raw);
+    const prev = liveRef.current;
+    if (!prev.stickers?.[id]) return;
+    // 빈 문구는 삭제한다 — 안 그러면 아무것도 안 보이는 유령 항목이 보드에 남아
+    // 나중에 사진을 탭하려는 손가락만 가로챈다
+    if (!text) {
+      handleStickerDelete(id);
+      return;
     }
-    setSheet({ open: false });
+    if (prev.stickers[id].text === text) return;
+    patchSticker(id, { text });
+  }
+
+  /** 새 문구 — 빈 채로 만들고 바로 편집에 들어간다. 프리셋은 툴바에 펼쳐져 있다.
+   *
+   *  ⚠️ **저장하지 않는다(commitLive).** 글자 없는 스티커를 저장하면 보이지 않는 유령 항목이
+   *     디스크에 남고(탭을 그냥 닫으면 지울 기회가 없다), 저장 직후 loadBoard의 청소가
+   *     방금 만든 초안을 그 자리에서 지워버려 **아예 쓸 수가 없다**(실측: 툴바가 안 뜸).
+   *     첫 글자가 커밋될 때 saveEdited가 초안째 함께 저장한다. */
+  function addSticker() {
+    const prev = liveRef.current;
+    const id = `s${Date.now()}`;
+    const key = stickerKey(id);
+    const sticker: CollageSticker = { id, text: '', style: 'chip' };
+    const stickers = { ...prev.stickers, [id]: sticker };
+    commitLive(() => ({
+      ...prev,
+      items: {
+        ...prev.items,
+        // 빈자리 탐색에 위임 — 같은 좌표에 계속 쌓여 "추가해도 안 늘어난다"가 되던 지점 (v12)
+        [key]: newStickerLayoutItem(maxZ, aspect, { key, existing: prev.items, template, stickers }),
+      },
+      stickers,
+      edited: true,
+    }));
+    setPhotoAction(null);
+    setEditingSticker(id);
+  }
+
+  /** 편집 종료 — DOM이 들고 있는 글자를 마지막으로 한 번 거둬들인다 */
+  function finishStickerEdit() {
+    const id = editingSticker;
+    setEditingSticker(null);
+    if (!id) return;
+    const el = boardRef.current?.querySelector<HTMLElement>('[data-sticker-edit]');
+    if (el) commitStickerText(id, el.innerText);
+  }
+
+  /** 캐럿 자리에 줄바꿈 — 모바일 IME가 Enter를 '완료/다음'으로 먹기 때문에 전용 버튼이 필요하다.
+   *
+   *  ⚠️ Range로 텍스트 노드를 직접 꽂지 말 것. pre-wrap 안에서 브라우저가 텍스트 노드를 병합·정규화해
+   *     `setStartAfter`로 잡아둔 캐럿 위치가 무효가 되고, 다음 글자가 줄바꿈 **앞**에 들어간다
+   *     (실측: "I got everything" + 줄바꿈 + "I need" → "I got everythingI need\n").
+   *     insertText는 브라우저가 캐럿까지 책임지므로 사용자가 직접 친 것과 같은 결과가 나온다. */
+  function insertLineBreak() {
+    const el = boardRef.current?.querySelector<HTMLElement>('[data-sticker-edit]');
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    // 캐럿이 스티커 밖(또는 없음)이면 끝으로 — 버튼이 아무 일도 안 하는 것보다 낫다
+    if (!sel || sel.rangeCount === 0 || !el.contains(sel.anchorNode)) placeCaretAtEnd(el);
+    if (!document.execCommand('insertText', false, '\n')) {
+      el.innerText = `${el.innerText}\n`;
+      placeCaretAtEnd(el);
+    }
+  }
+
+  /** 문구 크기 — 모바일에서 ⤡ 정밀 드래그는 어렵다. 사진의 '크게/작게' 칩과 같은 문법 */
+  function resizeSticker(id: string, dir: 1 | -1) {
+    const prev = liveRef.current;
+    const key = stickerKey(id);
+    const it = prev.items[key];
+    if (!it) return;
+    saveEdited({
+      ...prev,
+      items: { ...prev.items, [key]: { ...it, w: clamp(it.w + dir * 0.04, STICKER_MIN_W, MAX_W) } },
+    });
   }
 
   function handleStickerDelete(id: string) {
@@ -565,7 +685,7 @@ export default function CollageBoard({
       ? [...new Set([...(prev.kitRemoved ?? []), id])]
       : prev.kitRemoved;
     saveEdited({ ...prev, items: nextItems, stickers, kitRemoved });
-    setSheet({ open: false });
+    setEditingSticker((cur) => (cur === id ? null : cur));
   }
 
   // 타이틀 카드 (v10~v11) — 상단 예약 밴드를 없애고 사진 위에 얹는다.
@@ -586,6 +706,8 @@ export default function CollageBoard({
     onTitleGlobalChange?.(patch);
   /** '깔끔한 자리로' — 지금 카드 중심에서 가장 가까운 9점으로 스냅 */
   const snapTitleToAnchor = () => setTitleAnchor(nearestAnchor(titleLayout.box));
+  // 편집 중인 문구 — 삭제·리로드로 사라졌으면 툴바도 함께 사라진다
+  const editingStickerData = editingSticker ? live.stickers?.[editingSticker] : undefined;
 
   /** 항목마다 얹는 편집 핸들 — 그림은 BoardCanvasDom이, 조작은 여기가 담당한다 (v12 분리) */
   const itemOverlay = (key: string, isSticker: boolean) => (
@@ -615,6 +737,22 @@ export default function CollageBoard({
           <span className="text-micro text-[#6E6962] leading-none">↻</span>
         </div>
       )}
+      {/* 사진 액션 진입 배지 ⋯ (v12) — 교체·삭제는 v8.1부터 있었지만 아무 힌트가 없어
+          "편집 진입 → 사진 탭 → 칩" 3단계를 아무도 발견하지 못했다(오너: "이미지 바꾸는
+          프로세스가 안 보인다"). 롱프레스는 답이 아니다 — 비가시 제스처라 같은 병을 다른
+          이름으로 재발시킬 뿐이다. 보이는 어포던스가 필요하다.
+          ⚠️ 새 로직은 0이다 — 기존 setPhotoAction을 그대로 부르는 진입점만 추가한다 */}
+      {editing && !isSticker && (onRequestReplace || onRequestRemove) && (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setPhotoAction((cur) => (cur === key ? null : key))}
+          data-photo-menu-for={key}
+          aria-label="사진 바꾸기·지우기"
+          className="absolute bottom-1 left-1 w-7 h-7 rounded-full bg-black/55 text-white flex items-center justify-center z-10 active:opacity-70"
+        >
+          <span className="text-caption leading-none pointer-events-none">⋯</span>
+        </button>
+      )}
       {/* 스왑 대상 하이라이트 — 여기에 놓으면 자리가 바뀐다 */}
       {swapTarget === key && (
         <div
@@ -632,6 +770,23 @@ export default function CollageBoard({
         >
           ×
         </button>
+      )}
+      {/* 이동 핸들 ✥ (v12) — 편집 중인 문구에만 붙는다.
+          ⚠️ 편집 중에는 글자 자체가 캐럿 타깃이라 드래그 핸들러를 붙일 수 없다
+             (onItemPointerDown이 preventDefault를 불러 포커스를 죽인다). 그래서 이동은
+             전용 핸들이 맡는다 — 글자를 탭하면 캐럿, ✥를 끌면 이동으로 역할이 눈에 보인다.
+          ⚠️ 표식은 `data-move-for` — `data-resize-for`를 쓰면 기존 스위트의 사진 핸들
+             셀렉터(v85r1 V85-8d)가 이걸 집는다 */}
+      {editing && isSticker && editingSticker === key.slice('sticker:'.length) && (
+        <div
+          onPointerDown={(e) => onItemPointerDown(e, key, 'move')}
+          data-move-for={key}
+          aria-label="문구 옮기기"
+          className="absolute -bottom-2 -left-2 w-6 h-6 rounded-full bg-white shadow-md border border-[#E5E3DF] flex items-center justify-center cursor-move z-10"
+          style={{ touchAction: 'none' }}
+        >
+          <span className="text-micro text-[#6E6962] leading-none pointer-events-none">✥</span>
+        </div>
       )}
     </>
   );
@@ -662,6 +817,8 @@ export default function CollageBoard({
         onBoardPointerUp={editing ? onPointerUp : onBoardPointerUp}
         onBoardPointerMove={onPointerMove}
         onBoardPointerCancel={onPointerUp}
+        editingStickerId={editingSticker}
+        onStickerCommit={commitStickerText}
         itemOverlay={itemOverlay}
         titleOverlay={
           /* ⚠️ 핸들은 카드 **안쪽**에 둔다 (v11). 사진 핸들처럼 -bottom-2 -right-2로 띄우면
@@ -686,6 +843,29 @@ export default function CollageBoard({
           ) : null
         }
       >
+        {/* 문구 편집 툴바 (v12) — 시트를 대체한다. 글자는 보드 위에서 직접 고치고,
+            여기는 키보드로 못 하는 것(스타일·색·크기·줄바꿈·삭제)만 맡는다.
+            편집 중인 문구가 아래쪽이면 위로 뒤집어 자기가 치는 글자를 안 덮게 한다 */}
+        {editing && editingStickerData && (
+          <StickerToolbar
+            sticker={editingStickerData}
+            anchor={(live.items[stickerKey(editingSticker!)]?.y ?? 0) > 0.55 ? 'top' : 'bottom'}
+            canStraighten={!!live.items[stickerKey(editingSticker!)]?.rot}
+            onPreset={(text, style) => {
+              // 프리셋은 글자를 통째로 갈아끼운다 — DOM도 같이 갱신해야 blur 때 옛 글자가 되살아나지 않는다
+              const el = boardRef.current?.querySelector<HTMLElement>('[data-sticker-edit]');
+              if (el) el.innerText = text;
+              patchSticker(editingSticker!, { text, style });
+            }}
+            onStyle={(style) => patchSticker(editingSticker!, { style })}
+            onColor={(color) => patchSticker(editingSticker!, { color })}
+            onLineBreak={insertLineBreak}
+            onResize={(dir) => resizeSticker(editingSticker!, dir)}
+            onStraighten={() => straighten(stickerKey(editingSticker!))}
+            onDelete={() => handleStickerDelete(editingSticker!)}
+            onDone={finishStickerEdit}
+          />
+        )}
 
         {/* 편집 가이드 (v10) — 보드 **안쪽** 하단 플로팅.
             v9는 보드 위 알약이었는데, 타이틀 예약이 사라지며 보드가 커진 만큼 페이지 세로 예산이
@@ -693,15 +873,17 @@ export default function CollageBoard({
             페이지 높이를 0 먹으면서 대비는 오히려 좋아진다.
             감상 모드에서는 띄우지 않는다 — 배경화면 미리보기를 글자가 덮으면 안 되고,
             진입 어포던스는 '✎ 탭해서 편집' 버튼이 이미 맡고 있다 */}
-        {editing && (
+        {/* ⚠️ 문구 편집 중에는 숨긴다 — 힌트 알약과 문구 툴바가 둘 다 보드 하단에 떠 겹친다.
+            게다가 그 순간의 안내는 툴바 자체가 이미 하고 있다 */}
+        {editing && !editingStickerData && (
           <p
             data-testid="board-hint"
             className="absolute bottom-[2.5cqmin] inset-x-[6cqmin] z-40 mx-auto w-fit max-w-full rounded-full bg-black/60 px-[3cqmin] py-[1.4cqmin] text-white text-center pointer-events-none"
             style={{ fontSize: '2.6cqmin' }}
           >
             {spec
-              ? '사진을 끌어 자리를 바꾸고, 탭하면 크게·작게 할 수 있어. 빈틈은 알아서 채워져.'
-              : '자유 배치야 — 원하는 곳에 두고 ⤡ 크기·↻ 각도까지 바꿀 수 있어.'}
+              ? '사진을 끌어 자리를 바꾸고, ⋯ 를 누르면 바꾸거나 지울 수 있어. 원하는 자리에 두려면 위 🔓 를 눌러봐.'
+              : '자유 배치야 — 원하는 곳에 두고 ⤡ 크기·↻ 각도까지 바꿀 수 있어. 🔒 를 누르면 배치는 보관해두고 다시 정렬해.'}
           </p>
         )}
 
@@ -735,8 +917,11 @@ export default function CollageBoard({
             onClick={() => switchEditing(true)}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
-            className="absolute top-[2.5cqmin] right-[2.5cqmin] z-50 rounded-full bg-black/45 text-white font-medium px-[3cqmin] py-[1.5cqmin] backdrop-blur-sm active:opacity-70"
-            style={{ fontSize: '2.8cqmin' }}
+            className="absolute top-[2.5cqmin] right-[2.5cqmin] z-50 rounded-full bg-black/45 text-white font-medium px-[3cqmin] backdrop-blur-sm active:opacity-70 flex items-center justify-center"
+            // ⚠️ 에디토리얼은 풀블리드라 '빈 곳 탭'이 성립하지 않는다 — 이 버튼이 사실상
+            //    유일한 편집 진입점이다. cqmin 패딩만 쓰면 폰에서 높이가 8px까지 내려가
+            //    "눌러도 안 눌린다"가 된다. 최소 44px는 절대 단위로 못 박는다 (v12)
+            style={{ fontSize: '2.8cqmin', minHeight: 44 }}
           >
             ✎ 탭해서 편집
           </button>
@@ -745,11 +930,14 @@ export default function CollageBoard({
         {/* 편집 툴바 — 보드 상단 플로팅 */}
         {editing && (
           <div
-            className="absolute top-2 inset-x-2 flex items-center justify-between z-50"
+            className="absolute top-2 inset-x-2 flex items-center gap-1.5 z-50"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
           >
-            <div className="flex gap-1.5">
+            {/* ⚠️ 가로 스크롤 + nowrap이 필수다 (v12). 폰 뷰 보드는 약 321px인데 버튼이 5개라
+                줄바꿈을 허용하면 라벨이 전부 두 줄로 쪼개진다("기본 배 / 치로") — 실제로 그렇게 깨졌다.
+                '완료'만 오른쪽에 고정해 스크롤 위치와 무관하게 항상 닿을 수 있게 둔다 */}
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar min-w-0 [&>button]:shrink-0 [&>button]:whitespace-nowrap">
               <button
                 onClick={resetLayout}
                 className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
@@ -757,7 +945,7 @@ export default function CollageBoard({
                 기본 배치로
               </button>
               <button
-                onClick={() => setSheet({ open: true })}
+                onClick={addSticker}
                 className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
               >
                 + 문구
@@ -776,20 +964,24 @@ export default function CollageBoard({
                 타이틀
               </button>
               {/* 자유 배치 토글 (v9.0) — 그리드를 벗어나 아무 데나 두고 회전까지 하고 싶을 때의
-                  명시적 탈출구. 자동 정렬이 조용히 죽는 대신 사용자가 켜고 끈다 */}
+                  명시적 탈출구. 자동 정렬이 조용히 죽는 대신 사용자가 켜고 끈다.
+                  v12: 라벨을 "무엇을 할 수 있는가"로 바꿨다 — '자유 배치'는 상태 이름이라
+                  눌러도 되는 건지 알 수 없었고, 그게 이 기능이 안 쓰인 이유의 절반이다.
+                  ⚠️ aria-label은 '자유 배치'를 유지한다 — verify-v10r1 V10-8a/8b가 이 이름으로 잡는다 */}
               <button
                 onClick={toggleFreeform}
                 aria-pressed={!spec}
+                aria-label="자유 배치"
                 className={`px-3 py-1.5 rounded-full text-caption font-medium active:opacity-70 ${
                   spec ? 'bg-black/60 text-white' : 'bg-white text-[#1C1B19] shadow'
                 }`}
               >
-                자유 배치
+                {spec ? '🔓 자유롭게 옮기기' : '🔒 다시 정렬'}
               </button>
             </div>
             <button
               onClick={() => switchEditing(false)}
-              className="px-4 py-1.5 rounded-full bg-white text-[#1C1B19] text-caption font-bold shadow active:opacity-70"
+              className="ml-auto shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full bg-white text-[#1C1B19] text-caption font-bold shadow active:opacity-70"
             >
               완료
             </button>
@@ -869,15 +1061,6 @@ export default function CollageBoard({
           </div>
         )}
       </BoardCanvasDom>
-
-      {sheet.open && (
-        <StickerSheet
-          initial={sheet.editId ? live.stickers?.[sheet.editId] : undefined}
-          onConfirm={handleStickerConfirm}
-          onDelete={sheet.editId ? () => handleStickerDelete(sheet.editId!) : undefined}
-          onClose={() => setSheet({ open: false })}
-        />
-      )}
 
       {titleSheet && (
         <TitleSheet

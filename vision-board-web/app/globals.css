@@ -230,3 +230,15 @@ textarea {
 .scroll-show::-webkit-scrollbar { width: 4px; }
 .scroll-show::-webkit-scrollbar-track { background: transparent; }
 .scroll-show::-webkit-scrollbar-thumb { background: #C9C5BE; border-radius: 2px; }
+
+/* 문구 인라인 편집 (v12) — 빈 문구는 보드에서 보이지 않으므로 자리표시를 띄운다.
+   ⚠️ contentEditable은 placeholder 속성이 없다. :empty가 유일한 훅이고,
+      <br> 하나만 들어와도 :empty가 풀리므로 새 문구는 반드시 완전히 빈 채로 시작해야 한다 */
+[data-sticker-edit]:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.5;
+}
+
+/* 문구 툴바의 가로 스크롤 행 — 스크롤바가 보이면 좁은 보드에서 컨트롤 높이를 먹는다 */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

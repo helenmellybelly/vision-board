@@ -3,7 +3,7 @@
 import { SECTIONS } from '@/lib/questions';
 import { BoardData, SectionId } from '@/lib/types';
 import { sectionHasPhoto } from '@/lib/sectionRoute';
-import { STATUS_LABEL } from '@/components/MiniBoardPreview';
+import { STATUS_LABEL } from '@/lib/stationStatus';
 import { statusEmoji, statusTitle } from '@/lib/stationStatus';
 import { FOREST } from '@/lib/colors';
 
