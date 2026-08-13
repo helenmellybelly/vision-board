@@ -11,6 +11,7 @@ import {
   saveTargetDate,
   saveCollageDeviceLayout,
   saveCollageBgColor,
+  saveCollageTitle,
   saveCollageDevicePreset,
   saveCollageTemplate,
   savePhotoDims,
@@ -274,6 +275,12 @@ export default function CollagePage() {
 
   function selectBgColor(hex: string) {
     saveCollageBgColor(hex);
+    setBoard(loadBoard());
+  }
+
+  /** 타이틀 모양 (v11) — 배경색과 같은 전역 축이라 같은 패턴으로 잇는다 */
+  function changeTitleGlobal(patch: NonNullable<BoardData['collageTitle']>) {
+    saveCollageTitle(patch);
     setBoard(loadBoard());
   }
 
@@ -578,6 +585,8 @@ export default function CollagePage() {
               view={v}
               template={template}
               bgColor={bgColor}
+              titleGlobal={board?.collageTitle}
+              onTitleGlobalChange={changeTitleGlobal}
               items={keyedItems}
               layout={savedLayout}
               aspect={preset.w / preset.h}
@@ -883,7 +892,13 @@ export default function CollagePage() {
         <WallpaperSheet
           year={boardYear}
           preset={sheetData.preset}
-          board={{ template, layout: sheetData.currentLayout, items: keyedItems, bgColor }}
+          board={{
+            template,
+            layout: sheetData.currentLayout,
+            items: keyedItems,
+            bgColor,
+            title: board.collageTitle,
+          }}
           onClose={() => setSheetView(null)}
           // 시트에서 사진을 수입하면 보드도 갱신 — 배치는 key 기준이라 그대로 유지된다 (v8.7)
           onPhotosNormalized={() => {

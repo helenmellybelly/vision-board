@@ -325,3 +325,442 @@ export function titleInkFor(bg: string): TitleInk {
     ? { title: '#FFFFFF', label: '#C4C2BE', dark: true }
     : { title: '#1C1B19', label: '#6E6962', dark: false };
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// v11 — 타이틀 커스터마이즈
+//
+// v10의 타이틀은 "9점 앵커 × 3스타일" 프리셋 덩어리였다. 크기·투명도·표시요소·가로세로가
+// 전부 여기 상수로 고정이라 사용자가 손댈 여지가 없었고, 정중앙 밴드가 사진 한 장을
+// 통째로 덮는 걸 피할 방법이 없었다(오너 실사용 지적).
+//
+// v11의 두 축:
+//  ① 카드 크기를 **글자 내용에서 계산**한다 — 그래야 '연도만'이면 카드가 줄고,
+//     '가로 배치'면 넓은 스트립이 된다. 스타일별 w/h 테이블 24칸을 눈대중으로 채우지 않는다.
+//  ② 렌더러(DOM·canvas)는 **표시 리스트(TitleLayout)를 그리기만** 한다. 좌표 산술을 양쪽에
+//     두면 반드시 갈라진다 — v10에서 이미 세 곳(세로정렬·연도 자간·padY)이 어긋나 있었다.
+// ══════════════════════════════════════════════════════════════════════
+
+/** 라벨/연도를 세로로 쌓을지, 한 줄에 나란히 둘지. v10에서는 style에 종속이었다 */
+export type TitleDir = 'v' | 'h';
+export type TitleParts = 'all' | 'label' | 'year' | 'none';
+/** solid = 거의 불투명 카드(v10 동작) / soft = 반투명 / clear = 카드 없이 글자만 */
+export type TitleBg = 'solid' | 'soft' | 'clear';
+export type TitleInkMode = 'auto' | 'light' | 'dark';
+
+export const TITLE_DIRS: TitleDir[] = ['v', 'h'];
+export const TITLE_PARTS: TitleParts[] = ['all', 'label', 'year', 'none'];
+export const TITLE_BGS: TitleBg[] = ['solid', 'soft', 'clear'];
+export const TITLE_INK_MODES: TitleInkMode[] = ['auto', 'light', 'dark'];
+
+/** 라벨 문구는 고정 — 나만의 문구가 필요하면 스티커('+ 문구')를 쓴다.
+ *  canvas가 그리는 문자열이자 advance 실측의 기준이다 */
+export const TITLE_LABEL_TEXT = 'VISION BOARD';
+
+// ── 폰트 실측 상수 (scripts/tune-title.mjs --fonts 산출물) ──
+// ⚠️ 눈대중 금지. Pretendard Variable 600 / Enjoystories 700을 실제로 로드해
+//    measureText로 잰 값이다. 폰트를 바꾸면 스크립트를 다시 돌려 갱신할 것.
+
+/** 'VISION BOARD'의 자간 0 advance (em). 커닝이 반영된 문자열 폭이라 글자합(6.917)과 다르다 */
+export const TITLE_LABEL_ADVANCE_EM = 6.879;
+/** 라벨 글자 수 — 자간은 **마지막 글자 뒤에도** 붙는다(CSS·canvas 공통, 실측 확인). 그래서 n배 */
+export const TITLE_LABEL_CHARS = TITLE_LABEL_TEXT.length;
+/** 숫자 1자 최대폭 (em). 어떤 연도가 와도 넘치지 않게 최대값을 쓴다 */
+export const TITLE_YEAR_ADVANCE_EM = 0.38;
+/** ink(실제 글자) 높이 — font box가 아니라 잉크 기준이라 카드가 글자에 딱 붙는다 */
+export const TITLE_INK_H_SANS = 0.73;
+export const TITLE_INK_H_SCRIPT = 0.73;
+
+// ── 조판 리듬 (타이포 선택 — 가드레일이 아니다) ──
+/** 라벨↔연도 세로 간격 / labelSize. verify-title이 [0.5, 2.0] 범위를 지켜 드리프트를 막는다 */
+const TITLE_GAP_V = 0.8;
+/** 라벨↔연도 가로 간격 / labelSize */
+const TITLE_GAP_H = 1.6;
+/** 카드 안쪽 여백 (minDim 비례, 배율과 함께 커진다) — v10 값 계승 */
+const TITLE_PAD_X = 0.05;
+const TITLE_PAD_Y = 0.028;
+
+// ── 크기 정규화 ──
+// ⚠️ 아래 셋은 눈대중이 아니다. scripts/tune-title.mjs가 9프리셋 × 3템플릿 × β·fmax·배율
+//    2,772조합을 쓸어 역산했다. 목적함수는 "연도 ink 높이 / 보드 대각선"(=존재감)의
+//    **템플릿별 변동계수 평균 최소화**이고, 하드 제약은
+//    화면 라벨 ≥11px(text-micro) · 화면 연도 ≥20px · 내보내기 연도 ≥28px · 카드 면적 ≤14%다.
+//    채택안(β0.95 / fmax1.50 / 1.25)에서 존재감 편차가 1.66배 → 1.24배로 줄었다
+//    (오너가 "모바일에서만 타이틀이 작다"고 지적한 그 편차다).
+
+/** 세로/가로로 긴 보드에서 타이틀을 키우는 정도. 0이면 v10과 동일(짧은 변 순수 비례) */
+export const TITLE_UNIT_BETA = 0.95;
+/** 그 상한 — 울트라와이드·Z플립 메인처럼 극단적인 비율에서 무한정 커지지 않게 */
+export const TITLE_UNIT_FMAX = 1.5;
+/** 전 보드 공통 기본 배율. 이 값을 정한 건 스튜디오(라인 스타일)의 연도가 폰 미리보기에서
+ *  20px을 넘어야 한다는 제약이다 — 오너가 "스튜디오 연도가 너무 작다"고 지적한 지점 */
+export const TITLE_BASE_SCALE = 1.25;
+
+export const TITLE_SCALE_MIN = 0.7;
+export const TITLE_SCALE_MAX = 1.8;
+
+/** 카드 폭/높이 상한 (정규화). 여기 걸리면 박스를 자르는 게 아니라 **배율을 낮춘다** —
+ *  자르면 글자만 커지고 카드는 안 커져 텍스트가 넘친다 */
+const TITLE_W_CAP = 0.92;
+const TITLE_H_CAP = 0.5;
+
+/**
+ * 타이틀 전용 정규화 계수 (minDim 배수).
+ *
+ * 왜 필요한가: 짧은 변 비례는 "긴 변 대비 존재감"을 보존하지 않는다. 실측하면 연도 높이 /
+ * 보드 대각선이 폰 0.030 · FHD 0.037 · Z플립커버 0.055로 1.8배까지 벌어진다 —
+ * 오너가 겪은 "모바일에서만 타이틀이 너무 작다"의 정량적 실체다.
+ *
+ * ⚠️ 하한을 1로 클램프한다. 순수 기하평균 정규화로 바꾸면 정사각에 가까운 보드
+ *    (Z플립 커버)가 −24%로 **작아지는** 부작용이 생긴다.
+ * ⚠️ 반환이 minDim **배수**라 렌더러의 단위 의미가 안 바뀐다 — DOM은 계속 cqmin,
+ *    canvas는 계속 minDim을 곱한다. CSS로 sqrt(cqw*cqh)를 못 쓰므로 이게 유일한 락스텝 해법.
+ */
+export function titleUnit(aspect: number): number {
+  const r = Math.sqrt(Math.max(aspect, 1 / aspect));
+  return Math.min(TITLE_UNIT_FMAX, 1 + TITLE_UNIT_BETA * (r - 1));
+}
+
+/** 카드 배경 알파 — 테마별. soft 값은 §compositeContrast 계약(최악 사진 양쪽에서 ≥3.0)이 정한다 */
+export const TITLE_CARD_ALPHA: Record<TitleBg, { light: number; dark: number }> = {
+  solid: { light: 0.96, dark: 0.94 },
+  soft: { light: 0.55, dark: 0.55 },
+  clear: { light: 0, dark: 0 },
+};
+/** 카드 바탕색 — themeFor의 cardBg가 이 값에서 파생된다(정의 중복 제거) */
+export const TITLE_CARD_HEX = { light: '#FFFFFF', dark: '#141312' };
+export const TITLE_BORDER_HEX = { light: '#1C1B19', dark: '#FFFFFF' };
+export const TITLE_BORDER_ALPHA = { light: 0.06, dark: 0.1 };
+/** 투명 배경일 때 글자 그림자 — minDim 비례. DOM textShadow ↔ canvas shadow*가 같은 수치를 쓴다 */
+export const TITLE_SHADOW = { blur: 0.018, dy: 0.004, alpha: 0.55 };
+
+/** 알파 합성 위 글자의 WCAG 대비.
+ *
+ *  ⚠️ 합성은 **sRGB 감마 공간**에서 한다 — 브라우저 알파 합성도 canvas 2D 합성도 선형광이 아니다.
+ *     채널을 먼저 섞고 **그다음** 휘도를 계산해야 맞다. 선형광으로 잘못 계산하면 다크 반투명이
+ *     2.09로 나와 알파를 0.75까지 올리게 되고, "반투명인데 거의 불투명"이 된다. */
+export function compositeContrast(
+  cardHex: string,
+  alpha: number,
+  behindHex: string,
+  inkHex: string,
+): number {
+  const rgb = (hex: string) => {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    return [
+      parseInt(full.slice(0, 2), 16),
+      parseInt(full.slice(2, 4), 16),
+      parseInt(full.slice(4, 6), 16),
+    ];
+  };
+  const a = rgb(cardHex);
+  const b = rgb(behindHex);
+  const mix = a.map((v, i) => Math.round(v * alpha + b[i] * (1 - alpha)));
+  const hex = '#' + mix.map((v) => v.toString(16).padStart(2, '0')).join('');
+  return contrastRatio(hex, inkHex);
+}
+
+export interface TitleConfig {
+  style: TitleStyle;
+  anchor: TitleAnchor;
+  dir: TitleDir;
+  parts: TitleParts;
+  bg: TitleBg;
+  ink: TitleInkMode;
+  scale: number;
+  /** 자유 좌표(카드 좌상단, 0..1). 있으면 anchor를 무시한다 */
+  pos?: { x: number; y: number };
+}
+
+export interface TitleLine {
+  kind: 'label' | 'year';
+  /** 글자 기준점 (보드 0..1) — align 기준 */
+  x: number;
+  /** 세로 중심선 (보드 0..1) — DOM은 translateY(-50%), canvas는 textBaseline='middle' */
+  cy: number;
+  align: 'left' | 'center' | 'right';
+  /** 폰트 크기 — minDim 비례 (DOM cqmin, canvas minDim×값). 배율·정규화가 이미 반영돼 있다 */
+  size: number;
+  tracking: number;
+  font: 'sans' | 'script';
+  weight: 600 | 700;
+  color: string;
+}
+
+export interface TitleLayout {
+  /** parts==='none'이면 false — 두 렌더러 모두 아무것도 그리지 않는다 */
+  visible: boolean;
+  box: { x: number; y: number; w: number; h: number };
+  /** 모서리 반경 — minDim 비례 */
+  radius: number;
+  /** 카드 색 (알파 포함). alpha 0이면 카드를 아예 안 그린다 */
+  card: { color: string; alpha: number };
+  border: { color: string; alpha: number };
+  /** 글자 그림자 — blur·dy는 minDim 비례. 카드가 투명할 때만 있다 */
+  shadow?: { blur: number; dy: number; color: string };
+  /** 어두운 바탕인가 — 사진 그림자/링 전환에 쓰인다 */
+  dark: boolean;
+  lines: TitleLine[];
+  /** 실제 적용된 배율 (상한에 걸려 요청보다 작을 수 있다) — 리사이즈 UI가 한계를 알린다 */
+  effScale: number;
+}
+
+/** 스타일 = 타이포 정체성만. 카드 크기는 여기서 정하지 않는다(내용에서 계산) */
+const TITLE_TYPE: Record<
+  TitleStyle,
+  { labelRatio: number; yearRatio: number; tracking: number; align: 'left' | 'center'; dir: TitleDir; radius: number }
+> = {
+  band: { labelRatio: 0.031, yearRatio: 0.072, tracking: 0.42, align: 'center', dir: 'v', radius: 0.008 },
+  bold: { labelRatio: 0.022, yearRatio: 0.088, tracking: 0.2, align: 'left', dir: 'v', radius: 0.008 },
+  line: { labelRatio: 0.026, yearRatio: 0.038, tracking: 0.34, align: 'center', dir: 'h', radius: 0.012 },
+};
+
+const clamp01 = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/** 기본 카드 배경 (v11) — v10은 solid였다. 거의 불투명한 카드가 사진 한 장을 통째로 덮는 게
+ *  오너가 제기한 문제라 기본을 반투명으로 내렸다. 최악 사진 양쪽에서 대비 ≥3.0은 계약으로 고정 */
+export const TITLE_DEFAULT_BG: TitleBg = 'soft';
+
+/** 저장값(기기별 위치 + 전역 모양)을 화이트리스트 검증해 완전한 설정으로 접는다.
+ *  미설정 필드는 **템플릿 기본값**으로 — 그래야 세 템플릿이 계속 서로 달라 보인다
+ *  (collageBgColor가 TEMPLATE_DEFAULT_BG로 접히는 것과 같은 계약) */
+export function resolveTitleConfig(
+  saved: { anchor?: string; pos?: { x?: number; y?: number } | null } | undefined,
+  global:
+    | { style?: string; dir?: string; parts?: string; bg?: string; ink?: string; scale?: number }
+    | undefined,
+  template: CollageTemplateId,
+): TitleConfig {
+  const d = TEMPLATE_TITLE_DEFAULT[template];
+  const style = TITLE_STYLES.includes(global?.style as TitleStyle) ? (global!.style as TitleStyle) : d.style;
+  const anchor = TITLE_ANCHORS.includes(saved?.anchor as TitleAnchor) ? (saved!.anchor as TitleAnchor) : d.anchor;
+  const p = saved?.pos;
+  const pos =
+    p && Number.isFinite(p.x) && Number.isFinite(p.y) ? { x: Number(p.x), y: Number(p.y) } : undefined;
+  return {
+    style,
+    anchor,
+    dir: TITLE_DIRS.includes(global?.dir as TitleDir) ? (global!.dir as TitleDir) : TITLE_TYPE[style].dir,
+    parts: TITLE_PARTS.includes(global?.parts as TitleParts) ? (global!.parts as TitleParts) : 'all',
+    bg: TITLE_BGS.includes(global?.bg as TitleBg) ? (global!.bg as TitleBg) : TITLE_DEFAULT_BG,
+    ink: TITLE_INK_MODES.includes(global?.ink as TitleInkMode) ? (global!.ink as TitleInkMode) : 'auto',
+    scale: Number.isFinite(global?.scale)
+      ? clamp01(Number(global!.scale), TITLE_SCALE_MIN, TITLE_SCALE_MAX)
+      : 1,
+    pos,
+  };
+}
+
+/**
+ * 반투명·투명 카드의 라벨 잉크.
+ *
+ * ⚠️ v10의 라벨 회색(#6E6962 / #C4C2BE)을 그대로 쓰면 안 된다 — 그건 **거의 불투명한** 카드
+ *    위에서만 성립하는 색이다. 반투명 카드 뒤로 검은 사진이 비치면 대비가 1.62까지 떨어진다
+ *    (verify-title ⑩이 실제로 잡아낸 값). 반투명에서는 보조 텍스트도 본문급 잉크여야 한다.
+ */
+const TITLE_LABEL_INK_TRANSLUCENT = { light: '#3A3733', dark: '#EDEBE8' };
+
+function resolveTitleInk(cfg: TitleConfig, bgHex: string): TitleInk {
+  if (cfg.ink === 'light') {
+    return { title: '#FFFFFF', label: TITLE_LABEL_INK_TRANSLUCENT.dark, dark: true };
+  }
+  if (cfg.ink === 'dark') {
+    return { title: '#1C1B19', label: TITLE_LABEL_INK_TRANSLUCENT.light, dark: false };
+  }
+  // auto — 카드가 없으면 뒤가 사진이다. 사진 휘도는 알 수 없으므로(픽셀 샘플링은 DOM에서
+  // 교차출처 때문에 불가능하고, canvas만 가능하면 두 렌더러가 갈린다) 적중률이 가장 높은
+  // 흰 글자 + 어두운 그림자로 간다.
+  if (cfg.bg === 'clear') {
+    return { title: '#FFFFFF', label: TITLE_LABEL_INK_TRANSLUCENT.dark, dark: true };
+  }
+  const base = titleInkFor(bgHex);
+  if (cfg.bg === 'solid') return base;
+  return { ...base, label: base.dark ? TITLE_LABEL_INK_TRANSLUCENT.dark : TITLE_LABEL_INK_TRANSLUCENT.light };
+}
+
+/**
+ * 타이틀 카드의 기하·색 일체. DOM(CollageBoard)과 canvas(wallpaper)가 **이 함수만** 호출하고
+ * 반환된 표시 리스트를 그리기만 한다 — 렌더러에 좌표 산술을 두면 조용히 갈라진다.
+ *
+ * ⚠️ 카드 배경에 backdrop-filter를 쓰지 말 것 — canvas로 재현할 수 없다. 불투명/반투명 단색만.
+ */
+export function titleLayoutFor(cfg: TitleConfig, aspect: number, bgHex: string): TitleLayout {
+  const T = TITLE_TYPE[cfg.style];
+  const ink = resolveTitleInk(cfg, bgHex);
+  // ⚠️ 카드 색은 **보드 테마**를 따른다 — 글자색 수동 반전(ink: light/dark)이 카드까지 뒤집으면
+  //    "글자만 밝게" 같은 의도가 카드 반전으로 새어 나간다
+  const themeKey = relativeLuminance(bgHex) < 0.45 ? 'dark' : 'light';
+  const card = { color: TITLE_CARD_HEX[themeKey], alpha: TITLE_CARD_ALPHA[cfg.bg][themeKey] };
+  const border = {
+    color: TITLE_BORDER_HEX[themeKey],
+    alpha: cfg.bg === 'clear' ? 0 : TITLE_BORDER_ALPHA[themeKey],
+  };
+  const shadow =
+    cfg.bg === 'clear'
+      ? {
+          blur: TITLE_SHADOW.blur,
+          dy: TITLE_SHADOW.dy,
+          color: ink.dark ? `rgba(0,0,0,${TITLE_SHADOW.alpha})` : `rgba(255,255,255,${TITLE_SHADOW.alpha})`,
+        }
+      : undefined;
+
+  const nx = minDimNormX(aspect);
+  const ny = minDimNormY(aspect);
+
+  if (cfg.parts === 'none') {
+    return {
+      visible: false,
+      box: { x: 0, y: 0, w: 0, h: 0 },
+      radius: 0,
+      card: { color: card.color, alpha: 0 },
+      border: { color: border.color, alpha: 0 },
+      dark: ink.dark,
+      lines: [],
+      effScale: 0,
+    };
+  }
+
+  const showLabel = cfg.parts === 'all' || cfg.parts === 'label';
+  const showYear = cfg.parts === 'all' || cfg.parts === 'year';
+
+  // ── 배율 1에서의 내용 치수 (minDim 단위) ──
+  const l1 = T.labelRatio;
+  const y1 = T.yearRatio;
+  const labelAdv1 = l1 * (TITLE_LABEL_ADVANCE_EM + T.tracking * TITLE_LABEL_CHARS);
+  const yearAdv1 = y1 * TITLE_YEAR_ADVANCE_EM * 4;
+  const labelH1 = l1 * TITLE_INK_H_SANS;
+  const yearH1 = y1 * TITLE_INK_H_SCRIPT;
+  const gap1 = showLabel && showYear ? (cfg.dir === 'v' ? TITLE_GAP_V : TITLE_GAP_H) * l1 : 0;
+
+  const wIn1 =
+    cfg.dir === 'v'
+      ? Math.max(showLabel ? labelAdv1 : 0, showYear ? yearAdv1 : 0)
+      : (showLabel ? labelAdv1 : 0) + gap1 + (showYear ? yearAdv1 : 0);
+  const hIn1 =
+    cfg.dir === 'v'
+      ? (showLabel ? labelH1 : 0) + gap1 + (showYear ? yearH1 : 0)
+      : Math.max(showLabel ? labelH1 : 0, showYear ? yearH1 : 0);
+
+  const W1 = (wIn1 + 2 * TITLE_PAD_X) * nx;
+  const H1 = (hIn1 + 2 * TITLE_PAD_Y) * ny;
+
+  // 상한은 박스를 자르는 게 아니라 **배율을 낮춰서** 지킨다
+  const want = clamp01(cfg.scale, TITLE_SCALE_MIN, TITLE_SCALE_MAX) * TITLE_BASE_SCALE * titleUnit(aspect);
+  const eff = Math.min(want, TITLE_W_CAP / W1, TITLE_H_CAP / H1);
+
+  const w = W1 * eff;
+  const h = H1 * eff;
+  const padX = TITLE_PAD_X * eff * nx;
+  const padY = TITLE_PAD_Y * eff * ny;
+  const insetX = TITLE_INSET * nx;
+  const insetY = TITLE_INSET * ny;
+
+  // pos가 있으면 자유 좌표. ⚠️ 클램프를 여기서 하므로 aspect가 바뀌거나(기기 프리셋 변경)
+  //   스타일 변경으로 카드가 커져도 보드 밖으로 나가지 않는다 — 호출부 방어코드 불필요
+  const col = cfg.anchor[1];
+  const row = cfg.anchor[0];
+  const x = cfg.pos
+    ? clamp01(cfg.pos.x, 0, Math.max(0, 1 - w))
+    : col === 'l'
+      ? insetX
+      : col === 'r'
+        ? 1 - insetX - w
+        : (1 - w) / 2;
+  const y = cfg.pos
+    ? clamp01(cfg.pos.y, 0, Math.max(0, 1 - h))
+    : row === 't'
+      ? insetY
+      : row === 'b'
+        ? 1 - insetY - h
+        : (1 - h) / 2;
+
+  const labelSize = l1 * eff;
+  const yearSize = y1 * eff;
+  const labelH = labelH1 * eff * ny;
+  const yearH = yearH1 * eff * ny;
+  const gap = gap1 * eff * ny;
+
+  const lines: TitleLine[] = [];
+  const both = showLabel && showYear;
+
+  if (cfg.dir === 'h') {
+    // 한 줄에 나란히 — 박스가 내용을 딱 감싸므로 space-between이 곧 인접 배치다
+    const cy = y + h / 2;
+    if (showLabel) {
+      lines.push({
+        kind: 'label',
+        x: x + padX,
+        cy,
+        align: 'left',
+        size: labelSize,
+        tracking: T.tracking,
+        font: 'sans',
+        weight: 600,
+        color: ink.label,
+      });
+    }
+    if (showYear) {
+      lines.push({
+        kind: 'year',
+        x: both ? x + w - padX : x + w / 2,
+        cy,
+        align: both ? 'right' : 'center',
+        size: yearSize,
+        tracking: 0,
+        font: 'script',
+        weight: 700,
+        color: ink.title,
+      });
+    }
+  } else {
+    const lineX = T.align === 'left' ? x + padX : x + w / 2;
+    const align: 'left' | 'center' = T.align === 'left' ? 'left' : 'center';
+    if (showLabel) {
+      lines.push({
+        kind: 'label',
+        x: lineX,
+        cy: both ? y + padY + labelH / 2 : y + h / 2,
+        align,
+        size: labelSize,
+        tracking: T.tracking,
+        font: 'sans',
+        weight: 600,
+        color: ink.label,
+      });
+    }
+    if (showYear) {
+      lines.push({
+        kind: 'year',
+        x: lineX,
+        cy: both ? y + padY + labelH + gap + yearH / 2 : y + h / 2,
+        align,
+        size: yearSize,
+        tracking: 0,
+        font: 'script',
+        weight: 700,
+        color: ink.title,
+      });
+    }
+  }
+
+  return {
+    visible: true,
+    box: { x, y, w, h },
+    radius: T.radius * eff,
+    card,
+    border,
+    shadow,
+    dark: ink.dark,
+    lines,
+    effScale: eff,
+  };
+}
+
+/** 자유 좌표를 가장 가까운 9점 앵커로 되돌린다 ('깔끔한 자리로') */
+export function nearestAnchor(box: { x: number; y: number; w: number; h: number }): TitleAnchor {
+  const cx = box.x + box.w / 2;
+  const cy = box.y + box.h / 2;
+  const col = cx < 1 / 3 ? 'l' : cx > 2 / 3 ? 'r' : 'c';
+  const row = cy < 1 / 3 ? 't' : cy > 2 / 3 ? 'b' : 'm';
+  return `${row}${col}` as TitleAnchor;
+}

@@ -1,5 +1,7 @@
 import { BoardData, CollageLayout, CollageSticker, CollageTemplate, SectionData, SectionId, ChatMessage, ExtractedSlots } from './types';
 import { STORY_PROMPT_VERSION } from './milestone';
+import { TEMPLATE_TITLE_DEFAULT } from './collageTokens';
+import { normalizeTemplate } from './collageTemplates';
 import { bumpBoardRev } from './syncStamp';
 
 const STORAGE_KEY = 'vision-board-data';
@@ -100,6 +102,24 @@ function migrateCollage(board: BoardData): void {
   if (!board.collageDevicePresets && board.collageDeviceLayouts) {
     board.collageDevicePresets = { phone: 'phone', desktop: 'pc-fhd' };
     dirty = true;
+  }
+
+  // v11: v10에서 배치마다 골라 저장하던 타이틀 스타일을 전역으로 승격한다.
+  // ⚠️ collageTitle이 이미 있으면 절대 건드리지 않는다 — 사용자가 고른 전역값을 조용히 빼앗지 않게.
+  // 템플릿 기본값과 같은 스타일은 승격하지 않는다: "고른 적 없음"과 구분할 수 없으므로,
+  // 미설정으로 두어 템플릿별 기본이 계속 살아 있게 하는 쪽이 정직하다.
+  if (!board.collageTitle) {
+    const tpl = normalizeTemplate(board.collageTemplate);
+    const seen = [
+      board.collageDeviceLayouts?.desktop?.[tpl],
+      board.collageDeviceLayouts?.phone?.[tpl],
+      board.collageLayouts?.[tpl],
+    ];
+    const style = seen.find((l) => l?.title?.style)?.title?.style;
+    if (style && style !== TEMPLATE_TITLE_DEFAULT[tpl].style) {
+      board.collageTitle = { style };
+      dirty = true;
+    }
   }
 
   if (dirty) saveBoard(board);
@@ -389,6 +409,14 @@ export function saveCollageTemplate(template: CollageTemplate): void {
 export function saveCollageBgColor(hex: string): void {
   const board = loadBoard();
   board.collageBgColor = hex;
+  saveBoard(board);
+}
+
+/** 타이틀 **모양** 부분 갱신 (v11) — 배경색과 같은 전역 축.
+ *  위치는 여기가 아니라 CollageLayout.title에 기기·템플릿별로 저장된다 */
+export function saveCollageTitle(patch: NonNullable<BoardData['collageTitle']>): void {
+  const board = loadBoard();
+  board.collageTitle = { ...board.collageTitle, ...patch };
   saveBoard(board);
 }
 

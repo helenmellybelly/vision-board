@@ -7,6 +7,7 @@
 //    여백 수치로만 구분하면 (a) 사진이 작아지거나 (b) 차이를 못 느낀다 — v9의 모자이크↔미니멀이
 //    갭 0.025 vs 0.03 차이뿐이라 사실상 같은 템플릿이었던 게 그 증거다.
 import {
+  BoardData,
   CollageLayout,
   CollageLayoutItem,
   CollageSticker,
@@ -18,12 +19,11 @@ import {
   BG_PALETTE,
   TEMPLATE_DEFAULT_BG,
   TEMPLATE_TITLE_DEFAULT,
-  TitleAnchor,
-  TitleStyle,
+  TitleConfig,
   isLandscape,
   normalizeBgColor,
-  normalizeTitle,
   regionFor,
+  resolveTitleConfig,
   titleInkFor,
 } from './collageTokens';
 import { SolveItem, layoutSpec, solveTemplate } from './collageSolve';
@@ -69,27 +69,15 @@ export interface CollageTheme {
   titleInk: string;
   /** "VISION BOARD" 라벨 글자색 */
   labelInk: string;
-  /** 타이틀 카드 배경 — 사진 위에 얹히므로 반드시 불투명 계열이어야 글자가 읽힌다.
-   *  ⚠️ backdrop-filter 금지 — canvas로 재현할 수 없어 화면과 저장 이미지가 갈라진다 */
-  cardBg: string;
-  /** 카드 테두리 (흰 배경에서 카드가 사라지지 않게) */
-  cardBorder: string;
 }
 
-/** 템플릿 + 사용자가 고른 배경색 → 렌더 테마. DOM·canvas가 이 함수 하나만 호출해 락스텝을 지킨다 */
+/** 템플릿 + 사용자가 고른 배경색 → 렌더 테마. DOM·canvas가 이 함수 하나만 호출해 락스텝을 지킨다.
+ *  ⚠️ 타이틀 카드의 색·알파는 여기 없다 — titleLayoutFor가 배경 모드(불투명/반투명/투명)에 따라
+ *  내려준다(v11). 두 곳이 각자 들고 있으면 반투명 옵션이 화면에만 먹고 저장 이미지엔 안 먹는다 */
 export function themeFor(template: CollageTemplate, bgColor?: string): CollageTheme {
   const bg = normalizeBgColor(bgColor, template);
   const ink = titleInkFor(bg);
-  return {
-    bg,
-    frame: 'rounded',
-    dark: ink.dark,
-    titleInk: ink.title,
-    labelInk: ink.label,
-    // 거의 불투명 — 92%로 두면 카드 뒤 사진 사이 이음매가 비쳐 렌더 결함처럼 보인다(실측)
-    cardBg: ink.dark ? 'rgba(20,19,18,0.94)' : 'rgba(255,255,255,0.96)',
-    cardBorder: ink.dark ? 'rgba(255,255,255,0.14)' : 'rgba(28,27,25,0.10)',
-  };
+  return { bg, frame: 'rounded', dark: ink.dark, titleInk: ink.title, labelInk: ink.label };
 }
 
 export { BG_PALETTE, TEMPLATE_DEFAULT_BG, normalizeBgColor };
@@ -104,12 +92,14 @@ export function normalizeTemplate(t: string | undefined): CollageTemplate {
   return TEMPLATE_ORDER.includes(t as CollageTemplate) ? (t as CollageTemplate) : DEFAULT_TEMPLATE;
 }
 
-/** 타이틀 앵커·스타일 — 저장값이 없으면 템플릿 기본값 */
+/** 타이틀 설정 — 기기별 위치(saved) + 전역 모양(global)을 하나로 접는다 (v11).
+ *  둘 다 없으면 템플릿 기본값이라 기존 사용자는 지금과 같은 자리에서 시작한다 */
 export function titleFor(
   template: CollageTemplate,
-  saved: { anchor?: string; style?: string } | undefined,
-): { anchor: TitleAnchor; style: TitleStyle } {
-  return normalizeTitle(saved, template);
+  saved: CollageLayout['title'],
+  global?: BoardData['collageTitle'],
+): TitleConfig {
+  return resolveTitleConfig(saved, global, template);
 }
 
 // ── 스티커 ──

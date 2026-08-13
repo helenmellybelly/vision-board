@@ -151,8 +151,18 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   const bd = boardOf(page, 'phone');
   await bd.click({ position: { x: 12, y: 12 } });
   await page.waitForTimeout(600);
-  // 편집 모드에서 사진(첫 img)을 탭 → 액션 칩
-  await bd.locator('img').first().click({ force: true });
+  // 편집 모드에서 사진을 탭 → 액션 칩.
+  // ⚠️ 요소 중심(기본 클릭 지점)을 쓰면 안 된다 — 사진 1장이면 보드 정중앙이 곧 사진 중심이고,
+  //    거기에는 타이틀 글자가 얹혀 있다(v11부터 편집 모드에서 글자가 드래그 핸들이다).
+  //    이 케이스가 보려는 건 '지우기 칩이 뜨는가'지 '정중앙이 사진 탭인가'가 아니므로
+  //    타이틀을 비껴간 지점을 찍는다
+  // ⚠️ 셀렉터도 `img`가 아니라 `img[data-photo]`여야 한다 — 사진 1장이면 뒤에 **앰비언트 블러**
+  //    배경 img가 깔리고 그게 DOM 첫 img다(보드보다 크다). 예전엔 그 중심 클릭이 타이틀을
+  //    그대로 통과해 사진에 닿았을 뿐이라 우연히 통과하고 있었다
+  {
+    const pb = await bd.locator('img[data-photo]').first().boundingBox();
+    await page.mouse.click(pb.x + pb.width * 0.72, pb.y + pb.height * 0.25);
+  }
   await page.waitForTimeout(400);
   ok('V-6a 액션 칩(지우기) 노출', await page.getByRole('button', { name: '사진 지우기' }).isVisible().catch(() => false));
   await page.getByRole('button', { name: '사진 지우기' }).click();
@@ -171,8 +181,9 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   const bd = boardOf(page, 'phone');
   await bd.click({ position: { x: 12, y: 12 } });
   await page.waitForTimeout(600);
-  const beforeBox = await bd.locator('img').first().boundingBox();
-  await bd.locator('img').first().click({ force: true });
+  // V-6과 같은 이유 — 앰비언트 배경 img가 아니라 사진을, 타이틀 글자를 비껴간 지점에서 탭한다
+  const beforeBox = await bd.locator('img[data-photo]').first().boundingBox();
+  await page.mouse.click(beforeBox.x + beforeBox.width * 0.72, beforeBox.y + beforeBox.height * 0.25);
   await page.waitForTimeout(400);
   await page.getByRole('button', { name: '사진 바꾸기' }).click();
   await page.waitForTimeout(400);
@@ -189,7 +200,7 @@ const boardOf = (page, view) => page.locator(`[data-testid="collage-board"][data
   await page.waitForTimeout(800);
   const sec = await readSection(page, 1);
   ok('V-7c 같은 슬롯에 교체 저장', sec.uploadedImages?.[0] === PIXEL2);
-  const afterBox = await bd.locator('img').first().boundingBox();
+  const afterBox = await bd.locator('img[data-photo]').first().boundingBox();
   ok(
     'V-7d 배치(위치·크기) 유지',
     !!beforeBox && !!afterBox && Math.abs(beforeBox.x - afterBox.x) < 2 && Math.abs(beforeBox.width - afterBox.width) < 2,

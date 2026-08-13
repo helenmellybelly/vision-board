@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { CollageLayout, CollageLayoutItem, CollageSticker, CollageTemplate } from '@/lib/types';
+import { BoardData, CollageLayout, CollageLayoutItem, CollageSticker, CollageTemplate } from '@/lib/types';
 import {
   ASPECT,
   CollageItem,
@@ -21,11 +21,12 @@ import {
 import {
   AMBIENT_SCALE,
   AMBIENT_SCRIM_ALPHA,
-  TITLE_ANCHORS,
-  TITLE_STYLES,
+  TITLE_LABEL_TEXT,
+  TITLE_SCALE_MAX,
+  TITLE_SCALE_MIN,
   TitleAnchor,
-  TitleStyle,
-  titleBoxFor,
+  nearestAnchor,
+  titleLayoutFor,
 } from '@/lib/collageTokens';
 import { bumpRowInSpec } from '@/lib/collageJustify';
 import { ICONS, isIconId } from '@/lib/stickerArt';
@@ -34,6 +35,7 @@ import { SectionId } from '@/lib/types';
 import { displaySrc } from '@/lib/imageSrc';
 import EditableYear from './EditableYear';
 import StickerSheet from './StickerSheet';
+import TitleSheet from './TitleSheet';
 import Lightbox from '@/components/Lightbox';
 
 interface Props {
@@ -57,6 +59,11 @@ interface Props {
   onBrokenChange?: (keys: string[]) => void;
   /** 보드 배경색 (v9.0) — 세 템플릿 공통. 없으면 템플릿 기본색 */
   bgColor?: string;
+  /** 타이틀 **모양** 전역 설정 (v11) — 배경색과 같은 축이라 보드 배치가 아니라 BoardData에 산다.
+   *  위치만 layout.title에 기기·템플릿별로 저장된다 */
+  titleGlobal?: BoardData['collageTitle'];
+  /** 전역 타이틀 설정 변경 — 부모(app/collage/page.tsx)가 saveCollageTitle로 잇는다 */
+  onTitleGlobalChange?: (patch: NonNullable<BoardData['collageTitle']>) => void;
 }
 
 // 사진 키 `${sectionId}-${slotIdx}` → 출처 섹션 배지 (v8.1 편집 모드)
@@ -70,13 +77,14 @@ function sectionBadge(key: string): { color: string; label: string } | null {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-// 타이틀 앵커·스타일 접근성 라벨 (v10) — 9칸 격자는 시각적으로만 위치를 알려주므로 aria가 필수다
-const ANCHOR_LABELS: Record<TitleAnchor, string> = {
-  tl: '왼쪽 위', tc: '가운데 위', tr: '오른쪽 위',
-  ml: '왼쪽 가운데', mc: '정중앙', mr: '오른쪽 가운데',
-  bl: '왼쪽 아래', bc: '가운데 아래', br: '오른쪽 아래',
-};
-const STYLE_LABELS: Record<TitleStyle, string> = { band: '밴드', bold: '볼드', line: '라인' };
+/** #RRGGBB + 알파 → rgba(). canvas(withAlpha)와 같은 규칙이라 타이틀 카드 색이 락스텝이다 */
+function rgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
 const TAP_THRESHOLD = 8; // px — 이 이하 움직임은 탭으로 간주 (스크롤/드래그와 구분)
 const ROT_MAX = 30; // 회전 클램프(±도) — 경계 수학이 감당 가능한 범위
 const ROT_SNAP = 3; // 이 이하는 0°로 스냅
@@ -92,13 +100,22 @@ function rotatedPad(it: CollageLayoutItem, hNorm: number, aspect: number): { pad
   return { padX: Math.max(0, (bw - it.w) / 2), padY: Math.max(0, (bh - hNorm) / 2) };
 }
 
+/** 타이틀 카드의 드래그 키 — items 맵에 넣지 않는다 (v11).
+ *  넣으면 photoAtPoint·withStickers·resolveLayout·applySpec·wallpaper z정렬·bringToFront·
+ *  isLayoutBroken 일곱 곳이 전부 이걸 사진으로 오인한다. 하나만 놓쳐도 조용한 데이터 손상이라,
+ *  드래그 엔진에 분기 하나를 두는 쪽이 훨씬 안전하다. 좌표는 layout.title.pos에 산다 */
+const TITLE_KEY = 'title';
+
 interface DragState {
   key: string;
   mode: 'move' | 'resize' | 'rotate';
   startX: number;
   startY: number;
   maxDist: number;
-  item: CollageLayoutItem;
+  /** 타이틀 드래그에는 items 항목이 없다 */
+  item?: CollageLayoutItem;
+  /** 타이틀 드래그 시작 상태 (v11) — 카드 좌상단·폭·배율 */
+  titleStart?: { x: number; y: number; w: number; scale: number };
   /** rotate 모드 — 항목 중심(px)과 시작 각도 */
   centerX?: number;
   centerY?: number;
@@ -195,6 +212,7 @@ function StickerView({
 export default function CollageBoard({
   template, items, layout, onLayoutChange, year, onYearChange, aspect = ASPECT,
   view, active, onEditingChange, onRequestReplace, onRequestRemove, onBrokenChange, bgColor,
+  titleGlobal, onTitleGlobalChange,
 }: Props) {
   // 배경색은 세 템플릿 공통 — canvas(lib/wallpaper.ts)도 같은 themeFor()를 호출한다 (v9.0 락스텝)
   const theme = themeFor(template, bgColor);
@@ -222,8 +240,12 @@ export default function CollageBoard({
   const [previewLayout, setPreviewLayout] = useState<Record<string, CollageLayoutItem> | null>(null);
   // 드래그 중 자리를 맞바꿀 대상 (v9.0) — 정렬 모드의 이동은 좌표 이동이 아니라 스왑이다
   const [swapTarget, setSwapTarget] = useState<string | null>(null);
-  // 타이틀 위치·스타일 패널 열림 (v10)
-  const [titlePanel, setTitlePanel] = useState(false);
+  // 타이틀 설정 시트 열림 (v11) — v10의 보드 안 9점 패널을 대체한다.
+  // 컨트롤이 6종으로 늘어 모바일 보드 폭(약 294px)에 얹으면 보드를 거의 다 가린다
+  const [titleSheet, setTitleSheet] = useState(false);
+  // 리사이즈 드래그 중 미리보기 배율 (v11) — 배율은 전역(BoardData)이라 live에 없다.
+  // 드래그가 끝나야 onTitleGlobalChange로 커밋한다
+  const [titleScaleDraft, setTitleScaleDraft] = useState<number | null>(null);
 
   // 편집 상태 전환은 이 함수로만 — 부모(나란히 배타 편집)에 항상 통지 (v8.1)
   function switchEditing(next: boolean) {
@@ -314,6 +336,15 @@ export default function CollageBoard({
     // v10은 풀블리드라 사진이 보드 가장자리에 붙어 있어(마지막 행의 ⤡ 핸들은 보드 하단에 있다)
     // 아래로 조금만 끌어도 바로 이탈한다 — 실측으로 확인한 결함이다. 드래그의 주인은 보드다.
     (boardRef.current ?? (e.currentTarget as HTMLElement)).setPointerCapture(e.pointerId);
+    // 타이틀은 items에 없고 z도 없다(항상 맨 위) — bringToFront를 건너뛴다
+    if (key === TITLE_KEY) {
+      dragRef.current = {
+        key, mode, startX: e.clientX, startY: e.clientY, maxDist: 0,
+        titleStart: { x: titleLayout.box.x, y: titleLayout.box.y, w: titleLayout.box.w, scale: titleCfg.scale },
+        baseItems: liveRef.current.items,
+      };
+      return;
+    }
     // 회전은 z를 건드리지 않는다 — '맨 뒤로' 보낸 항목이 회전만으로 다시 앞으로 오지 않게
     const next = mode === 'rotate' ? liveRef.current : bringToFront(key);
     const drag: DragState = {
@@ -324,7 +355,7 @@ export default function CollageBoard({
     if (mode === 'rotate') {
       const rect = boardRef.current?.getBoundingClientRect();
       if (rect) {
-        const it = drag.item;
+        const it = drag.item!;
         const hNorm = it.h ?? it.w * aspect;
         drag.centerX = rect.left + (it.x + it.w / 2) * rect.width;
         drag.centerY = rect.top + (it.y + hNorm / 2) * rect.height;
@@ -344,7 +375,27 @@ export default function CollageBoard({
     drag.maxDist = Math.max(drag.maxDist, Math.abs(dxPx), Math.abs(dyPx));
     const dx = dxPx / rect.width;
     const dy = dyPx / rect.height;
-    const it = drag.item;
+
+    // ── 타이틀 (v11) ──
+    // ⚠️ 여기서 반드시 return — 아래 스왑/고스트 프리뷰 경로에 흘러가면 spec이 없는 키로
+    //    swapPhotos를 부르게 되어 배치가 조용히 깨진다
+    if (drag.key === TITLE_KEY) {
+      const st = drag.titleStart!;
+      if (drag.mode === 'move') {
+        // 경계 클램프는 titleLayoutFor가 읽기 시점에 한다 — 원시 좌표만 넘긴다
+        commitLive((prev) => ({
+          ...prev,
+          title: { ...prev.title, pos: { x: st.x + dx, y: st.y + dy } },
+        }));
+      } else {
+        // 시작 폭 대비 증가율이 곧 배율. 대각 두 성분의 평균으로 방향 노이즈를 줄인다
+        const grow = 1 + (dx + dy * (rect.height / rect.width)) / 2 / Math.max(st.w, 0.02);
+        setTitleScaleDraft(clamp(st.scale * grow, TITLE_SCALE_MIN, TITLE_SCALE_MAX));
+      }
+      return;
+    }
+
+    const it = drag.item!;
     const isSticker = drag.key.startsWith('sticker:');
     const hNorm = it.h ?? it.w * aspect;
     let next: CollageLayoutItem;
@@ -436,6 +487,19 @@ export default function CollageBoard({
     setSwapTarget(null);
     const isSticker = drag.key.startsWith('sticker:');
     const moved = drag.maxDist >= TAP_THRESHOLD;
+
+    // ── 타이틀 (v11) ── 위치는 배치에, 배율은 전역에. 스왑 경로에 진입하지 않는다
+    if (drag.key === TITLE_KEY) {
+      if (drag.mode === 'resize') {
+        if (titleScaleDraft !== null) setTitleGlobal({ scale: titleScaleDraft });
+        setTitleScaleDraft(null);
+      } else if (moved) {
+        saveEdited(liveRef.current);
+      } else {
+        setTitleSheet(true); // 움직이지 않고 탭 → 설정 시트
+      }
+      return;
+    }
 
     // ── 정렬 모드 (v10) ──
     // 이동=스왑, 리사이즈=행 경계 이동. 좌표를 자유롭게 바꾸는 경로가 없으므로 배치는 깨질 수 없다 —
@@ -560,7 +624,9 @@ export default function CollageBoard({
     // kitRemoved를 넘기지 않는 게 의도다 (v10): '기본 배치로'는 지운 기본 스티커까지 되살린다 —
     // 그게 "기본으로 돌아간다"의 정직한 의미이고, 킷을 실수로 지운 사용자의 유일한 복구 동선이다
     setPhotoAction(null);
-    setTitlePanel(false);
+    setTitleSheet(false);
+    // ⚠️ 타이틀 **모양**(전역 collageTitle)은 건드리지 않는다 — 배경색이 '기본 배치로'에
+    //    영향받지 않는 것과 같은 계약. 위치는 시드에 title이 없어 템플릿 기본 앵커로 돌아간다
     save(seedLayout(template, items, aspect));
   }
 
@@ -609,12 +675,22 @@ export default function CollageBoard({
     setSheet({ open: false });
   }
 
-  // 타이틀 카드 (v10) — 상단 예약 밴드를 없애고 사진 위에 얹는다. 기하는 collageTokens가
-  // 단일 소스라 canvas(lib/wallpaper.ts drawTitleCard)와 자동 락스텝이다
-  const titleCfg = titleFor(template, live.title);
-  const titleBox = titleBoxFor(titleCfg.style, titleCfg.anchor, aspect);
-  const setTitleCfg = (patch: { anchor?: TitleAnchor; style?: TitleStyle }) =>
-    saveEdited({ ...liveRef.current, title: { ...titleCfg, ...patch } });
+  // 타이틀 카드 (v10~v11) — 상단 예약 밴드를 없애고 사진 위에 얹는다.
+  // 기하·색은 collageTokens.titleLayoutFor가 단일 소스라 canvas(drawTitleCard)와 자동 락스텝이다.
+  // ⚠️ 여기서 좌표를 계산하지 말 것 — 표시 리스트(titleLayout.lines)를 그리기만 한다
+  const baseTitleCfg = titleFor(template, live.title, titleGlobal);
+  const titleCfg =
+    titleScaleDraft !== null ? { ...baseTitleCfg, scale: titleScaleDraft } : baseTitleCfg;
+  const titleLayout = titleLayoutFor(titleCfg, aspect, theme.bg);
+
+  /** 위치는 기기·템플릿별 — 앵커를 고르면 자유 좌표를 버린다(프리셋으로 되돌아간다) */
+  const setTitleAnchor = (anchor: TitleAnchor) =>
+    saveEdited({ ...liveRef.current, title: { anchor, pos: undefined } });
+  /** 모양은 전역 — 템플릿을 바꿔도 따라온다 */
+  const setTitleGlobal = (patch: NonNullable<BoardData['collageTitle']>) =>
+    onTitleGlobalChange?.(patch);
+  /** '깔끔한 자리로' — 지금 카드 중심에서 가장 가까운 9점으로 스냅 */
+  const snapTitleToAnchor = () => setTitleAnchor(nearestAnchor(titleLayout.box));
   // 앰비언트 배경 (v10) — 크롭 없이 꽉 채울 수 없는 배치에서만 존재한다
   const ambientSrc = spec?.ambient ? items.find((i) => i.key === spec.ambient)?.src : undefined;
 
@@ -793,50 +869,108 @@ export default function CollageBoard({
             );
           })}
 
-        {/* 타이틀 카드 (v10) — 사진 **위에** 얹힌다. v9의 상단 예약 밴드를 없앤 만큼 사진이 커졌다.
-            기하는 collageTokens.titleBoxFor가 단일 소스라 canvas drawTitleCard와 자동 락스텝.
+        {/* 타이틀 카드 (v10~v11) — 사진 **위에** 얹힌다. v9의 상단 예약 밴드를 없앤 만큼 사진이 커졌다.
+            v11부터 좌표·색을 여기서 계산하지 않는다: titleLayoutFor의 표시 리스트를 그리기만 해
+            canvas drawTitleCard와 구조적으로 락스텝이다(v10은 세로 정렬·연도 자간이 실제로 갈라져 있었다).
             ⚠️ backdrop-filter 금지 — canvas로 재현할 수 없어 화면과 저장 이미지가 갈라진다 */}
-        <div
-          data-testid="board-title"
-          className="absolute z-30 pointer-events-none flex flex-col justify-center"
-          style={{
-            left: `${titleBox.x * 100}%`,
-            top: `${titleBox.y * 100}%`,
-            width: `${titleBox.w * 100}%`,
-            height: `${titleBox.h * 100}%`,
-            padding: `0 ${titleBox.padX * 100}cqw`,
-            background: theme.cardBg,
-            border: `1px solid ${theme.cardBorder}`,
-            borderRadius: `${titleBox.radius * 100}cqmin`,
-            alignItems: titleBox.align === 'left' ? 'flex-start' : 'center',
-            ...(titleBox.stack === 'h'
-              ? { flexDirection: 'row' as const, justifyContent: 'space-between', alignItems: 'center' }
-              : {}),
-          }}
-        >
-          <p
-            className="font-semibold uppercase whitespace-nowrap"
+        {titleLayout.visible && (
+          <div
+            data-testid="board-title"
+            // ⚠️ 카드 자체는 항상 pointer-events-none (v11). 편집 모드에서 카드 전체를 잡게 두면
+            //    카드가 덮은 사진을 아예 탭할 수 없다 — V10-7a가 실제로 그렇게 깨졌다.
+            //    잡는 대상은 **보이는 글자**뿐이고, 그건 사용자가 무엇을 집는지 눈에 보인다는 뜻이기도 하다
+            className="absolute z-30 pointer-events-none"
             style={{
-              color: theme.labelInk,
-              fontSize: `${titleBox.labelRatio * 100}cqmin`,
-              letterSpacing: `${titleBox.tracking}em`,
+              left: `${titleLayout.box.x * 100}%`,
+              top: `${titleLayout.box.y * 100}%`,
+              width: `${titleLayout.box.w * 100}%`,
+              height: `${titleLayout.box.h * 100}%`,
+              background:
+                titleLayout.card.alpha > 0 ? rgba(titleLayout.card.color, titleLayout.card.alpha) : 'transparent',
+              border:
+                titleLayout.border.alpha > 0
+                  ? `1px solid ${rgba(titleLayout.border.color, titleLayout.border.alpha)}`
+                  : 'none',
+              borderRadius: `${titleLayout.radius * 100}cqmin`,
+              outline: editing ? '2px dashed rgba(255,255,255,0.65)' : undefined,
+              outlineOffset: editing ? '2px' : undefined,
             }}
           >
-            Vision Board
-          </p>
-          <div
-            className="pointer-events-auto"
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-          >
-            <EditableYear
-              year={year}
-              onYearChange={onYearChange}
-              className="font-script font-bold tracking-widest"
-              style={{ color: theme.titleInk, fontSize: `${titleBox.yearRatio * 100}cqmin` }}
-            />
+            {titleLayout.lines.map((l) => {
+              const style: React.CSSProperties = {
+                position: 'absolute',
+                left: `${((l.x - titleLayout.box.x) / titleLayout.box.w) * 100}%`,
+                top: `${((l.cy - titleLayout.box.y) / titleLayout.box.h) * 100}%`,
+                transform: `translate(${l.align === 'left' ? '0' : l.align === 'right' ? '-100%' : '-50%'}, -50%)`,
+                color: l.color,
+                fontSize: `${l.size * 100}cqmin`,
+                letterSpacing: `${l.tracking}em`,
+                whiteSpace: 'nowrap',
+                textShadow: titleLayout.shadow
+                  ? `0 ${titleLayout.shadow.dy * 100}cqmin ${titleLayout.shadow.blur * 100}cqmin ${titleLayout.shadow.color}`
+                  : undefined,
+              };
+              // 편집 모드에서 **글자만** 잡는다 — 끌면 이동, 움직이지 않고 탭하면 설정 시트.
+              // ⚠️ 핸들러는 인라인 화살표로 둘 것 — 객체에 담아 prop으로 펼치면
+              //    react-hooks/refs가 "렌더 중 ref 접근"으로 잡는다(주변 핸들 코드와 같은 형태 유지)
+              const grabCls = editing ? 'pointer-events-auto cursor-move' : '';
+              const grabStyle = editing ? { ...style, touchAction: 'none' as const } : style;
+              if (l.kind === 'label') {
+                return (
+                  <span
+                    key="label"
+                    className={`font-semibold ${grabCls}`}
+                    style={grabStyle}
+                    onPointerDown={editing ? (e) => onItemPointerDown(e, TITLE_KEY, 'move') : undefined}
+                  >
+                    {TITLE_LABEL_TEXT}
+                  </span>
+                );
+              }
+              // 감상 모드에서만 연도 인라인 편집 — 편집 모드에서는 글자가 드래그 핸들이라
+              // 탭이 시트를 열어야 한다(연도는 시트 안에서 고친다)
+              return editing ? (
+                <span
+                  key="year"
+                  className={`font-script font-bold ${grabCls}`}
+                  style={grabStyle}
+                  onPointerDown={(e) => onItemPointerDown(e, TITLE_KEY, 'move')}
+                >
+                  {year}
+                </span>
+              ) : (
+                <span key="year" className="pointer-events-auto" style={style}>
+                  <EditableYear
+                    year={year}
+                    onYearChange={onYearChange}
+                    className="font-script font-bold"
+                    style={{ color: l.color, fontSize: 'inherit', letterSpacing: 'inherit' }}
+                  />
+                </span>
+              );
+            })}
+            {/* ⚠️ 핸들은 카드 **안쪽**에 둔다 (v11). 사진 핸들처럼 -bottom-2 -right-2로 띄우면
+                카드 밖 24px가 새로 클릭을 삼켜, 그 자리 사진을 탭할 수 없게 된다 —
+                verify-v10r1 V10-7a가 실제로 여기 걸렸다(사진 중심이 핸들에 가려 액션 칩이 안 열림).
+                카드가 이미 가리는 영역 안에 두면 새로 막히는 곳이 0이다 */}
+            {editing && (
+              <div
+                onPointerDown={(e) => onItemPointerDown(e, TITLE_KEY, 'resize')}
+                // ⚠️ 표식이 `data-resize-for`면 안 된다 — 그 속성은 **items 항목**(사진·스티커)의
+                //    핸들이라는 뜻이고, 기존 스위트가 `[data-resize-for]:not([...^="sticker:"])`로
+                //    사진 핸들을 고른다. 타이틀은 items에 없으므로 여기 끼면 `.last()`가 타이틀을
+                //    집어 "사진을 리사이즈했는데 아무 일도 안 일어난다"가 된다(V85-8d가 실제로 그랬다)
+                data-title-resize="1"
+                aria-label="타이틀 크기 조절"
+                // ⚠️ pointer-events는 상속된다 — 카드가 none이므로 핸들이 명시적으로 auto를 켜야 잡힌다
+                className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-white/90 shadow-md border border-[#E5E3DF] flex items-center justify-center text-[#4A463F] text-micro cursor-nwse-resize z-10 pointer-events-auto"
+                style={{ touchAction: 'none' }}
+              >
+                <span className="pointer-events-none">⤡</span>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* 편집 가이드 (v10) — 보드 **안쪽** 하단 플로팅.
             v9는 보드 위 알약이었는데, 타이틀 예약이 사라지며 보드가 커진 만큼 페이지 세로 예산이
@@ -913,14 +1047,15 @@ export default function CollageBoard({
               >
                 + 문구
               </button>
-              {/* 타이틀 위치·스타일 (v10) — 보드 **안쪽** 플로팅으로 둔다. 페이지 크롬에 컨트롤을
-                  더하면 --board-reserve 예산이 늘어 PC 보드 폭(V87-4e)이 줄어든다 */}
+              {/* 타이틀 설정 (v11) — 바텀시트로 연다. 컨트롤이 6종이라 보드 안 패널로는 안 들어가고,
+                  페이지 크롬에 붙이면 --board-reserve 예산이 늘어 PC 보드 폭(V87-4e)이 줄어든다.
+                  시트는 fixed 오버레이라 페이지 높이를 0 먹는다 */}
               <button
-                onClick={() => setTitlePanel((v) => !v)}
-                aria-pressed={titlePanel}
-                aria-label="타이틀 위치"
+                onClick={() => setTitleSheet(true)}
+                aria-pressed={titleSheet}
+                aria-label="타이틀 설정"
                 className={`px-3 py-1.5 rounded-full text-caption font-medium active:opacity-70 ${
-                  titlePanel ? 'bg-white text-[#1C1B19] shadow' : 'bg-black/60 text-white'
+                  titleSheet ? 'bg-white text-[#1C1B19] shadow' : 'bg-black/60 text-white'
                 }`}
               >
                 타이틀
@@ -943,55 +1078,6 @@ export default function CollageBoard({
             >
               완료
             </button>
-          </div>
-        )}
-
-        {/* 타이틀 위치·스타일 패널 (v10) — 9점 앵커 + 3스타일.
-            "가운데도 되고 왼쪽도 되고 상단 가운데도 되면 좋겠다"는 오너 요구의 구현체 */}
-        {editing && titlePanel && (
-          <div
-            data-testid="title-panel"
-            className="absolute top-12 right-2 z-50 rounded-2xl bg-white/95 shadow-lg border border-[#E5E3DF] p-2.5"
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-          >
-            <div role="radiogroup" aria-label="타이틀 위치" className="grid grid-cols-3 gap-1">
-              {TITLE_ANCHORS.map((a) => (
-                <button
-                  key={a}
-                  role="radio"
-                  aria-checked={titleCfg.anchor === a}
-                  aria-label={`타이틀 ${ANCHOR_LABELS[a]}`}
-                  onClick={() => setTitleCfg({ anchor: a })}
-                  className={`w-7 h-7 rounded-md border transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                    titleCfg.anchor === a
-                      ? 'bg-[#1C1B19] border-[#1C1B19]'
-                      : 'bg-[#F1EFEA] border-[#E5E3DF] active:bg-[#E5E3DF]'
-                  }`}
-                >
-                  <span
-                    className={`block w-3 h-[2px] mx-auto rounded-full ${
-                      titleCfg.anchor === a ? 'bg-white' : 'bg-[#8A8784]'
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-            <div role="radiogroup" aria-label="타이틀 스타일" className="flex gap-1 mt-2">
-              {TITLE_STYLES.map((s) => (
-                <button
-                  key={s}
-                  role="radio"
-                  aria-checked={titleCfg.style === s}
-                  onClick={() => setTitleCfg({ style: s })}
-                  className={`px-2 py-1 rounded-full text-micro font-medium ${
-                    titleCfg.style === s ? 'bg-[#1C1B19] text-white' : 'bg-[#F1EFEA] text-[#4A463F]'
-                  }`}
-                >
-                  {STYLE_LABELS[s]}
-                </button>
-              ))}
-            </div>
           </div>
         )}
 
@@ -1075,6 +1161,18 @@ export default function CollageBoard({
           onConfirm={handleStickerConfirm}
           onDelete={sheet.editId ? () => handleStickerDelete(sheet.editId!) : undefined}
           onClose={() => setSheet({ open: false })}
+        />
+      )}
+
+      {titleSheet && (
+        <TitleSheet
+          cfg={titleCfg}
+          year={year}
+          onYearChange={onYearChange}
+          onAnchorChange={setTitleAnchor}
+          onGlobalChange={setTitleGlobal}
+          onSnapToAnchor={titleCfg.pos ? snapTitleToAnchor : undefined}
+          onClose={() => setTitleSheet(false)}
         />
       )}
 

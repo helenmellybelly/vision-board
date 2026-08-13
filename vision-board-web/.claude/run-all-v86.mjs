@@ -5,7 +5,9 @@ import { readdirSync } from 'node:fs';
 const suites = readdirSync('.claude')
   .filter((f) => /^verify-.*\.mjs$/.test(f))
   .sort();
-suites.push('verify-justify.js'); // scripts/ 기하 계약
+// scripts/ 기하 계약 — ⚠️ 자동 수집(.claude/*.mjs) 밖이라 여기 적어야만 돈다.
+// 새 순수 계약 스크립트를 만들면 이 줄에 추가할 것(안 하면 조용히 안 돌아간다)
+suites.push('verify-justify.js', 'verify-title.js');
 
 const summary = [];
 for (const s of suites) {

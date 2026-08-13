@@ -1,14 +1,15 @@
 // 배경화면 캔버스 렌더링 — /collage '배경화면으로 저장' 시트에서 사용
 // 외부 라이브러리 없이 Canvas API로 직접 그린다.
 // 사이즈를 먼저 고르고 그 비율 그대로 편집하므로, 선택한 해상도로 직접 그린다(무크롭 WYSIWYG, v6.19).
-import { CollageLayout, CollageSticker, CollageTemplate } from './types';
-import { CollageItem, CollageTheme, STICKER_FONT_RATIO, themeFor, titleFor } from './collageTemplates';
+import { BoardData, CollageLayout, CollageSticker, CollageTemplate } from './types';
+import { CollageItem, STICKER_FONT_RATIO, themeFor, titleFor } from './collageTemplates';
 import {
   AMBIENT_SCALE,
   AMBIENT_SCRIM_ALPHA,
   PHOTO_RADIUS_RATIO,
-  TitleBox,
-  titleBoxFor,
+  TITLE_LABEL_TEXT,
+  TitleLayout,
+  titleLayoutFor,
 } from './collageTokens';
 import { ICONS, hasPath2D, isIconId } from './stickerArt';
 import { bustedSrc, displaySrc } from './imageSrc';
@@ -219,73 +220,92 @@ function drawAmbient(
 }
 
 /**
- * 타이틀 카드 — 사진 **위에** 얹힌다 (v10).
+ * 자간 있는 한 줄 — ctx.letterSpacing이 있으면 그걸 쓰고(DOM CSS letter-spacing과 같은 규칙:
+ * **마지막 글자 뒤에도** 붙는다), 없으면 같은 총폭이 나오도록 글자별로 커서를 밀어 그린다.
  *
- * v9는 상단 15~22%를 통째로 비워 타이틀을 넣었다. 그 예약을 없앤 만큼 사진이 커진다.
- * 기하는 collageTokens.titleBoxFor()가 단일 소스라 DOM과 자동으로 락스텝이다.
+ * ⚠️ v10의 "글자 사이에 공백 끼우기" 폴백을 대체한다 — 공백 폭은 폰트마다 달라 폴백 환경에서만
+ *    카드 밖으로 삐져나갔고, collageTokens의 advance 예측식과도 어긋났다.
+ */
+function drawTracked(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  cy: number,
+  size: number,
+  trackingEm: number,
+  align: 'left' | 'center' | 'right'
+) {
+  const track = trackingEm * size;
+  const trackable = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+  if (trackable.letterSpacing !== undefined) {
+    trackable.letterSpacing = `${track}px`;
+    ctx.textAlign = align;
+    ctx.fillText(text, x, cy);
+    trackable.letterSpacing = '0px';
+    return;
+  }
+  const chars = [...text];
+  const total = chars.reduce((a, ch) => a + ctx.measureText(ch).width, 0) + track * chars.length;
+  let cursor = align === 'left' ? x : align === 'right' ? x - total : x - total / 2;
+  ctx.textAlign = 'left';
+  for (const ch of chars) {
+    ctx.fillText(ch, cursor, cy);
+    cursor += ctx.measureText(ch).width + track;
+  }
+}
+
+/**
+ * 타이틀 카드 — 사진 **위에** 얹힌다 (v10). v9는 상단 15~22%를 통째로 비워 넣었다.
+ *
+ * v11부터 이 함수는 좌표를 계산하지 않는다 — collageTokens.titleLayoutFor()가 내려준 표시 리스트를
+ * 그리기만 한다. ⚠️ 여기에 산술 리터럴을 다시 넣으면 DOM과 갈라진다(v10에서 세로 정렬·연도 자간이
+ * 실제로 그렇게 갈라져 있었다).
  */
 function drawTitleCard(
   ctx: CanvasRenderingContext2D,
-  box: TitleBox,
-  theme: CollageTheme,
+  tl: TitleLayout,
   year: string,
   bw: number,
   bh: number,
   minDim: number
 ) {
-  const x = box.x * bw;
-  const y = box.y * bh;
-  const w = box.w * bw;
-  const h = box.h * bh;
+  if (!tl.visible) return;
+  const x = tl.box.x * bw;
+  const y = tl.box.y * bh;
+  const w = tl.box.w * bw;
+  const h = tl.box.h * bh;
   ctx.save();
-  ctx.fillStyle = theme.cardBg;
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, minDim * box.radius);
-  ctx.fill();
-  ctx.strokeStyle = theme.cardBorder;
-  ctx.lineWidth = Math.max(1, minDim * 0.0012);
-  ctx.stroke();
 
-  const padX = box.padX * bw;
-  const labelPx = minDim * box.labelRatio;
-  const yearPx = minDim * box.yearRatio;
-  const cx = box.align === 'left' ? x + padX : x + w / 2;
-  ctx.textAlign = box.align === 'left' ? 'left' : 'center';
-  ctx.textBaseline = 'middle';
-
-  // ctx.letterSpacing 미지원 환경 폴백 — 글자 사이에 공백을 끼워 시각적 자간을 만든다
-  const canTrack = 'letterSpacing' in ctx;
-  const spaced = (s: string) => (canTrack ? s : s.split('').join(' '));
-  const setTrack = (em: number) => {
-    if (canTrack) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${em}em`;
-  };
-
-  if (box.stack === 'h') {
-    // 라벨과 연도가 한 줄에 나란히 — 얇은 스트립
-    const midY = y + h / 2;
-    setTrack(box.tracking);
-    ctx.font = `600 ${Math.round(labelPx)}px "Pretendard Variable", Pretendard, sans-serif`;
-    ctx.fillStyle = theme.labelInk;
-    ctx.textAlign = 'left';
-    ctx.fillText(spaced('VISION BOARD'), x + padX, midY);
-    setTrack(0);
-    ctx.font = `700 ${Math.round(yearPx)}px ${SCRIPT_FONT}`;
-    ctx.fillStyle = theme.titleInk;
-    ctx.textAlign = 'right';
-    ctx.fillText(year, x + w - padX, midY);
-  } else {
-    const labelY = y + h * 0.32;
-    const yearY = y + h * 0.68;
-    setTrack(box.tracking);
-    ctx.font = `600 ${Math.round(labelPx)}px "Pretendard Variable", Pretendard, sans-serif`;
-    ctx.fillStyle = theme.labelInk;
-    ctx.fillText(spaced('VISION BOARD'), cx, labelY);
-    setTrack(0);
-    ctx.font = `700 ${Math.round(yearPx)}px ${SCRIPT_FONT}`;
-    ctx.fillStyle = theme.titleInk;
-    ctx.fillText(year, cx, yearY);
+  if (tl.card.alpha > 0) {
+    ctx.fillStyle = withAlpha(tl.card.color, tl.card.alpha);
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, minDim * tl.radius);
+    ctx.fill();
   }
-  setTrack(0);
+  if (tl.border.alpha > 0) {
+    ctx.strokeStyle = withAlpha(tl.border.color, tl.border.alpha);
+    ctx.lineWidth = Math.max(1, minDim * 0.0012);
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, minDim * tl.radius);
+    ctx.stroke();
+  }
+
+  // ⚠️ 그림자는 카드를 그린 **뒤에** 켠다 — 먼저 켜면 카드 사각형에도 그림자가 붙는다
+  if (tl.shadow) {
+    ctx.shadowColor = tl.shadow.color;
+    ctx.shadowBlur = minDim * tl.shadow.blur;
+    ctx.shadowOffsetY = minDim * tl.shadow.dy;
+  }
+  ctx.textBaseline = 'middle';
+  for (const l of tl.lines) {
+    const px = minDim * l.size;
+    ctx.font =
+      l.font === 'script'
+        ? `${l.weight} ${px}px ${SCRIPT_FONT}`
+        : `${l.weight} ${px}px "Pretendard Variable", Pretendard, sans-serif`;
+    ctx.fillStyle = l.color;
+    drawTracked(ctx, l.kind === 'label' ? TITLE_LABEL_TEXT : year, l.x * bw, l.cy * bh, px, l.tracking, l.align);
+  }
   ctx.restore();
 }
 
@@ -416,7 +436,7 @@ export async function renderBoardLayout(
   items: CollageItem[],
   year: string,
   size: { w: number; h: number },
-  opts?: { bust?: number; deadlineMs?: number; bgColor?: string }
+  opts?: { bust?: number; deadlineMs?: number; bgColor?: string; title?: BoardData['collageTitle'] }
 ): Promise<{ canvas: HTMLCanvasElement; skipped: number; skippedKeys: string[] }> {
   await ensureFonts();
   // 배경색은 세 템플릿 공통 — DOM(CollageBoard)도 같은 themeFor()를 호출해 락스텝을 지킨다 (v9.0)
@@ -501,10 +521,14 @@ export async function renderBoardLayout(
   }
 
   // 타이틀 카드 — 사진 위에 얹힌다 (v10). 맨 마지막에 그려 어떤 사진에도 가리지 않는다
-  {
-    const t = titleFor(template, layout.title);
-    drawTitleCard(ctx, titleBoxFor(t.style, t.anchor, aspect), theme, year, bw, bh, minDim);
-  }
+  drawTitleCard(
+    ctx,
+    titleLayoutFor(titleFor(template, layout.title, opts?.title), aspect, theme.bg),
+    year,
+    bw,
+    bh,
+    minDim
+  );
 
   return { canvas, skipped, skippedKeys };
 }

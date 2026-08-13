@@ -132,8 +132,11 @@ export interface CollageLayout {
    *  ⚠️ spec을 바꿨으면 반드시 applySpec()으로 items를 다시 만들어 둘을 일치시킬 것 —
    *  이 일관성 덕분에 spec을 모르는 코드가 읽어도 정상 렌더된다 */
   spec?: JustifiedSpec;
-  /** v10 — 타이틀 카드 위치·스타일. 없으면 템플릿 기본값 */
-  title?: { anchor: string; style: string };
+  /** 타이틀 카드 **위치**. 모양(스타일·크기·배경·표시·방향)은 BoardData.collageTitle(전역)에 있다 —
+   *  화면 비율이 다르면 좋은 자리도 다르므로 위치만 기기·템플릿별로 둔다 (v11).
+   *  pos가 있으면 자유 좌표(카드 좌상단, 0..1), 없으면 anchor 프리셋.
+   *  @deprecated style — v10 저장분. migrateCollage가 1회 전역으로 승격하고 이후 읽지 않는다 */
+  title?: { anchor?: string; style?: string; pos?: { x: number; y: number } };
   /** v10 — 사용자가 지운 기본 킷 스티커 id. '기본 배치로'를 누르면 비워져 킷이 되살아난다 */
   kitRemoved?: string[];
   /** v10 — 사용자가 배치(spec)를 직접 손댔는가(스왑·크게/작게).
@@ -187,6 +190,23 @@ export interface BoardData {
    *  ⚠️ 템플릿별/타깃별로 두지 않는 게 계약 — 템플릿을 바꿔도 고른 색이 따라와야 "내 보드 색"이 성립한다.
    *  없으면(기존 사용자) TEMPLATE_DEFAULT_BG를 써서 지금 화면 그대로 보인다(무회귀) */
   collageBgColor?: string;
+  /** 타이틀 카드 **모양** (v11) — 세 템플릿·폰/PC 공통.
+   *  ⚠️ collageBgColor와 같은 계약: 템플릿별/타깃별로 두지 않는다. 템플릿을 바꿔도 고른 모양이
+   *  따라와야 "내 타이틀"이 성립한다. 위치만 CollageLayout.title에 기기별로 둔다.
+   *  각 필드가 없으면 템플릿 기본값으로 접힌다 — 그래야 세 템플릿이 계속 서로 달라 보인다
+   *  (lib/collageTokens resolveTitleConfig가 유일한 해석기) */
+  collageTitle?: {
+    style?: string;
+    /** 'v' 세로 쌓기 · 'h' 라벨 옆에 연도 */
+    dir?: string;
+    /** 'all' | 'label' | 'year' | 'none' */
+    parts?: string;
+    /** 'solid' | 'soft' | 'clear' */
+    bg?: string;
+    /** 'auto' | 'light' | 'dark' */
+    ink?: string;
+    scale?: number;
+  };
   /** @deprecated v6.14 '내 배치' 레이아웃 — loadBoard()가 collageLayouts.polaroid로 이관 */
   collageLayout?: CollageLayout;
   collageLayouts?: Partial<Record<CollageTemplate, CollageLayout>>; // 템플릿별 편집 배치 (board 타깃)

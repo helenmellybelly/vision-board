@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { track } from '@/lib/analytics';
 import useFocusTrap from './useFocusTrap';
-import { CollageLayout, CollageTemplate, SectionId } from '@/lib/types';
+import { BoardData, CollageLayout, CollageTemplate, SectionId } from '@/lib/types';
 import { CollageItem } from '@/lib/collageTemplates';
 import { getSection } from '@/lib/questions';
 import { findRemoteSlots, normalizeSlots } from '@/lib/imageNormalize';
@@ -21,7 +21,14 @@ interface Props {
   /** 편집 진입 전에 선택한 기기 사이즈 — 이 해상도 그대로 내보낸다(무크롭 WYSIWYG, v6.19) */
   preset: WallpaperPreset;
   /** 화면 보드 그대로 내보내기용 — 현재 템플릿·배치·사진 */
-  board: { template: CollageTemplate; layout: CollageLayout; items: CollageItem[]; bgColor?: string };
+  board: {
+    template: CollageTemplate;
+    layout: CollageLayout;
+    items: CollageItem[];
+    bgColor?: string;
+    /** 타이틀 모양 전역 설정 (v11) — 없으면 템플릿 기본. 화면 보드와 같은 값을 넘겨야 락스텝이다 */
+    title?: BoardData['collageTitle'];
+  };
   onClose: () => void;
   /** 빠진 사진을 내 저장소로 수입해 보드가 바뀌었을 때 — 호출부가 보드를 다시 읽는다 (v8.7) */
   onPhotosNormalized?: () => void;
@@ -70,7 +77,7 @@ export default function WallpaperSheet({ year, preset, board, onClose, onPhotosN
       board.items,
       year,
       { w: preset.w, h: preset.h },
-      { bust: bustRef.current, bgColor: board.bgColor }
+      { bust: bustRef.current, bgColor: board.bgColor, title: board.title }
     );
   }
 

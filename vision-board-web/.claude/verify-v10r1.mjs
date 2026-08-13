@@ -196,13 +196,18 @@ async function enterEdit(page, bd) {
   ok('V10-3c 매거진은 좌상단', centers['매거진'] && centers['매거진'].x < 0.45 && centers['매거진'].y < 0.35);
 
   // 앵커 변경 → 저장 → 리로드 유지
+  // ⚠️ v11 계약 반전: 보드 안 9점 패널(title-panel)이 바텀시트(title-sheet)로 대체됐다.
+  //    저장 경로(collageDeviceLayouts[view][template].title.anchor)는 그대로라 4b/4c는 살아 있다.
+  //    시트 자체의 계약은 verify-v11r1.mjs가 본다
   await enterEdit(page, bd);
-  await page.getByRole('button', { name: '타이틀 위치' }).click();
+  await page.getByRole('button', { name: '타이틀 설정' }).click();
   await page.waitForTimeout(300);
-  const panel = page.locator('[data-testid="title-panel"]');
-  ok('V10-4a 타이틀 패널 노출', (await panel.count()) === 1);
+  const panel = page.locator('[data-testid="title-sheet"]');
+  ok('V10-4a 타이틀 시트 노출', (await panel.count()) === 1);
   await panel.getByRole('radio', { name: '타이틀 오른쪽 아래' }).click();
   await page.waitForTimeout(700);
+  await page.getByRole('button', { name: '닫기' }).last().click();
+  await page.waitForTimeout(300);
   const stored = await loadStored(page);
   const savedTitle = stored.collageDeviceLayouts?.desktop?.studio?.title;
   ok('V10-4b 앵커 저장', savedTitle?.anchor === 'br', JSON.stringify(savedTitle));
@@ -277,10 +282,16 @@ async function enterEdit(page, bd) {
   // 크게/작게 3연속 — 배치가 살아있고 겹치지 않는다
   let alive = true;
   for (let i = 0; i < 3; i++) {
-    const cur = await rects(bd);
-    await page.mouse.click(cur[3].x + cur[3].w / 2, cur[3].y + cur[3].h / 2);
-    await page.waitForTimeout(350);
-    const btn = page.getByRole('button', { name: '크게' });
+    let btn = page.getByRole('button', { name: '크게' });
+    // ⚠️ 액션 칩은 '크게'를 눌러도 그 사진에 열린 채 남는다(setPhotoAction은 탭 토글).
+    //    이미 열려 있는데 같은 사진을 또 탭하면 칩이 **닫혀** 다음 '크게'를 못 찾는다 —
+    //    이 스위트가 v10에서도 2회차에 실패하던 원인이다(HEAD에서 재현 확인). 닫혀 있을 때만 탭한다.
+    if ((await btn.count()) === 0) {
+      const cur = await rects(bd);
+      await page.mouse.click(cur[3].x + cur[3].w / 2, cur[3].y + cur[3].h / 2);
+      await page.waitForTimeout(350);
+      btn = page.getByRole('button', { name: '크게' });
+    }
     if ((await btn.count()) === 0) { alive = false; break; }
     await btn.click();
     await page.waitForTimeout(700);

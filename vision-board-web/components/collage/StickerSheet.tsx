@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CollageSticker, StickerStyle } from '@/lib/types';
 import { STICKER_PRESETS } from '@/lib/collageTemplates';
-import useFocusTrap from '../useFocusTrap';
+import BottomSheet from './BottomSheet';
 
 interface Props {
   /** 수정 모드 — 기존 스티커 값으로 채움 */
@@ -24,7 +24,6 @@ const SCRIPT_COLORS = ['#FFFFFF', '#1C1B19', '#E8B4C8', '#A5B4FC', '#C9A86A'];
 
 // 문구 스티커 추가/수정 바텀 시트 — 프리셋 칩 + 자유 입력 + 스타일 미리보기
 export default function StickerSheet({ initial, onConfirm, onDelete, onClose }: Props) {
-  const trapRef = useFocusTrap<HTMLDivElement>(true, onClose);
   const [text, setText] = useState(initial?.text ?? '');
   const [style, setStyle] = useState<StickerStyle>(initial?.style ?? 'chip');
   const [color, setColor] = useState<string | undefined>(initial?.color);
@@ -58,21 +57,13 @@ export default function StickerSheet({ initial, onConfirm, onDelete, onClose }: 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={onClose}>
-      <div
-        ref={trapRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="sticker-title"
-        className="bg-white w-full max-w-md rounded-t-3xl px-6 pt-6 pb-8 max-h-[88dvh] overflow-y-auto scroll-soft"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="w-10 h-1 bg-[#E5E3DF] rounded-full mx-auto mb-5" />
-        <h2 id="sticker-title" className="text-heading font-bold mb-1">
-          {initial ? '문구 수정' : '문구 스티커 추가'}
-        </h2>
-        <p className="text-caption text-[#6E6962] mb-4">내 보드에 붙일 한마디 — 프리셋을 고르거나 직접 써봐.</p>
-
+    <BottomSheet
+      titleId="sticker-title"
+      heading={initial ? '문구 수정' : '문구 스티커 추가'}
+      desc="내 보드에 붙일 한마디 — 프리셋을 고르거나 직접 써봐."
+      onClose={onClose}
+    >
+      <>
         {/* 미리보기 */}
         <div className="rounded-2xl bg-[#F5F5F3] py-5 px-4 mb-4 text-center overflow-hidden">{preview()}</div>
 
@@ -153,7 +144,7 @@ export default function StickerSheet({ initial, onConfirm, onDelete, onClose }: 
         <button onClick={onClose} className="mt-1 w-full py-2 text-body text-[#6E6962]">
           닫기
         </button>
-      </div>
-    </div>
+      </>
+    </BottomSheet>
   );
 }
