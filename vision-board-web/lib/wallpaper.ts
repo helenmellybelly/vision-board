@@ -2,14 +2,19 @@
 // 외부 라이브러리 없이 Canvas API로 직접 그린다.
 // 사이즈를 먼저 고르고 그 비율 그대로 편집하므로, 선택한 해상도로 직접 그린다(무크롭 WYSIWYG, v6.19).
 import { BoardData, CollageLayout, CollageSticker, CollageTemplate } from './types';
-import { CollageItem, STICKER_FONT_RATIO, themeFor, titleFor } from './collageTemplates';
+import { CollageItem, themeFor, titleFor } from './collageTemplates';
 import {
   AMBIENT_SCALE,
   AMBIENT_SCRIM_ALPHA,
   PHOTO_RADIUS_RATIO,
+  STICKER_FONT_RATIO,
+  STICKER_LINE_H,
+  STICKER_PAD_EM,
+  STICKER_PAD_X_EM,
   TITLE_LABEL_TEXT,
   TitleLayout,
   titleLayoutFor,
+  wrapStickerText,
 } from './collageTokens';
 import { ICONS, hasPath2D, isIconId } from './stickerArt';
 import { bustedSrc, displaySrc } from './imageSrc';
@@ -311,30 +316,10 @@ function drawTitleCard(
 
 // ── 보드 그대로 내보내기 — /collage 화면의 편집 배치·스티커를 1:1로 캔버스에 그린다 ──
 
-// 단어 단위 줄바꿈 — 공백 없는 긴 한국어/영문은 글자 단위로 쪼갠다
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let line = '';
-  const push = (chunk: string) => {
-    const tryLine = line ? `${line} ${chunk}` : chunk;
-    if (ctx.measureText(tryLine).width <= maxW || !line) {
-      line = tryLine;
-    } else {
-      lines.push(line);
-      line = chunk;
-    }
-  };
-  for (const word of words) {
-    if (ctx.measureText(word).width > maxW) {
-      for (const ch of word) push(ch);
-    } else {
-      push(word);
-    }
-  }
-  if (line) lines.push(line);
-  return lines;
-}
+// 줄바꿈 로직의 단일 소스는 collageTokens.wrapStickerText (v12) — 여기는 폭 재기만 연결하는 어댑터다.
+// DOM은 CSS(pre-wrap)가, canvas는 이 함수가 같은 규칙으로 줄을 나눈다
+const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxW: number) =>
+  wrapStickerText(text, maxW, (s) => ctx.measureText(s).width);
 
 // 스티커 — DOM StickerView와 같은 비율식(fontPx = w × 보드폭 × RATIO)으로 그린다
 function drawSticker(
@@ -382,10 +367,13 @@ function drawSticker(
 
   if (sticker.style === 'chip') {
     ctx.font = `600 ${fontPx}px "Pretendard Variable", Pretendard, sans-serif`;
-    const padX = fontPx * 0.7;
-    const padY = fontPx * 0.5;
-    const lineH = fontPx * 1.375;
+    const padX = fontPx * STICKER_PAD_X_EM.chip;
+    const padY = (fontPx * STICKER_PAD_EM.chip) / 2;
+    const lineH = fontPx * STICKER_LINE_H.chip;
     const lines = wrapText(ctx, sticker.text, rect.w - padX * 2);
+    // ⚠️ stickerHeightNorm(chip, n, w, aspect)를 픽셀로 환산한 것과 **같은 식**이어야 한다 —
+    //    클램프·placeNewItems가 그 함수를 쓰므로, 여기서 갈라지면 화면에선 맞는데
+    //    저장 이미지에서만 잘리는(또는 그 반대) 조용한 어긋남이 된다. verify-sticker S-1이 잠근다
     const boxH = lines.length * lineH + padY * 2;
     ctx.shadowColor = 'rgba(0,0,0,0.25)';
     ctx.shadowBlur = 14;
@@ -401,7 +389,8 @@ function drawSticker(
     lines.forEach((l, i) => ctx.fillText(l, 0, padY + i * lineH + fontPx * 0.12));
   } else if (sticker.style === 'outline') {
     ctx.font = `800 ${fontPx}px "Pretendard Variable", Pretendard, sans-serif`;
-    const lineH = fontPx * 1.25;
+    const lineH = fontPx * STICKER_LINE_H.outline;
+    // toUpperCase는 세그먼트가 아니라 전체에 걸어도 안전하다 — \n은 대문자화되지 않는다
     const lines = wrapText(ctx, sticker.text.toUpperCase(), rect.w);
     ctx.lineWidth = fontPx * 0.14;
     ctx.lineJoin = 'round';
@@ -413,7 +402,7 @@ function drawSticker(
     });
   } else {
     ctx.font = `700 ${fontPx}px ${SCRIPT_FONT}`;
-    const lineH = fontPx * 1.25;
+    const lineH = fontPx * STICKER_LINE_H.script;
     const lines = wrapText(ctx, sticker.text, rect.w);
     if (dark) {
       ctx.shadowColor = 'rgba(0,0,0,0.4)';

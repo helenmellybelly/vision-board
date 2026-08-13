@@ -650,9 +650,19 @@ export default function CollageBoard({
       saveEdited({ ...prev, stickers: { ...prev.stickers, [sheet.editId]: sticker } });
     } else {
       const id = `s${Date.now()}`;
+      const key = stickerKey(id);
+      const stickers = { ...prev.stickers, [id]: { id, ...data } };
+      // ⚠️ prev를 펼쳐야 한다 — v11까지 {items, stickers}만 저장해 spec·title·aspect·freeform이
+      //    통째로 사라졌고, 다음 렌더의 resolveLayout이 배치를 새로 깔았다. 삭제 경로(아래)에는
+      //    이 경고가 이미 적혀 있었는데 추가 경로만 빠져 있었다
       saveEdited({
-        items: { ...prev.items, [stickerKey(id)]: newStickerLayoutItem(maxZ, aspect) },
-        stickers: { ...prev.stickers, [id]: { id, ...data } },
+        ...prev,
+        items: {
+          ...prev.items,
+          // 빈자리 탐색에 위임 — 같은 좌표에 계속 쌓여 "추가해도 안 늘어난다"가 되던 지점 (v12)
+          [key]: newStickerLayoutItem(maxZ, aspect, { key, existing: prev.items, template, stickers }),
+        },
+        stickers,
       });
     }
     setSheet({ open: false });

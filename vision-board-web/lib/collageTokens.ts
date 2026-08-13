@@ -250,6 +250,151 @@ export const AMBIENT_SCALE = 1.12;
 /** 사진 모서리 반경 / 사진 폭 */
 export const PHOTO_RADIUS_RATIO = 0.06;
 
+// ══════════════════════════════════════════════════════════════════════
+// v12 — 문구 스티커 조판
+//
+// 왜 여기로 왔나: "스티커의 높이"를 네 곳이 각자 계산하고 있었다 —
+//   ① CollageBoard 클램프의 `it.w * aspect`(정사각 가정)
+//   ② collageTemplates placeNewItems의 `it.w * 0.35`
+//   ③ wallpaper drawSticker의 `lines * lineH + padY * 2`
+//   ④ DOM의 자동 높이(내용이 정한다)
+// ③이 정답이고 ①②는 근사였다. 실측하면 chip 1줄의 실제 높이는 ①의 0.26배 —
+// 즉 w=0.44 스티커가 높이 5%인데 20%를 예약당해 **보드 하단 20%에 문구를 놓을 수가 없었다**.
+// 반대로 여러 줄이면 정사각을 넘어 아래가 잘렸다. 한 상수가 양방향으로 틀려 있었던 것.
+// 이제 ①②③이 전부 stickerHeightNorm 하나를 부른다.
+//
+// ⚠️ 아래 수치는 DOM(StickerView의 Tailwind 클래스)과 canvas(drawSticker) 양쪽의
+//    **실제 값**이다. 한쪽을 바꾸면 나머지 둘도 같이 바꿔야 한다 —
+//    scripts/verify-sticker.js S-1이 그 일치를 계약으로 잠근다.
+// ══════════════════════════════════════════════════════════════════════
+
+/** lib/types.ts의 StickerStyle과 같은 유니온이지만 의존을 만들지 않는다 (CollageTemplateId와 같은 이유) */
+export type StickerStyleId = 'script' | 'chip' | 'outline';
+
+/** 글자 크기 = 항목 폭(it.w) × 보드 폭 × 비율 — DOM은 cqi, canvas는 px로 같은 식을 쓴다 */
+export const STICKER_FONT_RATIO: Record<StickerStyleId, number> = {
+  script: 0.17,
+  chip: 0.11,
+  outline: 0.15,
+};
+
+/** 줄 높이 (em). DOM: chip=leading-snug(1.375) · outline/script=leading-tight(1.25) */
+export const STICKER_LINE_H: Record<StickerStyleId, number> = {
+  script: 1.25,
+  chip: 1.375,
+  outline: 1.25,
+};
+
+/** 세로 여백 합계 (em). chip만 py-[0.5em] 위아래 = 1.0, 나머지는 박스가 없다 */
+export const STICKER_PAD_EM: Record<StickerStyleId, number> = {
+  script: 0,
+  chip: 1,
+  outline: 0,
+};
+
+/** 가로 여백 한쪽 (em). chip의 px-[0.7em] — canvas wrapText의 maxW 계산과 락스텝 */
+export const STICKER_PAD_X_EM: Record<StickerStyleId, number> = {
+  script: 0,
+  chip: 0.7,
+  outline: 0,
+};
+
+/** 문구 상한 — v11까지 40자 1줄이었다. 인라인 편집(v12)에서 줄바꿈이 열리며 함께 완화 */
+export const STICKER_MAX_CHARS = 120;
+export const STICKER_MAX_LINES = 6;
+
+/**
+ * 스티커의 정규화 높이(보드 높이 대비).
+ * 클램프 · placeNewItems · canvas boxH가 전부 이 식만 쓴다.
+ *
+ * lines는 **하드 브레이크(\n) 기준 하한**이다 — 소프트랩까지 세려면 렌더러의 measureText가
+ * 필요하고 그건 순수 모듈이 할 수 없는 일이다. 호출부(CollageBoard)는 실측 높이와
+ * `Math.max`로 묶어 안전망을 만든다. 공식이 단일 정의이고 실측은 상한일 뿐이라
+ * "두 곳이 각자 계산한다"로 되돌아가지 않는다.
+ */
+export function stickerHeightNorm(
+  style: StickerStyleId,
+  lines: number,
+  w: number,
+  aspect: number,
+): number {
+  const font = w * STICKER_FONT_RATIO[style];
+  const n = Math.max(1, Math.floor(lines));
+  return font * (STICKER_LINE_H[style] * n + STICKER_PAD_EM[style]) * aspect;
+}
+
+/** 하드 브레이크 기준 줄 수 — wrapStickerText가 세그먼트를 나누는 기준과 같다 */
+export function stickerLineCount(text: string): number {
+  if (!text) return 1;
+  return Math.max(1, text.split('\n').length);
+}
+
+/**
+ * 문구 줄바꿈 (v12) — 하드 브레이크(\n)를 먼저 자르고, 각 세그먼트를 폭에 맞춰 소프트랩한다.
+ *
+ * `measure`를 콜백으로 받는 이유: canvas는 `ctx.measureText(s).width`를 쓰고 검증 스크립트는
+ * 결정적 스텁을 쓴다. 실제 줄바꿈 **로직**은 한 벌만 존재해야 하므로 폭 재기만 밖으로 뺐다.
+ *
+ * ⚠️ 순서가 계약이다. 소프트랩을 먼저 돌리면 `\n`이 한 단어의 일부로 measure에 들어가
+ *    폭 계산이 어긋나고, 사용자가 의도한 줄바꿈 지점이 사라진다.
+ * ⚠️ 빈 줄은 보존한다 — 사용자가 넣은 여백이다.
+ * ⚠️ 반환된 어느 줄에도 `\n`이 남으면 안 된다(canvas fillText가 조용히 뭉갠다).
+ *    scripts/verify-sticker.js S-5가 이 셋을 계약으로 잠근다.
+ */
+export function wrapStickerText(
+  text: string,
+  maxW: number,
+  measure: (s: string) => number,
+): string[] {
+  const out: string[] = [];
+  for (const seg of text.split('\n')) {
+    let line = '';
+    /** glue: 단어 사이는 공백, **글자 분해는 빈 문자열**.
+     *  ⚠️ v11까지 둘 다 공백으로 이어 붙였다 — 그래서 공백 없는 긴 한국어가 글자 단위로 쪼개질 때
+     *     저장 이미지에 "자 라 나 는 중"처럼 글자 사이 공백이 끼었다(화면에는 안 끼므로 육안으로만 보이는 종류) */
+    const push = (chunk: string, glue: string) => {
+      const tryLine = line ? `${line}${glue}${chunk}` : chunk;
+      if (measure(tryLine) <= maxW || !line) {
+        line = tryLine;
+      } else {
+        out.push(line);
+        line = chunk;
+      }
+    };
+    const before = out.length;
+    for (const word of seg.split(' ')) {
+      // 공백 없는 긴 한국어/영문은 글자 단위로 쪼갠다
+      if (measure(word) > maxW) for (const ch of word) push(ch, '');
+      else push(word, ' ');
+    }
+    if (line) out.push(line);
+    // 세그먼트가 통째로 비었으면(사용자가 넣은 빈 줄) 한 줄을 되살린다
+    if (out.length === before) out.push('');
+  }
+  return out.length ? out : [''];
+}
+
+/**
+ * 저장 직전 문구 정규화 — DOM(contentEditable innerText)과 canvas가 같은 문자열을 본다.
+ * 멱등: normalize(normalize(t)) === normalize(t).
+ *
+ * ⚠️ 줄 단위로 자른 뒤 다시 글자수를 자르면 안 된다(줄 경계가 흐트러진다).
+ *    글자수 → 줄 수 순서가 계약이다.
+ */
+export function normalizeStickerText(text: string): string {
+  const flat = text
+    .replace(/\r\n?/g, '\n')
+    // 세로탭·폼피드도 개행으로 접는다 (contentEditable이 붙여넣기에서 흘려보낸다)
+    .replace(/[\v\f]/g, '\n')
+    .replace(/[ \t]+$/gm, '');
+  const capped = flat.slice(0, STICKER_MAX_CHARS);
+  const lines = capped.split('\n').slice(0, STICKER_MAX_LINES);
+  // 앞뒤 빈 줄만 털고 가운데 빈 줄은 보존한다 — 사용자가 의도한 여백일 수 있다
+  while (lines.length > 1 && lines[0].trim() === '') lines.shift();
+  while (lines.length > 1 && lines[lines.length - 1].trim() === '') lines.pop();
+  return lines.join('\n').trim() === '' ? '' : lines.join('\n');
+}
+
 
 // ── 배경색 팔레트 (세 템플릿 공통) ──
 // 배경색은 템플릿 전용 기능이 아니라 세 템플릿을 가로지르는 축이다.

@@ -145,6 +145,11 @@ export interface CollageLayout {
   specTouched?: boolean;
   /** v9.0 — 사용자가 '자유 배치'를 명시적으로 켠 배치. 자동 정렬·스냅 대상이 아니며 회전이 살아난다 */
   freeform?: boolean;
+  /** v12 — 자유 배치에서 사용자가 만든 **사진** 좌표. 정렬로 되돌려도 여기 보관해 다시 켜면 복원된다.
+   *  v11까지 토글이 파괴적이라(끄면 좌표가 사라짐) 사용자가 겁나서 못 썼다.
+   *  ⚠️ 사진 키 집합이 달라졌으면 폐기한다 — 안 그러면 지운 사진의 좌표가 유령으로 되살아난다
+   *  (lib/collageTemplates.ts stashMatches, scripts/verify-sticker.js S-7d) */
+  freeItems?: Record<string, CollageLayoutItem>;
 }
 
 /** 저스티파이드 배치 명세 — 실체는 lib/collageJustify.ts. 구조적 타입으로만 두어 types.ts의 무의존을 지킨다.

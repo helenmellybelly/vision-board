@@ -17,13 +17,17 @@ import {
 } from './types';
 import {
   BG_PALETTE,
+  STICKER_FONT_RATIO,
   TEMPLATE_DEFAULT_BG,
   TEMPLATE_TITLE_DEFAULT,
   TitleConfig,
   isLandscape,
   normalizeBgColor,
   regionFor,
+  normalizeStickerText,
   resolveTitleConfig,
+  stickerHeightNorm,
+  stickerLineCount,
   titleInkFor,
 } from './collageTokens';
 import { SolveItem, layoutSpec, solveTemplate } from './collageSolve';
@@ -34,7 +38,7 @@ import {
   swapInSpec,
   assertPartition,
 } from './collageJustify';
-import { IconId } from './stickerArt';
+import { ICONS, IconId, isIconId } from './stickerArt';
 
 export interface CollageItem {
   key: string; // `${sectionId}-${slotIdx}` — 사진 교체·삭제에도 안정적
@@ -104,12 +108,17 @@ export function titleFor(
 
 // ── 스티커 ──
 
+// 조판 수치의 단일 소스는 collageTokens (v12) — 여기서는 기존 호출부 호환을 위해 재export만 한다.
 // 글자 크기 = 항목 폭(it.w) × 보드 폭(px) × 비율 — DOM(cqi)과 canvas가 같은 식을 쓴다
-export const STICKER_FONT_RATIO: Record<StickerStyle, number> = {
-  script: 0.17,
-  chip: 0.11,
-  outline: 0.15,
-};
+export { STICKER_FONT_RATIO, stickerHeightNorm, stickerLineCount, normalizeStickerText };
+
+/** 스티커 한 개의 정규화 높이 — 아이콘은 자연 비율, 텍스트는 스타일·줄 수에서 (v12).
+ *  placeNewItems와 CollageBoard 클램프가 공유한다 */
+export function stickerBoxH(sticker: CollageSticker | undefined, w: number, aspect: number): number {
+  if (sticker?.kind === 'icon' && isIconId(sticker.icon)) return (w / ICONS[sticker.icon].ratio) * aspect;
+  const style: StickerStyle = sticker?.style ?? 'chip';
+  return stickerHeightNorm(style, stickerLineCount(sticker?.text ?? ''), w, aspect);
+}
 
 // 프리셋 문구 — 샘플 무드보드의 어퍼메이션 레퍼런스 (v7.6 다양화)
 // 이모지는 chip/script만 — outline은 strokeText 외곽선이 이모지 글리프를 깨뜨린다
@@ -315,24 +324,35 @@ export function bumpPhoto(
 // ── 새 항목 배치 (자유 배치·고아 스티커 전용) ──
 
 /** 새 항목을 기존 배치의 빈 공간에 놓는다 (v8.0) — 코스 그리드 후보를 훑어 겹침이 최소인 자리.
- *  결정적(무작위 없음) */
+ *  결정적(무작위 없음).
+ *
+ *  v12: `stickers`를 받으면 스티커 높이를 **실제 스타일·줄 수로** 계산한다. 안 주면 1줄 chip 근사 —
+ *  0.35 상수 시절보다 정확하고, 무엇보다 CollageBoard 클램프와 **같은 식**을 쓴다. */
 export function placeNewItems(
   newKeys: string[],
   existing: Record<string, CollageLayoutItem>,
   template: CollageTemplate,
-  aspect: number = ASPECT
+  aspect: number = ASPECT,
+  stickers?: Record<string, CollageSticker>,
+  /** 이 키는 이 폭으로 놓는다 (v12) — 호출부가 규격을 아는 경우.
+   *  ⚠️ 자리를 찾을 때와 실제로 놓을 때의 폭이 다르면 찾은 빈틈에 안 들어간다.
+   *     신규 문구는 사진 중앙값보다 훨씬 넓어서 실제로 겹쳤다(verify-sticker S-3a) */
+  widthOf?: Record<string, number>,
+  /** 이 자리가 비어 있으면 여기에 놓는다 (v12) — 탐색은 자리가 이미 찼을 때만 */
+  preferOf?: Record<string, { x: number; y: number }>
 ): Record<string, CollageLayoutItem> {
   const placed: Record<string, CollageLayoutItem> = {};
   if (newKeys.length === 0) return placed;
 
   const region = regionFor(template, aspect);
   const topReserve = region.y;
+  const stickerOf = (key: string) => stickers?.[key.slice('sticker:'.length)];
   const itemRect = (key: string, it: CollageLayoutItem): Rect => ({
     x: it.x,
     y: it.y,
     w: it.w,
     // 스티커는 텍스트라 실높이가 낮다 — 정사각 가정이면 팬텀 블록이 빈 공간 탐색을 방해한다
-    h: it.h ?? (isStickerKey(key) ? it.w * 0.35 : it.w * aspect),
+    h: it.h ?? (isStickerKey(key) ? stickerBoxH(stickerOf(key), it.w, aspect) : it.w * aspect),
   });
 
   const photoWs = Object.entries(existing)
@@ -343,32 +363,54 @@ export function placeNewItems(
     ? photoWs[Math.floor(photoWs.length / 2)]
     : isLandscape(aspect) ? 0.16 : 0.26;
 
-  const rects: Rect[] = Object.entries(existing).map(([k, it]) => itemRect(k, it));
+  // ⚠️ 스티커는 **스티커끼리만** 피한다 (v12). 사진을 피하게 두면 저스티파이드 배치에는 빈틈이
+  //    0이라 모든 후보의 점수가 똑같이 나쁘고, 결국 다섯 개가 전부 같은 "덜 나쁜" 자리로 모인다
+  //    (실측 최대 78% 겹침). 스티커는 사진 **위에** 얹히는 오버레이라는 게 애초의 설계이므로
+  //    사진과 겹치는 건 결함이 아니다. 서로 겹치는 것만이 결함이다.
+  const rects: { rect: Rect; sticker: boolean }[] = Object.entries(existing).map(([k, it]) => ({
+    rect: itemRect(k, it),
+    sticker: isStickerKey(k),
+  }));
   let maxZ = Math.max(0, ...Object.values(existing).map((it) => it.z));
 
   for (const key of newKeys) {
     const isSticker = isStickerKey(key);
-    const w = isSticker ? Math.max(STICKER_MIN_W, defaultW) : defaultW;
-    const h = isSticker ? w * 0.35 : w * aspect;
+    const w = widthOf?.[key] ?? (isSticker ? Math.max(STICKER_MIN_W, defaultW) : defaultW);
+    const h = isSticker ? stickerBoxH(stickerOf(key), w, aspect) : w * aspect;
+    const avoid = rects.filter((r) => (isSticker ? r.sticker : true)).map((r) => r.rect);
     const STEPS = 18;
+    const spanY = Math.max(0, 0.98 - h - topReserve);
+    const spanX = Math.max(0, 0.96 - w);
+    // 선호 자리 — 문구의 v11 기본값(가로 중앙, y=0.62)은 그 자체로 좋은 구도였다.
+    // 겹치지 않으면 그대로 쓰고, 이미 누가 있으면 그때만 탐색한다
+    const prefer = preferOf?.[key];
     let best = { x: 0.02, y: topReserve, score: Infinity };
+    if (prefer) {
+      const cand = { x: clamp01(prefer.x, w), y: clamp01(prefer.y, h), w, h };
+      let score = 0;
+      for (const r of avoid) score = Math.max(score, overlapArea(cand, r) / (w * h));
+      best = { x: cand.x, y: cand.y, score };
+    }
     for (let yi = 0; yi <= STEPS && best.score > 0; yi++) {
-      const y = topReserve + (yi / STEPS) * Math.max(0, 0.98 - h - topReserve);
+      const y = topReserve + (yi / STEPS) * spanY;
       for (let xi = 0; xi <= STEPS; xi++) {
-        const x = 0.02 + (xi / STEPS) * Math.max(0, 0.96 - w);
+        const x = 0.02 + (xi / STEPS) * spanX;
         const cand = { x, y, w, h };
         let score = 0;
-        for (const r of rects) score = Math.max(score, overlapArea(cand, r) / (w * h));
+        for (const r of avoid) score = Math.max(score, overlapArea(cand, r) / (w * h));
         if (score < best.score) best = { x, y, score };
         if (best.score === 0) break; // 완전 빈 자리 발견 — 조기 종료
       }
     }
     const it: CollageLayoutItem = { x: best.x, y: best.y, w, z: ++maxZ };
     placed[key] = it;
-    rects.push(itemRect(key, it));
+    rects.push({ rect: itemRect(key, it), sticker: isSticker });
   }
   return placed;
 }
+
+/** 좌상단 좌표를 보드 안으로 — 크기가 보드를 넘으면 0에 붙인다(상단 고정) */
+const clamp01 = (v: number, size: number) => Math.min(Math.max(v, 0.02), Math.max(0.02, 0.98 - size));
 
 // ── reconcile ──
 //
@@ -428,7 +470,7 @@ export function resolveLayout(
     if (saved.items[key]) result[key] = saved.items[key];
     else newKeys.push(key); // 고아 스티커
   }
-  Object.assign(result, placeNewItems(newKeys, result, template, aspect));
+  Object.assign(result, placeNewItems(newKeys, result, template, aspect, stickers));
   return {
     ...saved,
     items: result,
@@ -436,6 +478,70 @@ export function resolveLayout(
     aspect,
     edited: true,
     freeform: true,
+  };
+}
+
+// ── 자유 배치 토글 (v12) ──
+//
+// v11까지 토글은 **파괴적**이었다. 자유 배치를 끄면 그 자리에서 seedLayout으로 재정렬해
+// 사용자가 만든 좌표가 흔적 없이 사라졌고, 되돌릴 방법이 없었다. 그래서 오너는 "박스에 갇혀
+// 있다"고 느끼면서도 토글을 못 썼다 — 기능이 없어서가 아니라 **실험이 위험해서**였다.
+//
+// 이제 끌 때 현재 좌표를 freeItems에 스태시하고, 켤 때 되돌린다. 왕복이 무손실이면
+// 사용자는 겁 없이 눌러본다. 그게 이번 자율성의 실체다.
+//
+// ⚠️ 순수 함수로 둔 이유: scripts/verify-sticker.js S-7이 왕복 무손실을 직접 검증한다.
+//    컴포넌트 안에 있으면 그 계약을 기계로 잠글 방법이 없다.
+
+/** 스태시된 좌표가 지금 사진 구성과 맞는가 — 안 맞으면 유령 키가 되살아난다 */
+function stashMatches(
+  freeItems: Record<string, CollageLayoutItem> | undefined,
+  items: CollageItem[]
+): freeItems is Record<string, CollageLayoutItem> {
+  if (!freeItems) return false;
+  const want = items.filter((i) => !isStickerKey(i.key)).map((i) => i.key);
+  const have = Object.keys(freeItems).filter((k) => !isStickerKey(k));
+  return want.length === have.length && want.every((k) => freeItems[k] !== undefined);
+}
+
+/** 자유 배치 켜기 — 스태시가 지금 구성과 맞으면 되살리고, 아니면 현재 정렬 좌표를 시드로 쓴다 */
+export function enterFreeform(
+  prev: CollageLayout,
+  template: CollageTemplate,
+  items: CollageItem[],
+  aspect: number = ASPECT
+): CollageLayout {
+  const restored = stashMatches(prev.freeItems, items)
+    ? // 스티커는 스태시가 아니라 **현재 자리**를 지킨다 — 배치 밖 오버레이라 정렬 모드에서도 자유롭게 옮긴다
+      { ...prev.items, ...Object.fromEntries(Object.entries(prev.freeItems).filter(([k]) => !isStickerKey(k))) }
+    : prev.items;
+  // 지금 존재하지 않는 사진의 좌표는 여기서 떨군다 — 스태시가 아니라 prev.items에서 흘러들어올 수도 있다.
+  // (평소엔 resolveLayout이 먼저 청소하지만, 토글 자체가 그 순서에 기대면 안 된다)
+  const live = Object.fromEntries(
+    Object.entries(restored).filter(([k]) => isStickerKey(k) || items.some((i) => i.key === k))
+  );
+  return { ...prev, items: live, edited: true, freeform: true };
+}
+
+/** 자유 배치 끄기 — 지금 좌표를 스태시하고 표준 배치로 재정렬한다 (되돌릴 수 있는 파괴) */
+export function exitFreeform(
+  prev: CollageLayout,
+  template: CollageTemplate,
+  items: CollageItem[],
+  aspect: number = ASPECT
+): CollageLayout {
+  const fresh = seedLayout(template, items, aspect, { kitRemoved: prev.kitRemoved });
+  // 스티커는 배치 밖 오버레이라 자유 배치에서 옮겨둔 자리를 그대로 지킨다
+  const stickerItems = Object.fromEntries(Object.entries(prev.items).filter(([k]) => isStickerKey(k)));
+  return {
+    ...fresh,
+    items: { ...fresh.items, ...stickerItems },
+    stickers: { ...fresh.stickers, ...prev.stickers },
+    title: prev.title ?? fresh.title,
+    // 사진 좌표만 보관한다 — 스티커는 어차피 위에서 현재 자리를 그대로 쓴다
+    freeItems: Object.fromEntries(Object.entries(prev.items).filter(([k]) => !isStickerKey(k))),
+    edited: true,
+    freeform: false,
   };
 }
 
@@ -454,7 +560,7 @@ function withStickers(
     if (saved.items[key]) items[key] = saved.items[key];
     else if (!items[key]) orphans.push(key);
   }
-  Object.assign(items, placeNewItems(orphans, items, template, aspect));
+  Object.assign(items, placeNewItems(orphans, items, template, aspect, stickers));
   return {
     ...layout,
     items,
@@ -466,11 +572,46 @@ function withStickers(
   };
 }
 
-// 새 스티커의 기본 배치 — 중앙 아래, 최상단.
-// 가로형(PC) 보드에서는 폭 비례 글자가 과대해지지 않게 줄인다
-export function newStickerLayoutItem(maxZ: number, aspect: number = ASPECT): CollageLayoutItem {
+/**
+ * 새 스티커의 기본 배치.
+ *
+ * ⚠️ v11까지 이 함수는 기존 스티커가 몇 개든 **항상 같은 좌표**(중앙, y=0.62)를 돌려줬다.
+ *    그래서 두 번째 문구가 첫 문구 위에 정확히 포개져 z만 올라갔고, 사용자에게는
+ *    "문구를 추가했는데 추가 항목이 안 생긴다"로 보였다(실제 오너 신고). 데이터는 늘어나는데
+ *    화면은 안 늘어나는, 눈으로만 잡히는 종류의 버그다.
+ *
+ * 이제 빈자리 탐색(placeNewItems)에 위임한다 — 새 알고리즘이 아니라 자유 배치 reconcile이
+ * 이미 쓰던 결정적 탐색이다. 보드가 꽉 차서 완전한 빈자리가 없으면 겹침이 최소인 자리로 떨어진다.
+ *
+ * 가로형(PC) 보드에서는 폭 비례 글자가 과대해지지 않게 폭을 줄인다.
+ */
+export function newStickerLayoutItem(
+  maxZ: number,
+  aspect: number = ASPECT,
+  opts?: {
+    key: string;
+    existing: Record<string, CollageLayoutItem>;
+    template: CollageTemplate;
+    stickers?: Record<string, CollageSticker>;
+  }
+): CollageLayoutItem {
   const w = isLandscape(aspect) ? 0.26 : 0.44;
-  return { x: (1 - w) / 2, y: 0.62, w, z: maxZ + 1, rot: -2 };
+  const fallback: CollageLayoutItem = { x: (1 - w) / 2, y: 0.62, w, z: maxZ + 1, rot: -2 };
+  if (!opts) return fallback;
+  // ⚠️ 폭을 widthOf로 넘겨야 한다. 자리만 빌려 와서 나중에 폭을 키우면 찾은 빈틈에 안 들어간다 —
+  //    문구는 사진 폭 중앙값보다 훨씬 넓어서 실제로 최대 78% 겹쳤다(verify-sticker S-3a)
+  const spot = placeNewItems(
+    [opts.key],
+    opts.existing,
+    opts.template,
+    aspect,
+    opts.stickers,
+    { [opts.key]: w },
+    // 첫 문구는 v11과 같은 자리에 앉는다 — 좋은 기본 구도였고, 바꿀 이유가 없다.
+    // 두 번째부터만 빈자리로 흩어진다
+    { [opts.key]: { x: fallback.x, y: fallback.y } }
+  )[opts.key];
+  return spot ? { ...spot, z: maxZ + 1, rot: -2 } : fallback;
 }
 
 export { TEMPLATE_TITLE_DEFAULT };
