@@ -378,6 +378,9 @@ async function pickTitle(page, group, option) {
   await page.waitForTimeout(450);
   await closeSheet(page);
 
+  // v12: '기본 배치로'는 되돌릴 수 없어 한 번 더 묻는다 — 첫 탭은 확인 대기, 두 번째가 실행
+  await page.getByRole('button', { name: '기본 배치로' }).click();
+  await page.waitForTimeout(200);
   await page.getByRole('button', { name: '기본 배치로' }).click();
   await page.waitForTimeout(900);
   const s = await loadStored(page);

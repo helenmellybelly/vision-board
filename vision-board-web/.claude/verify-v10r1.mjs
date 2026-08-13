@@ -241,6 +241,9 @@ async function enterEdit(page, bd) {
     const s2 = await loadStored(page);
     const removed = s2.collageDeviceLayouts?.desktop?.editorial?.kitRemoved ?? [];
     ok('V10-5b 킷 삭제가 기억된다', removed.length >= 1, JSON.stringify(removed));
+    // v12: '기본 배치로'는 되돌릴 수 없어 한 번 더 묻는다 — 첫 탭은 확인 대기, 두 번째가 실행
+    await page.getByRole('button', { name: '기본 배치로' }).click();
+    await page.waitForTimeout(200);
     await page.getByRole('button', { name: '기본 배치로' }).click();
     await page.waitForTimeout(800);
     const s3 = await loadStored(page);

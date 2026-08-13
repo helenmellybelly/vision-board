@@ -571,6 +571,11 @@ function withStickers(
     edited: true,
     title: saved.title ?? layout.title,
     kitRemoved: saved.kitRemoved ?? layout.kitRemoved,
+    // ⚠️ 자유 배치 스태시도 명시적으로 이어받아야 한다 (v12). layout은 갓 만든 시드라 이 필드가
+    //    없고, 여기서 안 챙기면 '다시 정렬'을 누른 **직후의 reconcile**이 스태시를 지운다 —
+    //    저장소에는 남아 있는데 화면 상태에서만 사라져, 다시 켰을 때 좌표가 안 돌아온다(실측).
+    //    title·kitRemoved가 같은 이유로 여기 있다
+    freeItems: saved.freeItems ?? layout.freeItems,
   };
 }
 

@@ -149,6 +149,10 @@ export default function CollageBoard({
   // 리사이즈 드래그 중 미리보기 배율 (v11) — 배율은 전역(BoardData)이라 live에 없다.
   // 드래그가 끝나야 onTitleGlobalChange로 커밋한다
   const [titleScaleDraft, setTitleScaleDraft] = useState<number | null>(null);
+  // '기본 배치로' 확인 대기 (v12) — 되돌릴 수 없는 유일한 동작이라 한 번 더 묻는다
+  const [resetArmed, setResetArmed] = useState(false);
+  const resetTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (resetTimer.current) window.clearTimeout(resetTimer.current); }, []);
 
   // 편집 상태 전환은 이 함수로만 — 부모(나란히 배타 편집)에 항상 통지 (v8.1)
   function switchEditing(next: boolean) {
@@ -559,6 +563,7 @@ export default function CollageBoard({
     // 그게 "기본으로 돌아간다"의 정직한 의미이고, 킷을 실수로 지운 사용자의 유일한 복구 동선이다
     setPhotoAction(null);
     setTitleSheet(false);
+    setEditingSticker(null);
     // ⚠️ 타이틀 **모양**(전역 collageTitle)은 건드리지 않는다 — 배경색이 '기본 배치로'에
     //    영향받지 않는 것과 같은 계약. 위치는 시드에 title이 없어 템플릿 기본 앵커로 돌아간다
     save(seedLayout(template, items, aspect));
@@ -747,7 +752,10 @@ export default function CollageBoard({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setPhotoAction((cur) => (cur === key ? null : key))}
           data-photo-menu-for={key}
-          aria-label="사진 바꾸기·지우기"
+          // ⚠️ 접근 이름에 '사진 바꾸기'를 넣지 말 것 — 이 배지가 여는 액션 칩의 이름이 정확히
+          //    그것이라, 부분 일치로 잡는 셀렉터가 18개 배지와 칩을 한꺼번에 집어 모호해진다
+          //    (기존 v81r2의 사진 교체 케이스가 그렇게 깨진다). 여는 쪽과 열리는 쪽의 이름은 달라야 한다
+          aria-label="이 사진 손보기"
           className="absolute bottom-1 left-1 w-7 h-7 rounded-full bg-black/55 text-white flex items-center justify-center z-10 active:opacity-70"
         >
           <span className="text-caption leading-none pointer-events-none">⋯</span>
@@ -938,11 +946,26 @@ export default function CollageBoard({
                 줄바꿈을 허용하면 라벨이 전부 두 줄로 쪼개진다("기본 배 / 치로") — 실제로 그렇게 깨졌다.
                 '완료'만 오른쪽에 고정해 스크롤 위치와 무관하게 항상 닿을 수 있게 둔다 */}
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar min-w-0 [&>button]:shrink-0 [&>button]:whitespace-nowrap">
+              {/* '기본 배치로'는 유일하게 되돌릴 수 없는 동작이다 (자유 배치는 v12에서 왕복 무손실이
+                  됐고, 문구·사진은 다시 만들 수 있다). 모달 없이 **한 번 더 묻는다** — 탭 한 번에
+                  배치가 통째로 날아가는 건 실수 비용이 너무 크다. 5초 뒤 저절로 원래 라벨로 돌아간다 */}
               <button
-                onClick={resetLayout}
-                className="px-3 py-1.5 rounded-full bg-black/60 text-white text-caption font-medium active:opacity-70"
+                onClick={() => {
+                  if (!resetArmed) {
+                    setResetArmed(true);
+                    if (resetTimer.current) window.clearTimeout(resetTimer.current);
+                    resetTimer.current = window.setTimeout(() => setResetArmed(false), 5000);
+                    return;
+                  }
+                  setResetArmed(false);
+                  resetLayout();
+                }}
+                aria-label="기본 배치로"
+                className={`px-3 py-1.5 rounded-full text-caption font-medium active:opacity-70 ${
+                  resetArmed ? 'bg-[#B91C1C] text-white' : 'bg-black/60 text-white'
+                }`}
               >
-                기본 배치로
+                {resetArmed ? '정말 되돌릴까?' : '기본 배치로'}
               </button>
               <button
                 onClick={addSticker}
